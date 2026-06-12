@@ -243,6 +243,10 @@ export interface SiteSettings {
   [key: string]: string | string[] | HeroStat[] | boolean | undefined;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// 🎯 Types (معرفة مرة واحدة فقط)
+// ═══════════════════════════════════════════════════════════════
+
 export interface HeroStat {
   num:    string;
   label:  string;
@@ -250,24 +254,6 @@ export interface HeroStat {
   color?: string;
 }
 
-export interface TrustItem {
-  text:  string;
-  icon?: string;
-}
-
-/**
- * نوع الإحصائية في Hero
- */
-export interface HeroStat {
-  num:    string;
-  label:  string;
-  icon?:  string;
-  color?: string;
-}
-
-/**
- * نوع عنصر Trust Badge
- */
 export interface TrustItem {
   text:  string;
   icon?: string;
@@ -289,6 +275,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     return {};
   }
 }
+
 /**
  * جلب إعدادات التصميم والألوان
  */
@@ -306,6 +293,7 @@ export async function getDesignSettings(): Promise<any> {
     return null;
   }
 }
+
 /**
  * تحديث إعدادات الموقع (mass update)
  * @param data - الكائن الذي يحتوي على الإعدادات المراد تحديثها
@@ -356,6 +344,7 @@ export async function updateSingleSetting(key: string, value: string): Promise<b
     return false;
   }
 }
+
 /**
  * جلب إعداد واحد بمفتاحه
  */

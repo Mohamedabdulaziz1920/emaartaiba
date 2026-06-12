@@ -30,12 +30,12 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'api.dicoratjeeda.com',
+        hostname: 'api.lamsataljarj.com',
         pathname: '/storage/**',
       },
       {
         protocol: 'https',
-        hostname: 'api.dicoratjeeda.com',
+        hostname: 'api.lamsataljarj.com',
         pathname: '/**',
       },
       {
