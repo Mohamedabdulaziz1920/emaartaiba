@@ -1,15 +1,15 @@
 // src/app/sitemap.ts
 import { MetadataRoute } from 'next';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.lamsataljarj.com';
+const API = process.env.NEXT_PUBLIC_API_URL || 'https://api.lamsataljarj.com/api/v1';
 
 // حد Google الأقصى
 const MAX_URLS_PER_SITEMAP = 45000;
 const MAX_BLOG_PAGINATION_PAGES = 10;
 
 // ═══════════════════════════════════════════════════
-// 🛠️ Helpers
+// 🛠️ Helpers مع دعم أفضل لصيغ الاستجابة
 // ═══════════════════════════════════════════════════
 async function fetchData(path: string): Promise<any[]> {
   try {
@@ -25,10 +25,26 @@ async function fetchData(path: string): Promise<any[]> {
     
     const json = await res.json();
     
+    // ✅ دعم جميع صيغ الاستجابة الممكنة
     if (Array.isArray(json.data)) return json.data;
     if (Array.isArray(json)) return json;
     if (json.data?.data && Array.isArray(json.data.data)) return json.data.data;
     if (json.data?.items && Array.isArray(json.data.items)) return json.data.items;
+    if (json.data?.results && Array.isArray(json.data.results)) return json.data.results;
+    if (json.items && Array.isArray(json.items)) return json.items;
+    if (json.results && Array.isArray(json.results)) return json.results;
+    if (json.data && json.data.length !== undefined && typeof json.data === 'object' && !Array.isArray(json.data)) {
+      // إذا كان data كائن وليس مصفوفة، نحاول استخراج المصفوفة منه
+      for (const key of ['items', 'results', 'data', 'list']) {
+        if (Array.isArray(json.data[key])) return json.data[key];
+      }
+    }
+    // ✅ إذا كانت الاستجابة { data: { data: [...] } }
+    if (json.data && json.data.data && Array.isArray(json.data.data)) {
+      return json.data.data;
+    }
+    
+    console.warn(`⚠️ Unexpected API response format for ${path}:`, typeof json, Object.keys(json));
     return [];
   } catch (error) {
     console.error(`❌ Failed to fetch sitemap data for ${path}:`, error);
@@ -139,7 +155,7 @@ async function generateTagPages(): Promise<MetadataRoute.Sitemap> {
   
   return tags
     .filter((tag: any) => tag && tag.slug && tag.is_active !== false)
-    .slice(0, 100)  // أعلى 100 وسم
+    .slice(0, 100)
     .map((tag: any) => ({
       url: `${BASE_URL}/tags/${tag.slug}`,
       lastModified: formatDate(tag.updated_at || tag.created_at),
@@ -165,28 +181,36 @@ async function generatePartnerPages(): Promise<MetadataRoute.Sitemap> {
 }
 
 // ═══════════════════════════════════════════════════
+// 📊 Get All Dynamic Data with better error handling
+// ═══════════════════════════════════════════════════
+async function getAllDynamicData() {
+  try {
+    const [services, projects, blogs, areas, galleries] = await Promise.all([
+      fetchData('/services'),
+      fetchData('/projects'),
+      fetchData('/blogs?per_page=200'),
+      fetchData('/areas'),
+      fetchData('/galleries').catch(() => []),
+    ]);
+
+    return { services, projects, blogs, areas, galleries };
+  } catch (error) {
+    console.error('❌ Error fetching dynamic data:', error);
+    return { services: [], projects: [], blogs: [], areas: [], galleries: [] };
+  }
+}
+
+// ═══════════════════════════════════════════════════
 // 🗺️ Main Sitemap
 // ═══════════════════════════════════════════════════
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const startTime = Date.now();
   
-  // جلب البيانات بالتوازي
-  const [
-    services, 
-    projects, 
-    blogs, 
-    areas, 
-    galleries,
-    paginationPages,
-    categoryPages,
-    tagPages,
-    partnerPages,
-  ] = await Promise.all([
-    fetchData('/services'),
-    fetchData('/projects'),
-    fetchData('/blogs?per_page=200'),
-    fetchData('/areas'),
-    fetchData('/galleries').catch(() => []),
+  // ─── جلب البيانات بالتوازي ───
+  const { services, projects, blogs, areas, galleries } = await getAllDynamicData();
+  
+  // ─── الصفحات الإضافية ───
+  const [paginationPages, categoryPages, tagPages, partnerPages] = await Promise.all([
     generateBlogPaginationPages(),
     generateCategoryPages(),
     generateTagPages(),
@@ -286,27 +310,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const duration = Date.now() - startTime;
   
-  if (process.env.NODE_ENV === 'development') {
-    console.log('\n═══════════════════════════════════════════');
-    console.log(`✅ Sitemap generated in ${duration}ms`);
-    console.log('═══════════════════════════════════════════');
-    console.log(`📊 Total URLs: ${finalPages.length} / ${uniquePages.length}`);
-    console.log('───────────────────────────────────────────');
-    console.log(`📄 Static:     ${staticPages.length}`);
-    console.log(`🛠️  Services:   ${servicePages.length}`);
-    console.log(`🏢 Projects:    ${projectPages.length}`);
-    console.log(`📝 Blogs:       ${blogPages.length}`);
-    console.log(`📍 Areas:       ${areaPages.length}`);
-    console.log(`🖼️  Galleries:  ${galleryPages.length}`);
-    console.log(`📂 Categories:  ${categoryPages.length}`);
-    console.log(`🏷️  Tags:       ${tagPages.length}`);
-    console.log(`🤝 Partners:    ${partnerPages.length}`);
-    console.log(`📑 Pagination:  ${paginationPages.length}`);
-    console.log('═══════════════════════════════════════════\n');
-    
-    if (uniquePages.length > MAX_URLS_PER_SITEMAP) {
-      console.warn(`⚠️ Sitemap truncated: ${uniquePages.length - MAX_URLS_PER_SITEMAP} URLs removed`);
-    }
+  // ✅ عرض التقرير دائماً (وليس فقط في development)
+  console.log('\n═══════════════════════════════════════════');
+  console.log(`✅ Sitemap generated in ${duration}ms`);
+  console.log('═══════════════════════════════════════════');
+  console.log(`📊 Total URLs: ${finalPages.length} / ${uniquePages.length}`);
+  console.log('───────────────────────────────────────────');
+  console.log(`📄 Static:     ${staticPages.length}`);
+  console.log(`🛠️  Services:   ${servicePages.length}`);
+  console.log(`🏢 Projects:    ${projectPages.length}`);
+  console.log(`📝 Blogs:       ${blogPages.length}`);
+  console.log(`📍 Areas:       ${areaPages.length}`);
+  console.log(`🖼️  Galleries:  ${galleryPages.length}`);
+  console.log(`📂 Categories:  ${categoryPages.length}`);
+  console.log(`🏷️  Tags:       ${tagPages.length}`);
+  console.log(`🤝 Partners:    ${partnerPages.length}`);
+  console.log(`📑 Pagination:  ${paginationPages.length}`);
+  console.log('═══════════════════════════════════════════\n');
+  
+  if (uniquePages.length > MAX_URLS_PER_SITEMAP) {
+    console.warn(`⚠️ Sitemap truncated: ${uniquePages.length - MAX_URLS_PER_SITEMAP} URLs removed`);
   }
 
   return finalPages;
