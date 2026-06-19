@@ -33,6 +33,9 @@ export interface SiteSettings {
   email?:               string;
   email_secondary?:     string;
   fax?:                 string;
+  // 📊 Stats
+  engineers_count?:     string;  // ✅ إضافة
+  google_tag_manager?:       string;  // ✅ إضافة (للتوافق مع Backend)
 
   // ═══════════════════════════════════════
   // 📍 Address

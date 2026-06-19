@@ -14,6 +14,7 @@ import { Suspense } from 'react';
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { getDesignSettings } from '@/lib/colors';
+import { buildMediaUrl } from '@/lib/settings';
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -243,7 +244,6 @@ function generateCSSVariablesFromSettings(settings: any): string {
   const secondaryRgb = getRgbFromHex(settings.secondary_color || '#D4AF37');
   const accentRgb = getRgbFromHex(settings.accent_color || '#FFD700');
   
-  // ✅ استخدام font_family من typography أو من الجذر
   const fontFamily = settings.typography?.font_family || settings.font_family || 'Cairo';
   const fontFamilyHeadings = settings.typography?.font_family_headings || settings.font_family_headings || 'Cairo';
   const fontSizeBase = settings.typography?.font_size_base || settings.font_size_base || 16;
@@ -287,7 +287,6 @@ function generateCSSVariablesFromSettings(settings: any): string {
 // 🖥️ Root Layout Component
 // ============================================
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // ─── جلب جميع البيانات بالتوازي ───
   const [settings, navigationSections, designSettings, services] = await Promise.all([
     getSiteSettings(),
     fetchNavigationWithSections(),
@@ -298,14 +297,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const sortedNavigation = [...navigationSections.mainNav].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   const cssVariables = generateCSSVariablesFromSettings(designSettings);
   
-  // ✅ استخدام fontFamily من designSettings.typography أو fallback
-  // ✅ إزالة designSettings.font_family لأنها غير موجودة في DesignSettings
   const fontFamily = designSettings?.typography?.font_family || 
                      settings?.font_family || 
                      'Cairo';
 
   const googleFontsUrl = `https://fonts.googleapis.com/css2?family=${fontFamily.replace(' ', '+')}:wght@300;400;500;600;700;800&display=swap`;
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+
+  // ✅ أيقونة الموقع الديناميكية
+  const favicon = settings?.site_favicon ? buildMediaUrl(settings.site_favicon) : null;
+  const appleTouchIcon = settings?.site_favicon ? buildMediaUrl(settings.site_favicon) : null;
 
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
@@ -337,18 +338,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         
-        {settings?.site_favicon ? (
-          <link rel="icon" href={settings.site_favicon} />
-        ) : (
-          <>
-            <link rel="icon" href="/favicon.ico" sizes="any" />
-            <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
-          </>
+        {/* ✅ أيقونة الموقع الديناميكية */}
+        <link rel="icon" href={favicon || '/favicon.ico'} sizes="any" />
+        
+        {/* ✅ Apple Touch Icon */}
+        {appleTouchIcon && (
+          <link rel="apple-touch-icon" href={appleTouchIcon} />
         )}
         
         <link rel="manifest" href="/manifest.json" />
         
-        {/* ✅ تحميل الخط الديناميكي من Google Fonts */}
         <link href={googleFontsUrl} rel="stylesheet" />
         
         <style dangerouslySetInnerHTML={{ __html: `:root { ${cssVariables} }` }} />
