@@ -1,38 +1,10 @@
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
 // ════════════════════════════════════════════
-// 🎨 دالة مساعدة للحصول على رابط الصورة
-// ════════════════════════════════════════════
-export function getImageUrl(image: string | null | undefined): string {
-  if (!image) return '';
-  
-  if (image.startsWith('http://') || image.startsWith('https://')) {
-    return image;
-  }
-  
-  if (image.startsWith('/storage')) {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-    return `${backendUrl}${image}`;
-  }
-  
-  if (image.startsWith('storage/')) {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-    return `${backendUrl}/${image}`;
-  }
-  
-  if (image.startsWith('blogs/')) {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-    return `${backendUrl}/storage/${image}`;
-  }
-  
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-  return `${backendUrl}/storage/${image.replace(/^\/+/, '')}`;
-}
-
-// ════════════════════════════════════════════
 // 🎨 استيراد DesignSettings من colors.ts
 // ════════════════════════════════════════════
 import type { DesignSettings } from './colors';
+import { getImageUrl, imageUrl, buildImageUrl } from './image';
 
 // ════════════════════════════════════════════
 // 📋 TYPES

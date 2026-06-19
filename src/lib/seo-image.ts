@@ -1,6 +1,11 @@
 // src/lib/seo-image.ts
 import type { SiteSettings } from './settings';
 import { toStr } from './typeSafe';
+// ✅ إزالة الاستيراد المكرر واستخدام الدوال من image.ts
+import { imageUrl, isValidImageUrl as isValidUrl } from './image';
+
+// ✅ إعادة تصدير isValidImageUrl من image.ts
+export { isValidUrl as isValidImageUrl };
 
 /**
  * أنواع الصور المدعومة
@@ -20,8 +25,8 @@ export interface AltTextOptions {
   clientName?: string;
   location?: string;
   year?: string;
-  settings?: SiteSettings;  // ✨ جديد - لاسم الموقع الديناميكي
-  customBrand?: string;     // ✨ جديد - اسم مخصص
+  settings?: SiteSettings;
+  customBrand?: string;
 }
 
 /**
@@ -50,16 +55,6 @@ function getSiteBrand(settings?: SiteSettings, customBrand?: string): string {
 
 /**
  * توليد نص بديل (Alt Text) محسن لتحسين SEO
- * 
- * @example
- * generateAltText({ 
- *   title: 'بناء فيلا', 
- *   type: 'project', 
- *   city: 'جدة', 
- *   index: 0,
- *   settings // ← الإعدادات الديناميكية
- * })
- * // => "مشروع: بناء فيلا في جدة - صورة 1 | شركة البناء المتميز"
  */
 export function generateAltText(options: AltTextOptions): string {
   const { 
@@ -149,9 +144,9 @@ export const imageSizes = {
   full: { width: 1920, height: 1080, label: 'كاملة' },
   avatar: { width: 100, height: 100, label: 'صورة شخصية' },
   square: { width: 400, height: 400, label: 'مربعة' },
-  hero: { width: 1920, height: 800, label: 'هيرو' },           // ✨ جديد
-  banner: { width: 1600, height: 400, label: 'بانر' },         // ✨ جديد
-  mobile: { width: 768, height: 512, label: 'موبايل' },        // ✨ جديد
+  hero: { width: 1920, height: 800, label: 'هيرو' },
+  banner: { width: 1600, height: 400, label: 'بانر' },
+  mobile: { width: 768, height: 512, label: 'موبايل' },
 } as const;
 
 export type ImageSize = keyof typeof imageSizes;
@@ -231,16 +226,41 @@ export function generateResponsiveImageSet(
 }
 
 /**
- * التحقق من صحة رابط الصورة
+ * ✅ الدالة الوحيدة لـ Open Graph Image (تم إزالة التكرار)
  */
-export function isValidImageUrl(url: string): boolean {
-  if (!url || typeof url !== 'string') return false;
+export function getOgImageUrl(
+  image?: string | null,
+  settings?: SiteSettings
+): string {
+  // أولوية: الصورة المُمررة → meta_image → site_logo → placeholder
+  if (image && isValidUrl(image)) {
+    return getResizedImageUrl(image, 'featured');
+  }
   
-  if (url.startsWith('http://') || url.startsWith('https://')) return true;
-  if (url.startsWith('data:image/')) return true;
-  if (url.startsWith('/storage/') || url.startsWith('/uploads/') || url.startsWith('/images/')) return true;
+  if (settings) {
+    const metaImage = toStr(settings.meta_image || settings.og_image);
+    if (metaImage && isValidUrl(metaImage)) {
+      return imageUrl(metaImage);
+    }
+    
+    const logo = toStr(settings.site_logo);
+    if (logo && isValidUrl(logo)) {
+      return imageUrl(logo);
+    }
+  }
   
-  return false;
+  const brand = getSiteBrand(settings);
+  return getPlaceholderImage(1200, 630, brand);
+}
+
+/**
+ * ✅ الدالة الوحيدة لـ Twitter Image (تم إزالة التكرار)
+ */
+export function getTwitterImageUrl(
+  image?: string | null,
+  settings?: SiteSettings
+): string {
+  return getOgImageUrl(image, settings);
 }
 
 /**
@@ -274,45 +294,7 @@ export function autoGenerateAltText(
 }
 
 /**
- * ✨ جديد: توليد Open Graph Image URL
- */
-export function getOgImageUrl(
-  image?: string | null,
-  settings?: SiteSettings
-): string {
-  // أولوية: الصورة المُمررة → meta_image → site_logo → placeholder
-  if (image && isValidImageUrl(image)) {
-    return getResizedImageUrl(image, 'featured');
-  }
-  
-  if (settings) {
-    const metaImage = toStr(settings.meta_image || settings.og_image);
-    if (metaImage && isValidImageUrl(metaImage)) {
-      return metaImage;
-    }
-    
-    const logo = toStr(settings.site_logo);
-    if (logo && isValidImageUrl(logo)) {
-      return logo;
-    }
-  }
-  
-  const brand = getSiteBrand(settings);
-  return getPlaceholderImage(1200, 630, brand);
-}
-
-/**
- * ✨ جديد: توليد Twitter Image URL
- */
-export function getTwitterImageUrl(
-  image?: string | null,
-  settings?: SiteSettings
-): string {
-  return getOgImageUrl(image, settings);
-}
-
-/**
- * ✨ جديد: استخراج alt text من البيانات الخام
+ * استخراج alt text من البيانات الخام
  */
 export function extractAltText(
   item: any,

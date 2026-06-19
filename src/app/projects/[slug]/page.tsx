@@ -1,4 +1,4 @@
-// frontend/src/app/projects/[slug]/page.tsx
+// src/app/projects/[slug]/page.tsx
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import type { Metadata } from 'next';
@@ -14,7 +14,9 @@ import ProjectSchema from '@/components/seo/ProjectSchema';
 import Breadcrumb from '@/components/seo/Breadcrumb';
 
 // 🛠️ Utilities
-import { api, getImageUrl, getProjectStatusInfo, formatArea } from '@/lib/api';
+// ✅ فصل الاستيرادات: api من api.ts، getImageUrl من image.ts
+import { api, getProjectStatusInfo, formatArea } from '@/lib/api';
+import { getImageUrl } from '@/lib/image'; // ✅ استيراد من image.ts
 import { getSiteSettings } from '@/lib/settings';
 import { toStr, toArray } from '@/lib/typeSafe';
 

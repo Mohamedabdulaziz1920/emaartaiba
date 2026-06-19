@@ -3,16 +3,33 @@
    ملف التنسيق الرئيسي - منظّم ونظيف
    ═══════════════════════════════════════════════════════════════════ */
 
+/* ═══════════════════════════════════════════════════════════════════
+   ✅ منع FOUC (Flash of Unstyled Content)
+   ═══════════════════════════════════════════════════════════════════ */
+html, body {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+html.loaded, body.loaded {
+  opacity: 1;
+}
+
+/* Header و Footer */
+.site-hdr, .top-bar, footer {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.site-hdr.loaded, .top-bar.loaded, footer.loaded {
+  opacity: 1;
+}
+
 /* ─────────────────────────────────────────────
-   🔤 GOOGLE FONTS
+   🔤 GOOGLE FONTS (✅ يتم تحميلها من layout.tsx)
    ───────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@200;300;400;500;600;700;800;900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@200;300;400;500;700;800;900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@100;200;300;400;500;600;700;800;900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700;800;900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
+/* ⚠️ تم نقل تحميل الخطوط إلى layout.tsx باستخدام next/font */
+/* لتجنب FOUC وتحسين الأداء */
 
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -24,48 +41,53 @@
    🎨 CSS VARIABLES (يُعاد تعيينها ديناميكياً من layout.tsx)
    ═══════════════════════════════════════════════════════════════════ */
 :root {
-  /* الألوان الأساسية */
+  /* 🎨 الألوان الأساسية - ✅ ذهبي ملكي */
   --color-primary: #1a365d;
   --color-primary-dark: #0f1729;
   --color-primary-light: #2b6cb0;
-  --color-secondary: #ed8936;
-  --color-secondary-dark: #dd6b20;
-  --color-secondary-light: #fbd38d;
-  --color-accent: #10b981;
+  --color-secondary: #D4AF37;        /* ✅ ذهبي ملكي */
+  --color-secondary-dark: #B8960F;   /* ✅ ذهبي غامق */
+  --color-secondary-light: #F3E5AB;  /* ✅ ذهبي فاتح */
+  --color-accent: #FFD700;           /* ✅ ذهبي لامع */
   --color-warning: #f59e0b;
   --color-danger: #ef4444;
   --color-info: #3b82f6;
 
-  /* الخلفيات */
+  /* RGB versions - ✅ متوافقة مع الذهبي */
+  --color-primary-rgb: 26, 54, 93;
+  --color-secondary-rgb: 212, 175, 55;   /* ✅ ذهبي RGB */
+  --color-accent-rgb: 255, 215, 0;       /* ✅ ذهبي لامع RGB */
+
+  /* 🖼️ الخلفيات */
   --color-bg-light: #f8faff;
   --color-bg-dark: #0f1729;
   --color-bg-card: #ffffff;
   --color-bg-footer: #0f1729;
   --color-bg-hero: linear-gradient(135deg, #0f1729 0%, #1a365d 50%, #2b6cb0 100%);
 
-  /* النصوص */
+  /* 📝 النصوص */
   --color-text-dark: #0f172a;
   --color-text-light: #ffffff;
   --color-text-muted: #64748b;
-  --color-text-link: #1a365d;
+  --color-text-link: #D4AF37;        /* ✅ ذهبي للروابط */
 
-  /* الأزرار */
-  --btn-primary-bg: #ed8936;
-  --btn-primary-text: #ffffff;
-  --btn-primary-hover: #dd6b20;
+  /* 🔘 الأزرار - ✅ ذهبية */
+  --btn-primary-bg: #D4AF37;
+  --btn-primary-text: #0f172a;
+  --btn-primary-hover: #B8960F;
   --btn-secondary-bg: #1f2937;
   --btn-secondary-text: #ffffff;
   --btn-secondary-hover: #374151;
-  --btn-outline-border: #ed8936;
-  --btn-outline-text: #ed8936;
-  --btn-outline-hover: #dd6b20;
+  --btn-outline-border: #D4AF37;
+  --btn-outline-text: #D4AF37;
+  --btn-outline-hover: #B8960F;
 
-  /* البطاقات */
+  /* 📦 البطاقات */
   --card-border-radius: 16px;
   --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   --card-border-color: #e2e8f0;
 
-  /* الخطوط */
+  /* 📝 الخطوط - ✅ سيتم تحديثها من layout.tsx */
   --font-family: 'Cairo', sans-serif;
   --font-family-headings: 'Cairo', sans-serif;
   --font-size-base: 16px;
@@ -73,7 +95,7 @@
   --font-size-h2: 36px;
   --font-size-h3: 24px;
 
-  /* التأثيرات */
+  /* ✨ التأثيرات */
   --transition-duration: 0.3s;
   --hover-scale: scale(1.02);
   --btn-border-radius: 12px;
@@ -81,32 +103,27 @@
   --btn-padding-x: 24px;
   --input-border-radius: 8px;
   --input-border-color: #e2e8f0;
-  --input-focus-color: #ed8936;
+  --input-focus-color: #D4AF37;      /* ✅ ذهبي */
 
-  /* الاستجابة */
+  /* 📱 الاستجابة */
   --breakpoint-mobile: 640px;
   --breakpoint-tablet: 768px;
   --breakpoint-desktop: 1024px;
   --container-width: 1400px;
 
-  /* الفوتر */
+  /* 🦶 الفوتر */
   --footer-bg: #0f1729;
   --footer-text: #cbd5e0;
 
-  /* السلايدر */
+  /* 🎬 السلايدر */
   --slider-autoplay-delay: 5;
   --slider-autoplay: 1;
 
-  /* إضافات */
+  /* ✨ إضافات */
   --enable-blur: 1;
   --enable-gradients: 1;
 
-  /* RGB versions */
-  --color-primary-rgb: 26, 54, 93;
-  --color-secondary-rgb: 237, 137, 54;
-  --color-accent-rgb: 16, 185, 129;
-
-  /* Shadcn variables */
+  /* 🎨 Shadcn variables */
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
@@ -142,7 +159,7 @@
   --foreground: oklch(0.145 0 0);
 }
 
-/* Dark mode (Shadcn) */
+/* ✅ Dark mode (Shadcn) */
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
@@ -272,7 +289,7 @@ h2 { font-size: var(--font-size-h2); }
 h3 { font-size: var(--font-size-h3); }
 
 /* ═══════════════════════════════════════════════════════════════════
-   🔗 LINKS (افتراضي عام - مكوّنات الهيدر/الفوتر تتجاوزه)
+   🔗 LINKS
    ═══════════════════════════════════════════════════════════════════ */
 a {
   color: var(--color-text-link);
@@ -284,7 +301,7 @@ a:hover {
   color: var(--color-secondary);
 }
 
-/* ⚠️ مهم: استثناء روابط الهيدر والفوتر من القواعد العامة */
+/* ⚠️ استثناء روابط الهيدر والفوتر */
 .site-hdr a,
 .site-mob a,
 header.site-hdr a,
@@ -479,7 +496,7 @@ footer a {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   🔘 BUTTONS (افتراضي عام)
+   🔘 BUTTONS
    ═══════════════════════════════════════════════════════════════════ */
 .btn {
   display: inline-flex;
@@ -993,22 +1010,12 @@ footer a {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   🦶 FOOTER (الفوتر فقط - الهيدر له تنسيقاته الخاصة في المكون)
+   🦶 FOOTER
    ═══════════════════════════════════════════════════════════════════ */
 footer {
   background: var(--footer-bg);
   color: var(--footer-text);
 }
-
-/* 
-   ⚠️ تم إزالة القواعد العامة:
-   - header { ... }
-   - header a { ... }
-   - header a:hover { ... }
-   
-   لأن مكوّن Header.tsx يستخدم classes خاصة (site-hdr) 
-   مع تنسيقات !important داخل المكوّن.
-*/
 
 /* ═══════════════════════════════════════════════════════════════════
    📱 RESPONSIVE - PROJECT DETAIL

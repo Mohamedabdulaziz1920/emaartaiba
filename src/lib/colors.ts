@@ -168,23 +168,23 @@ export const DEFAULT_COLORS: SiteColors = {
   primary_color: '#1a365d',
   primary_dark: '#0f1729',
   primary_light: '#2b6cb0',
-  secondary_color: '#D4AF37',      // ✅ ذهبي ملكي
-  secondary_dark: '#B8960F',       // ✅ ذهبي غامق
-  secondary_light: '#F3E5AB',      // ✅ ذهبي فاتح
+  secondary_color: '#D4AF37',
+  secondary_dark: '#B8960F',
+  secondary_light: '#F3E5AB',
   bg_light: '#f8faff',
   bg_dark: '#0f1729',
   bg_card: '#ffffff',
   text_dark: '#0f172a',
   text_light: '#ffffff',
   text_muted: '#64748b',
-  text_link: '#D4AF37',            // ✅ ذهبي للروابط
+  text_link: '#D4AF37',
   success_color: '#10b981',
   warning_color: '#f59e0b',
   error_color: '#ef4444',
   info_color: '#3b82f6',
-  btn_primary_bg: '#D4AF37',        // ✅ ذهبي
-  btn_primary_text: '#0f172a',      // ✅ داكن لتباين أفضل
-  btn_primary_hover: '#B8960F',     // ✅ ذهبي غامق
+  btn_primary_bg: '#D4AF37',
+  btn_primary_text: '#0f172a',
+  btn_primary_hover: '#B8960F',
   btn_secondary_bg: '#1f2937',
   btn_secondary_text: '#ffffff',
   btn_secondary_hover: '#374151',
@@ -198,10 +198,10 @@ const DEFAULT_DESIGN_SETTINGS: DesignSettings = {
   primary_color: '#1a365d',
   primary_dark: '#0f1729',
   primary_light: '#2b6cb0',
-  secondary_color: '#D4AF37',      // ✅ ذهبي ملكي
-  secondary_dark: '#B8960F',       // ✅ ذهبي غامق
-  secondary_light: '#F3E5AB',      // ✅ ذهبي فاتح
-  accent_color: '#FFD700',          // ✅ ذهبي لامع
+  secondary_color: '#D4AF37',
+  secondary_dark: '#B8960F',
+  secondary_light: '#F3E5AB',
+  accent_color: '#FFD700',
   warning_color: '#f59e0b',
   danger_color: '#ef4444',
   info_color: '#3b82f6',
@@ -214,9 +214,9 @@ const DEFAULT_DESIGN_SETTINGS: DesignSettings = {
   text_dark: '#0f172a',
   text_light: '#ffffff',
   text_muted: '#64748b',
-  text_link: '#D4AF37',            // ✅ ذهبي للروابط
+  text_link: '#D4AF37',
   buttons: {
-    primary: { bg: '#D4AF37', text: '#0f172a', hover: '#B8960F' },      // ✅ ذهبي
+    primary: { bg: '#D4AF37', text: '#0f172a', hover: '#B8960F' },
     secondary: { bg: '#1f2937', text: '#ffffff', hover: '#374151' },
   },
   cards: {
@@ -232,13 +232,13 @@ const DEFAULT_DESIGN_SETTINGS: DesignSettings = {
     btn_padding_x: 24,
     input_border_radius: 8,
     input_border_color: '#e2e8f0',
-    input_focus_color: '#D4AF37',    // ✅ ذهبي
+    input_focus_color: '#D4AF37',
   },
   header: {
     bg: '#0f1729',
     text: '#ffffff',
     link: '#cbd5e0',
-    link_hover: '#D4AF37',           // ✅ ذهبي عند التمرير
+    link_hover: '#D4AF37',
   },
   footer: {
     bg: '#0f1729',
@@ -265,7 +265,7 @@ const DEFAULT_DESIGN_SETTINGS: DesignSettings = {
 };
 
 // ═══════════════════════════════════════════════════════════════════
-// 🌐 جلب الإعدادات من الـ API - تم إصلاح URL
+// 🌐 جلب الإعدادات من الـ API - ✅ مع `next: { revalidate }`
 // ═══════════════════════════════════════════════════════════════════
 
 // دالة مساعدة لبناء URL صحيح
@@ -284,12 +284,11 @@ function getDesignSettingsUrl(): string {
 export async function getSiteColors(): Promise<SiteColors> {
   try {
     const url = getDesignSettingsUrl();
-    const response = await fetch(url, {
-      cache: 'no-store',
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
+    // ✅ استخدام next: { revalidate } بدلاً من cache: 'no-store'
+  const response = await fetch(url, {
+  next: { revalidate: 60 },
+  headers: { 'Accept': 'application/json' },
+});
     
     if (!response.ok) {
       console.warn('Design settings API returned non-OK status:', response.status);
@@ -307,31 +306,31 @@ export async function getSiteColors(): Promise<SiteColors> {
     
     const convertedColors: SiteColors = {
       ...DEFAULT_COLORS,
-      primary_color: data?.primary_color,
-      primary_dark: data?.primary_dark,
-      primary_light: data?.primary_light,
-      secondary_color: data?.secondary_color,
-      secondary_dark: data?.secondary_dark,
-      secondary_light: data?.secondary_light,
-      bg_light: data?.bg_light,
-      bg_dark: data?.bg_dark,
-      bg_card: data?.bg_card,
-      text_dark: data?.text_dark,
-      text_light: data?.text_light,
-      text_muted: data?.text_muted,
-      text_link: data?.text_link,
-      warning_color: data?.warning_color,
-      info_color: data?.info_color,
-      btn_primary_bg: data?.buttons?.primary?.bg || data?.btn_primary_bg,
-      btn_primary_text: data?.buttons?.primary?.text || data?.btn_primary_text,
-      btn_primary_hover: data?.buttons?.primary?.hover || data?.btn_primary_hover,
-      btn_secondary_bg: data?.buttons?.secondary?.bg || data?.btn_secondary_bg,
-      btn_secondary_text: data?.buttons?.secondary?.text || data?.btn_secondary_text,
-      btn_secondary_hover: data?.buttons?.secondary?.hover || data?.btn_secondary_hover,
-      header_bg: data?.header?.bg || data?.header_bg,
-      header_text: data?.header?.text || data?.header_text,
-      footer_bg: data?.footer?.bg || data?.footer_bg,
-      footer_text: data?.footer?.text || data?.footer_text,
+      primary_color: data?.primary_color || DEFAULT_COLORS.primary_color,
+      primary_dark: data?.primary_dark || DEFAULT_COLORS.primary_dark,
+      primary_light: data?.primary_light || DEFAULT_COLORS.primary_light,
+      secondary_color: data?.secondary_color || DEFAULT_COLORS.secondary_color,
+      secondary_dark: data?.secondary_dark || DEFAULT_COLORS.secondary_dark,
+      secondary_light: data?.secondary_light || DEFAULT_COLORS.secondary_light,
+      bg_light: data?.bg_light || DEFAULT_COLORS.bg_light,
+      bg_dark: data?.bg_dark || DEFAULT_COLORS.bg_dark,
+      bg_card: data?.bg_card || DEFAULT_COLORS.bg_card,
+      text_dark: data?.text_dark || DEFAULT_COLORS.text_dark,
+      text_light: data?.text_light || DEFAULT_COLORS.text_light,
+      text_muted: data?.text_muted || DEFAULT_COLORS.text_muted,
+      text_link: data?.text_link || DEFAULT_COLORS.text_link,
+      warning_color: data?.warning_color || DEFAULT_COLORS.warning_color,
+      info_color: data?.info_color || DEFAULT_COLORS.info_color,
+      btn_primary_bg: data?.buttons?.primary?.bg || data?.btn_primary_bg || DEFAULT_COLORS.btn_primary_bg,
+      btn_primary_text: data?.buttons?.primary?.text || data?.btn_primary_text || DEFAULT_COLORS.btn_primary_text,
+      btn_primary_hover: data?.buttons?.primary?.hover || data?.btn_primary_hover || DEFAULT_COLORS.btn_primary_hover,
+      btn_secondary_bg: data?.buttons?.secondary?.bg || data?.btn_secondary_bg || DEFAULT_COLORS.btn_secondary_bg,
+      btn_secondary_text: data?.buttons?.secondary?.text || data?.btn_secondary_text || DEFAULT_COLORS.btn_secondary_text,
+      btn_secondary_hover: data?.buttons?.secondary?.hover || data?.btn_secondary_hover || DEFAULT_COLORS.btn_secondary_hover,
+      header_bg: data?.header?.bg || data?.header_bg || DEFAULT_COLORS.header_bg,
+      header_text: data?.header?.text || data?.header_text || DEFAULT_COLORS.header_text,
+      footer_bg: data?.footer?.bg || data?.footer_bg || DEFAULT_COLORS.footer_bg,
+      footer_text: data?.footer?.text || data?.footer_text || DEFAULT_COLORS.footer_text,
     };
     
     return convertedColors;
@@ -344,8 +343,9 @@ export async function getSiteColors(): Promise<SiteColors> {
 export async function getDesignSettings(): Promise<DesignSettings> {
   try {
     const url = getDesignSettingsUrl();
+    // ✅ استخدام next: { revalidate } بدلاً من cache: 'no-store'
     const response = await fetch(url, {
-      cache: 'no-store',
+      next: { revalidate: 60 },
       headers: {
         'Accept': 'application/json',
       },
@@ -381,7 +381,7 @@ export async function getDesignTemplates(): Promise<Record<string, DesignTemplat
   try {
     const url = `${getDesignSettingsUrl()}/templates`;
     const response = await fetch(url, {
-      cache: 'no-store',
+      next: { revalidate: 3600 },
       headers: {
         'Accept': 'application/json',
       },
@@ -446,7 +446,7 @@ export async function validateDesignSettings(): Promise<DesignValidation | null>
   try {
     const url = `${getDesignSettingsUrl()}/validate`;
     const response = await fetch(url, {
-      cache: 'no-store',
+      next: { revalidate: 60 },
       headers: {
         'Accept': 'application/json',
       },
@@ -478,7 +478,7 @@ export async function getDesignStats(): Promise<DesignStats | null> {
   try {
     const url = `${getDesignSettingsUrl()}/stats`;
     const response = await fetch(url, {
-      cache: 'no-store',
+      next: { revalidate: 3600 },
       headers: {
         'Accept': 'application/json',
       },
@@ -542,7 +542,7 @@ export async function getDesignCSSVariables(): Promise<string | null> {
   try {
     const url = `${getDesignSettingsUrl()}/css`;
     const response = await fetch(url, {
-      cache: 'no-store',
+      next: { revalidate: 60 },
     });
     
     if (!response.ok) {
