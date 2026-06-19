@@ -1,4 +1,4 @@
-// frontend/src/app/layout.tsx
+// src/app/layout.tsx
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import Header           from '@/components/layout/Header';
@@ -229,6 +229,7 @@ async function fetchNavigation(): Promise<NavItem[]> {
   return mainNav;
 }
 
+// ✅ دالة توليد CSS Variables
 function generateCSSVariablesFromSettings(settings: any): string {
   if (!settings) return '';
   
@@ -241,6 +242,14 @@ function generateCSSVariablesFromSettings(settings: any): string {
   const primaryRgb = getRgbFromHex(settings.primary_color || '#1a365d');
   const secondaryRgb = getRgbFromHex(settings.secondary_color || '#D4AF37');
   const accentRgb = getRgbFromHex(settings.accent_color || '#FFD700');
+  
+  // ✅ استخدام font_family من typography أو من الجذر
+  const fontFamily = settings.typography?.font_family || settings.font_family || 'Cairo';
+  const fontFamilyHeadings = settings.typography?.font_family_headings || settings.font_family_headings || 'Cairo';
+  const fontSizeBase = settings.typography?.font_size_base || settings.font_size_base || 16;
+  const fontSizeH1 = settings.typography?.font_size_h1 || settings.font_size_h1 || 48;
+  const fontSizeH2 = settings.typography?.font_size_h2 || settings.font_size_h2 || 36;
+  const fontSizeH3 = settings.typography?.font_size_h3 || settings.font_size_h3 || 24;
   
   return `
     /* 🎨 الألوان الأساسية من قاعدة البيانات */
@@ -265,12 +274,12 @@ function generateCSSVariablesFromSettings(settings: any): string {
     --color-accent-rgb: ${accentRgb};
     
     /* 📝 الخطوط الديناميكية من لوحة التحكم */
-    --font-family: '${settings.typography?.font_family || 'Cairo'}', sans-serif;
-    --font-family-headings: '${settings.typography?.font_family_headings || 'Cairo'}', sans-serif;
-    --font-size-base: ${settings.typography?.font_size_base || 16}px;
-    --font-size-h1: ${settings.typography?.font_size_h1 || 48}px;
-    --font-size-h2: ${settings.typography?.font_size_h2 || 36}px;
-    --font-size-h3: ${settings.typography?.font_size_h3 || 24}px;
+    --font-family: '${fontFamily}', sans-serif;
+    --font-family-headings: '${fontFamilyHeadings}', sans-serif;
+    --font-size-base: ${fontSizeBase}px;
+    --font-size-h1: ${fontSizeH1}px;
+    --font-size-h2: ${fontSizeH2}px;
+    --font-size-h3: ${fontSizeH3}px;
   `;
 }
 
@@ -278,6 +287,7 @@ function generateCSSVariablesFromSettings(settings: any): string {
 // 🖥️ Root Layout Component
 // ============================================
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // ─── جلب جميع البيانات بالتوازي ───
   const [settings, navigationSections, designSettings, services] = await Promise.all([
     getSiteSettings(),
     fetchNavigationWithSections(),
@@ -287,16 +297,77 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   const sortedNavigation = [...navigationSections.mainNav].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   const cssVariables = generateCSSVariablesFromSettings(designSettings);
-  const fontFamily = designSettings?.typography?.font_family || settings?.font_family || 'Cairo';
+  
+  // ✅ استخدام fontFamily من designSettings.typography أو fallback
+  // ✅ إزالة designSettings.font_family لأنها غير موجودة في DesignSettings
+  const fontFamily = designSettings?.typography?.font_family || 
+                     settings?.font_family || 
+                     'Cairo';
+
   const googleFontsUrl = `https://fonts.googleapis.com/css2?family=${fontFamily.replace(' ', '+')}:wght@300;400;500;600;700;800&display=swap`;
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
-      <body suppressHydrationWarning>
-        {/* ✅ Meta Tags مباشرة في body أو استخدام next/head */}
+      <head>
         <JsonLd settings={settings} />
         
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <meta name="format-detection" content="telephone=yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        
+        <meta name="robots" content="index, follow" />
+        <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+        
+        <meta name="geo.region" content="SA" />
+        <meta name="geo.placename" content="Saudi Arabia" />
+        <meta name="geo.position" content="24.7136;46.6753" />
+        <meta name="ICBM" content="24.7136, 46.6753" />
+        
+        <meta name="author" content={settings?.site_name_ar || 'البناء المتميز'} />
+        <meta name="publisher" content={settings?.site_name_ar || 'البناء المتميز'} />
+        
+        <link rel="canonical" href={baseUrl} />
+        <link rel="alternate" href={baseUrl} hrefLang="ar" />
+        <link rel="alternate" href={baseUrl} hrefLang="x-default" />
+        
+        <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_API_URL} />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        
+        {settings?.site_favicon ? (
+          <link rel="icon" href={settings.site_favicon} />
+        ) : (
+          <>
+            <link rel="icon" href="/favicon.ico" sizes="any" />
+            <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+          </>
+        )}
+        
+        <link rel="manifest" href="/manifest.json" />
+        
+        {/* ✅ تحميل الخط الديناميكي من Google Fonts */}
+        <link href={googleFontsUrl} rel="stylesheet" />
+        
+        <style dangerouslySetInnerHTML={{ __html: `:root { ${cssVariables} }` }} />
+        
+        {settings?.google_analytics_id && (
+          <>
+            <script async src={`https://www.googletagmanager.com/gtag/js?id=${settings.google_analytics_id}`} />
+            <script dangerouslySetInnerHTML={{
+              __html: `
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${settings.google_analytics_id}');
+              `,
+            }} />
+          </>
+        )}
+      </head>
+      <body suppressHydrationWarning>
         <SliderThemeProvider>
           <ThemeProvider>
             <Suspense fallback={<div className="header-loading" style={{ height: '100px' }} />}>

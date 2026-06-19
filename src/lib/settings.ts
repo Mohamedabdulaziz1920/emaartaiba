@@ -277,15 +277,22 @@ export async function getSiteSettings(): Promise<SiteSettings> {
 }
 
 /**
- * جلب إعدادات التصميم والألوان
+ * ✅ جلب إعدادات التصميم والألوان - مع revalidate بدلاً من no-store
  */
 export async function getDesignSettings(): Promise<any> {
   try {
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+    // ✅ استخدام next: { revalidate } بدلاً من cache: 'no-store'
     const response = await fetch(`${API_BASE}/design-settings`, {
-      cache: 'no-store',
+      next: { revalidate: 60 },  // ← إعادة التحقق كل 60 ثانية
       headers: { 'Accept': 'application/json' }
     });
+    
+    if (!response.ok) {
+      console.warn('Design settings API returned non-OK status:', response.status);
+      return null;
+    }
+    
     const result = await response.json();
     return result.success ? result.data : null;
   } catch (error) {
@@ -293,6 +300,7 @@ export async function getDesignSettings(): Promise<any> {
     return null;
   }
 }
+
 
 /**
  * تحديث إعدادات الموقع (mass update)
