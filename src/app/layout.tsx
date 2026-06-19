@@ -10,7 +10,7 @@ import { getSiteSettings } from '@/lib/settings';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { SliderThemeProvider } from '@/components/providers/SliderThemeProvider';
 import { api, type NavItem } from '@/lib/api';
-import { Suspense } from 'react'; // ✅ إزالة useEffect
+import { Suspense } from 'react';
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { getDesignSettings } from '@/lib/colors';
@@ -26,7 +26,6 @@ export const viewport: Viewport = {
   colorScheme: 'light',
 };
 
-// ✅ generateMetadata - Server Component
 export async function generateMetadata(): Promise<Metadata> {
   try {
     const settings = await getSiteSettings();
@@ -276,11 +275,9 @@ function generateCSSVariablesFromSettings(settings: any): string {
 }
 
 // ============================================
-// 🖥️ Root Layout Component (Server Component)
-// ✅ استخدام async لجلب البيانات
+// 🖥️ Root Layout Component
 // ============================================
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // ─── جلب جميع البيانات بالتوازي ───
   const [settings, navigationSections, designSettings, services] = await Promise.all([
     getSiteSettings(),
     fetchNavigationWithSections(),
@@ -296,65 +293,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
-      <head>
+      <body suppressHydrationWarning>
+        {/* ✅ Meta Tags مباشرة في body أو استخدام next/head */}
         <JsonLd settings={settings} />
         
-        <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-        <meta name="format-detection" content="telephone=yes" />
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        
-        <meta name="robots" content="index, follow" />
-        <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
-        
-        <meta name="geo.region" content="SA" />
-        <meta name="geo.placename" content="Saudi Arabia" />
-        <meta name="geo.position" content="24.7136;46.6753" />
-        <meta name="ICBM" content="24.7136, 46.6753" />
-        
-        <meta name="author" content={settings?.site_name_ar || 'البناء المتميز'} />
-        <meta name="publisher" content={settings?.site_name_ar || 'البناء المتميز'} />
-        
-        <link rel="canonical" href={baseUrl} />
-        <link rel="alternate" href={baseUrl} hrefLang="ar" />
-        <link rel="alternate" href={baseUrl} hrefLang="x-default" />
-        
-        <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_API_URL} />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        
-        {settings?.site_favicon ? (
-          <link rel="icon" href={settings.site_favicon} />
-        ) : (
-          <>
-            <link rel="icon" href="/favicon.ico" sizes="any" />
-            <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
-          </>
-        )}
-        
-        <link rel="manifest" href="/manifest.json" />
-        
-        {/* ✅ تحميل الخط الديناميكي من Google Fonts */}
-        <link href={googleFontsUrl} rel="stylesheet" />
-        
-        <style dangerouslySetInnerHTML={{ __html: `:root { ${cssVariables} }` }} />
-        
-        {settings?.google_analytics_id && (
-          <>
-            <script async src={`https://www.googletagmanager.com/gtag/js?id=${settings.google_analytics_id}`} />
-            <script dangerouslySetInnerHTML={{
-              __html: `
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', '${settings.google_analytics_id}');
-              `,
-            }} />
-          </>
-        )}
-      </head>
-      <body suppressHydrationWarning>
         <SliderThemeProvider>
           <ThemeProvider>
             <Suspense fallback={<div className="header-loading" style={{ height: '100px' }} />}>

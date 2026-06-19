@@ -3,28 +3,6 @@
    ملف التنسيق الرئيسي - منظّم ونظيف
    ═══════════════════════════════════════════════════════════════════ */
 
-/* ═══════════════════════════════════════════════════════════════════
-   ✅ منع FOUC (Flash of Unstyled Content)
-   ═══════════════════════════════════════════════════════════════════ */
-html, body {
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-html.loaded, body.loaded {
-  opacity: 1;
-}
-
-/* Header و Footer */
-.site-hdr, .top-bar, footer {
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.site-hdr.loaded, .top-bar.loaded, footer.loaded {
-  opacity: 1;
-}
-
 /* ─────────────────────────────────────────────
    🔤 GOOGLE FONTS (✅ يتم تحميلها من layout.tsx)
    ───────────────────────────────────────────── */
@@ -45,18 +23,18 @@ html.loaded, body.loaded {
   --color-primary: #1a365d;
   --color-primary-dark: #0f1729;
   --color-primary-light: #2b6cb0;
-  --color-secondary: #D4AF37;        /* ✅ ذهبي ملكي */
-  --color-secondary-dark: #B8960F;   /* ✅ ذهبي غامق */
-  --color-secondary-light: #F3E5AB;  /* ✅ ذهبي فاتح */
-  --color-accent: #FFD700;           /* ✅ ذهبي لامع */
+  --color-secondary: #D4AF37;
+  --color-secondary-dark: #B8960F;
+  --color-secondary-light: #F3E5AB;
+  --color-accent: #FFD700;
   --color-warning: #f59e0b;
   --color-danger: #ef4444;
   --color-info: #3b82f6;
 
-  /* RGB versions - ✅ متوافقة مع الذهبي */
+  /* RGB versions */
   --color-primary-rgb: 26, 54, 93;
-  --color-secondary-rgb: 212, 175, 55;   /* ✅ ذهبي RGB */
-  --color-accent-rgb: 255, 215, 0;       /* ✅ ذهبي لامع RGB */
+  --color-secondary-rgb: 212, 175, 55;
+  --color-accent-rgb: 255, 215, 0;
 
   /* 🖼️ الخلفيات */
   --color-bg-light: #f8faff;
@@ -69,9 +47,9 @@ html.loaded, body.loaded {
   --color-text-dark: #0f172a;
   --color-text-light: #ffffff;
   --color-text-muted: #64748b;
-  --color-text-link: #D4AF37;        /* ✅ ذهبي للروابط */
+  --color-text-link: #D4AF37;
 
-  /* 🔘 الأزرار - ✅ ذهبية */
+  /* 🔘 الأزرار */
   --btn-primary-bg: #D4AF37;
   --btn-primary-text: #0f172a;
   --btn-primary-hover: #B8960F;
@@ -87,7 +65,7 @@ html.loaded, body.loaded {
   --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   --card-border-color: #e2e8f0;
 
-  /* 📝 الخطوط - ✅ سيتم تحديثها من layout.tsx */
+  /* 📝 الخطوط */
   --font-family: 'Cairo', sans-serif;
   --font-family-headings: 'Cairo', sans-serif;
   --font-size-base: 16px;
@@ -103,7 +81,7 @@ html.loaded, body.loaded {
   --btn-padding-x: 24px;
   --input-border-radius: 8px;
   --input-border-color: #e2e8f0;
-  --input-focus-color: #D4AF37;      /* ✅ ذهبي */
+  --input-focus-color: #D4AF37;
 
   /* 📱 الاستجابة */
   --breakpoint-mobile: 640px;
