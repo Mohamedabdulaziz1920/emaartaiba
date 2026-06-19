@@ -1,7 +1,6 @@
 // src/app/manifest.ts
 import type { MetadataRoute } from 'next';
-import { getSiteSettings } from '@/lib/settings';
-import { buildMediaUrl } from '@/lib/settings';
+import { getSiteSettings, buildMediaUrl } from '@/lib/settings';
 
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
   const settings = await getSiteSettings();
@@ -19,18 +18,16 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     display: 'standalone',
     background_color: '#ffffff',
     theme_color: themeColor,
-    orientation: 'portrait',
+    orientation: 'portrait-primary',
     lang: 'ar',
     dir: 'rtl',
     categories: ['business', 'construction'],
     icons: [
-      // ✅ الأيقونة الرئيسية من قاعدة البيانات
       {
         src: favicon || '/favicon.ico',
         sizes: 'any',
         type: 'image/x-icon',
       },
-      // ✅ أيقونات PWA
       {
         src: favicon || '/icons/icon-192x192.png',
         sizes: '192x192',

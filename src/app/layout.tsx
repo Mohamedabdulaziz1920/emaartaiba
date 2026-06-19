@@ -6,7 +6,7 @@ import Footer           from '@/components/layout/Footer';
 import FloatingButtons  from '@/components/shared/FloatingButtons';
 import ScrollToTop      from '@/components/shared/ScrollToTop';
 import { JsonLd }       from '@/components/seo/JsonLd';
-import { getSiteSettings } from '@/lib/settings';
+import { getSiteSettings, buildMediaUrl } from '@/lib/settings';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { SliderThemeProvider } from '@/components/providers/SliderThemeProvider';
 import { api, type NavItem } from '@/lib/api';
@@ -14,7 +14,6 @@ import { Suspense } from 'react';
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { getDesignSettings } from '@/lib/colors';
-import { buildMediaUrl } from '@/lib/settings';
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -33,13 +32,13 @@ export async function generateMetadata(): Promise<Metadata> {
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
     
     const siteName = settings?.site_name_ar || settings?.site_name || 'البناء المتميز';
-    const metaTitle = settings?.meta_title || settings?.site_name_ar || siteName;
-    const metaDescription = settings?.meta_description || settings?.site_description || 
-      'أفضل شركة مقاولات عامة في السعودية - خبرة +20 سنة في بناء الفلل والمجمعات السكنية والمشاريع التجارية.';
+    const metaTitle = settings?.meta_title_ar || settings?.meta_title || siteName;
+    const metaDescription = settings?.meta_description_ar || settings?.meta_description || 
+      'أفضل شركة مقاولات عامة في السعودية - خبرة +20 سنة';
     const metaKeywords = settings?.meta_keywords ? 
       settings.meta_keywords.split(',').map((k: string) => k.trim()) : 
-      ['شركة مقاولات', 'مقاولات عامة', 'شركة مقاولات في السعودية', 'بناء فلل', 'مقاول بناء', 'تشطيبات'];
-    const siteLogo = settings?.site_logo || null;
+      ['شركة مقاولات', 'مقاولات عامة', 'بناء فلل', 'مقاول بناء', 'تشطيبات'];
+    const siteLogo = settings?.site_logo ? buildMediaUrl(settings.site_logo) : null;
     const googleVerification = settings?.google_site_verification || null;
 
     return {
@@ -297,6 +296,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const sortedNavigation = [...navigationSections.mainNav].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   const cssVariables = generateCSSVariablesFromSettings(designSettings);
   
+  // ✅ استخدام fontFamily من designSettings.typography أو fallback
   const fontFamily = designSettings?.typography?.font_family || 
                      settings?.font_family || 
                      'Cairo';
@@ -306,7 +306,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   // ✅ أيقونة الموقع الديناميكية
   const favicon = settings?.site_favicon ? buildMediaUrl(settings.site_favicon) : null;
-  const appleTouchIcon = settings?.site_favicon ? buildMediaUrl(settings.site_favicon) : null;
+  const siteLogo = settings?.site_logo ? buildMediaUrl(settings.site_logo) : null;
 
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
@@ -324,8 +324,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         
         <meta name="geo.region" content="SA" />
         <meta name="geo.placename" content="Saudi Arabia" />
-        <meta name="geo.position" content="24.7136;46.6753" />
-        <meta name="ICBM" content="24.7136, 46.6753" />
+        <meta name="geo.position" content={settings?.google_maps_lat ? `${settings.google_maps_lat};${settings.google_maps_lng || '46.6753'}` : '24.7136;46.6753'} />
+        <meta name="ICBM" content={settings?.google_maps_lat ? `${settings.google_maps_lat}, ${settings.google_maps_lng || '46.6753'}` : '24.7136, 46.6753'} />
         
         <meta name="author" content={settings?.site_name_ar || 'البناء المتميز'} />
         <meta name="publisher" content={settings?.site_name_ar || 'البناء المتميز'} />
@@ -342,8 +342,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="icon" href={favicon || '/favicon.ico'} sizes="any" />
         
         {/* ✅ Apple Touch Icon */}
-        {appleTouchIcon && (
-          <link rel="apple-touch-icon" href={appleTouchIcon} />
+        {favicon && (
+          <link rel="apple-touch-icon" href={favicon} />
         )}
         
         <link rel="manifest" href="/manifest.json" />
@@ -364,6 +364,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               `,
             }} />
           </>
+        )}
+        
+        {settings?.google_tag_manager && (
+          <script dangerouslySetInnerHTML={{
+            __html: `
+              (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+              new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+              j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+              'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+              })(window,document,'script','dataLayer','${settings.google_tag_manager}');
+            `,
+          }} />
         )}
       </head>
       <body suppressHydrationWarning>
