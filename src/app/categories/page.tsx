@@ -1,22 +1,42 @@
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import { api, Category } from '@/lib/api';
 import { getSiteSettings } from '@/lib/settings';
-import { generateSEO, buildBreadcrumb } from '@/lib/seo';
+// ✅ تغيير المسار إلى النظام الموحد
+import { generateSEO, buildBreadcrumb } from '@/lib/seo/metadata';
 import Breadcrumb from '@/components/seo/Breadcrumb';
 
-export const metadata: Metadata = {
-  title: 'التصنيفات | مدونة البناء المتميز',
-  description: 'تصفح جميع التصنيفات في موقع البناء المتميز. خدمات، مشاريع، ومقالات منظمة حسب التصنيفات.',
-  keywords: ['تصنيفات', 'خدمات', 'مشاريع', 'مقالات', 'بناء'],
-};
+// ============================================
+// 📝 METADATA - استخدام النظام الموحد
+// ============================================
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  
+  return generateSEO({
+    settings,
+    type: 'website',
+    title: 'التصنيفات | مدونة البناء المتميز',
+    description: 'تصفح جميع التصنيفات في موقع البناء المتميز. خدمات، مشاريع، ومقالات منظمة حسب التصنيفات.',
+    keywords: ['تصنيفات', 'خدمات', 'مشاريع', 'مقالات', 'بناء', 'مقاولات'],
+    url: '/categories',
+  });
+}
 
+// ============================================
+// ⚡ إعادة التحقق كل ساعة
+// ============================================
 export const revalidate = 3600;
 
+// ============================================
+// 🖥️ الصفحة الرئيسية
+// ============================================
 export default async function CategoriesPage() {
-  const allCategories = await api.getCategories();
-  const settings = await getSiteSettings();
+  const [allCategories, settings] = await Promise.all([
+    api.getCategories().catch(() => []),
+    getSiteSettings(),
+  ]);
+  
   const breadcrumbs = buildBreadcrumb({ name: 'التصنيفات', url: '/categories' });
 
   const categoriesByType = {
@@ -200,7 +220,9 @@ export default async function CategoriesPage() {
   );
 }
 
-// مكون بطاقة التصنيف
+// ============================================
+// 🎨 مكون بطاقة التصنيف
+// ============================================
 function CategoryCard({ category, type }: { category: Category; type: string }) {
   const icons = {
     service: '🛠️',

@@ -1,25 +1,48 @@
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { api, Tag } from '@/lib/api';
 import { getSiteSettings } from '@/lib/settings';
-import { generateSEO, buildBreadcrumb } from '@/lib/seo';
+// ✅ تغيير المسار إلى النظام الموحد
+import { generateSEO, buildBreadcrumb } from '@/lib/seo/metadata';
 import Breadcrumb from '@/components/seo/Breadcrumb';
 
-export const metadata: Metadata = {
-  title: 'الوسوم | مدونة البناء المتميز',
-  description: 'تصفح جميع الوسوم والكلمات المفتاحية في مدونة البناء المتميز. ابحث عن المقالات حسب الموضوع.',
-  keywords: ['وسوم', 'كلمات مفتاحية', 'تصنيفات', 'مواضيع البناء'],
-};
+// ============================================
+// 📝 METADATA - استخدام النظام الموحد
+// ============================================
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  
+  return generateSEO({
+    settings,
+    type: 'website',
+    title: 'الوسوم | مدونة البناء المتميز',
+    description: 'تصفح جميع الوسوم والكلمات المفتاحية في مدونة البناء المتميز. ابحث عن المقالات حسب الموضوع.',
+    keywords: ['وسوم', 'كلمات مفتاحية', 'تصنيفات', 'مواضيع البناء', 'مقاولات'],
+    url: '/tags',
+  });
+}
 
+// ============================================
+// ⚡ إعادة التحقق كل ساعة
+// ============================================
 export const revalidate = 3600;
 
+// ============================================
+// 🖥️ الصفحة الرئيسية
+// ============================================
 export default async function TagsPage() {
-  const tags = await api.tags();
-  const settings = await getSiteSettings();
+  const [tags, settings] = await Promise.all([
+    api.tags().catch(() => []),
+    getSiteSettings(),
+  ]);
+  
   const breadcrumbs = buildBreadcrumb({ name: 'الوسوم', url: '/tags' });
 
   // ترتيب الوسوم حسب عدد المقالات
   const sortedTags = [...tags].sort((a, b) => (b.posts_count || 0) - (a.posts_count || 0));
+
+  // حساب الإحصائيات
+  const totalPosts = sortedTags.reduce((acc, t) => acc + (t.posts_count || 0), 0);
 
   return (
     <>
@@ -35,7 +58,7 @@ export default async function TagsPage() {
             </p>
             <div className="tags-stats">
               <span>{tags.length} وسم</span>
-              <span>{sortedTags.reduce((acc, t) => acc + (t.posts_count || 0), 0)} مقال</span>
+              <span>{totalPosts} مقال</span>
             </div>
           </div>
         </div>

@@ -1,34 +1,37 @@
+// src/app/twitter-image.tsx
 import { ImageResponse } from 'next/og';
- 
+import { getSiteSettings } from '@/lib/settings';
+import { toStr } from '@/lib/typeSafe';
+
 export const runtime = 'edge';
-export const alt = 'شركة البناء المتميز - أفضل شركة مقاولات في السعودية';
-export const size = { width: 1200, height: 630 };
+export const size = { width: 1200, height: 600 };
 export const contentType = 'image/png';
 
-// ✅ يمكنك جلب البيانات ديناميكياً
 export default async function Image() {
-  // يمكنك إضافة logo أو أيقونات هنا
-  const logoUrl = process.env.NEXT_PUBLIC_SITE_URL 
-    ? `${process.env.NEXT_PUBLIC_SITE_URL}/logo.png` 
-    : null;
+  const settings = await getSiteSettings();
   
+  const siteName = toStr(settings?.site_name_ar) || toStr(settings?.site_name) || 'البناء المتميز';
+  const siteDescription = toStr(settings?.site_description_ar) || toStr(settings?.site_description) || 'شركة مقاولات عامة في السعودية';
+  const primaryColor = toStr(settings?.primary_color) || '#1a365d';
+  const secondaryColor = toStr(settings?.secondary_color) || '#D4AF37';
+  const logo = toStr(settings?.site_logo);
+
   return new ImageResponse(
     <div
       style={{
-        fontSize: 48,
-        background: 'linear-gradient(135deg, #0f1729 0%, #1a365d 50%, #2b6cb0 100%)',
         width: '100%',
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
+        background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd)`,
         color: 'white',
+        padding: '40px',
         position: 'relative',
-        overflow: 'hidden',
+        fontFamily: 'Arial, sans-serif',
       }}
     >
-      {/* ✅ خلفية مزخرفة */}
       <div
         style={{
           position: 'absolute',
@@ -37,97 +40,77 @@ export default async function Image() {
           width: 400,
           height: 400,
           borderRadius: '50%',
-          background: 'rgba(237, 137, 54, 0.15)',
-          display: 'flex',
+          background: `radial-gradient(circle, ${secondaryColor}33, transparent)`,
+          opacity: 0.4,
         }}
       />
+
+      {logo ? (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 16,
+          }}
+        >
+          <img
+            src={logo}
+            alt={siteName}
+            style={{
+              width: 80,
+              height: 80,
+              objectFit: 'contain',
+              borderRadius: 12,
+              background: 'rgba(255,255,255,0.08)',
+              padding: 10,
+            }}
+          />
+        </div>
+      ) : (
+        <div style={{ fontSize: 64, marginBottom: 16 }}>🏗️</div>
+      )}
+
       <div
         style={{
-          position: 'absolute',
-          bottom: -100,
-          left: -100,
-          width: 400,
-          height: 400,
-          borderRadius: '50%',
-          background: 'rgba(237, 137, 54, 0.1)',
-          display: 'flex',
-        }}
-      />
-      
-      {/* ✅ الأيقونة أو الـ Logo */}
-      <div
-        style={{
-          fontSize: 80,
-          marginBottom: 20,
-          display: 'flex',
-        }}
-      >
-        🏗️
-      </div>
-      
-      {/* ✅ العنوان الرئيسي */}
-      <div
-        style={{
-          fontSize: 64,
+          fontSize: 56,
           fontWeight: 'bold',
-          background: 'linear-gradient(135deg, #ffffff, #fbd38d)',
-          backgroundClip: 'text',
+          background: `linear-gradient(135deg, #ffffff, ${secondaryColor})`,
           WebkitBackgroundClip: 'text',
-          color: 'transparent',
-          marginBottom: 20,
+          WebkitTextFillColor: 'transparent',
+          marginBottom: 10,
           textAlign: 'center',
+          maxWidth: '85%',
         }}
       >
-        البناء المتميز
+        {siteName}
       </div>
-      
-      {/* ✅ الوصف */}
+
       <div
         style={{
           fontSize: 28,
-          color: '#cbd5e0',
+          color: 'rgba(255,255,255,0.85)',
           textAlign: 'center',
-          marginBottom: 30,
+          maxWidth: '80%',
+          opacity: 0.85,
         }}
       >
-        أفضل شركة مقاولات عامة في السعودية
+        {siteDescription}
       </div>
-      
-      {/* ✅ معلومات إضافية */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 40,
-          marginTop: 20,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 24 }}>🏗️</span>
-          <span style={{ fontSize: 18, color: '#fbd38d' }}>مقاولات</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 24 }}>🎨</span>
-          <span style={{ fontSize: 18, color: '#fbd38d' }}>دهانات</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 24 }}>🪞</span>
-          <span style={{ fontSize: 18, color: '#fbd38d' }}>ديكورات</span>
-        </div>
-      </div>
-      
-      {/* ✅ شريط سفلي */}
+
       <div
         style={{
           position: 'absolute',
           bottom: 0,
           left: 0,
           right: 0,
-          height: 8,
-          background: 'linear-gradient(90deg, #ed8936, #f6ad55, #ed8936)',
-          display: 'flex',
+          height: 4,
+          background: `linear-gradient(90deg, ${secondaryColor}00, ${secondaryColor}, ${secondaryColor}dd, ${secondaryColor}00)`,
         }}
       />
     </div>,
     size
   );
 }
+
+export const alt = 'شركة البناء المتميز - مقاولات عامة في السعودية';

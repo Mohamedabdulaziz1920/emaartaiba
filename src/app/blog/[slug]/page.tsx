@@ -10,7 +10,8 @@ import BlogSchema from '@/components/seo/BlogSchema';
 import Breadcrumb from '@/components/seo/Breadcrumb';
 
 // 🛠️ Utilities
-import { api, getImageUrl } from '@/lib/api';
+import { api } from '@/lib/api';
+import { getImageUrl } from '@/lib/image';
 import { getSiteSettings } from '@/lib/settings';
 import { toStr, toInt, toUndefined } from '@/lib/typeSafe';
 

@@ -9,6 +9,7 @@ import { api } from '@/lib/api';
 interface Props { 
   settings?: SiteSettings;
   navigation?: any[];
+  services?: any[]; // ✅ إضافة prop للخدمات
 }
 
 // أيقونات SVG مخصصة
@@ -47,16 +48,11 @@ const Youtube = ({ size = 16 }: { size?: number }) => (
   </svg>
 );
 
-const MessageCircle = ({ size = 16 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.414z"/>
-  </svg>
-);
-
-export default function Footer({ settings = {}, navigation = [] }: Props) {
+export default function Footer({ settings = {}, navigation = [], services: propServices = [] }: Props) {
   const [areas, setAreas] = useState<any[]>([]);
-  const [services, setServices] = useState<any[]>([]);
+  const [services, setServices] = useState<any[]>(propServices);
   const [currentYear] = useState(new Date().getFullYear());
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const phone = settings.phone || settingsHelpers.defaults.phone;
   const email = settings.email || settingsHelpers.defaults.email;
@@ -64,6 +60,41 @@ export default function Footer({ settings = {}, navigation = [] }: Props) {
   const siteName = settingsHelpers.siteName(settings);
   const workingHours = settings.working_hours || settingsHelpers.defaults.working_hours;
   const workingDays = settings.working_days || settingsHelpers.defaults.working_days;
+
+  // ✅ منع FOUC
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoaded(true);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // ✅ استخدام الخدمات من props أو جلبها من API
+  useEffect(() => {
+    if (propServices.length > 0) {
+      setServices(propServices);
+      return;
+    }
+
+    const fetchServices = async () => {
+      try {
+        const data = await api.services();
+        setServices(Array.isArray(data) ? data.slice(0, 6) : []);
+      } catch (error) {
+        console.error('Failed to fetch services:', error);
+        // ✅ خدمات افتراضية كـ Fallback
+        setServices([
+          { id: 1, title_ar: 'ترميم وتشطيب', slug: 'trmym-otshtyb' },
+          { id: 2, title_ar: 'دهانات وديكورات', slug: 'dhanat-odykorat' },
+          { id: 3, title_ar: 'بناء ملاحق', slug: 'bnaaa-mlahk' },
+          { id: 4, title_ar: 'عزل حراري', slug: 'aazl-hrary' },
+          { id: 5, title_ar: 'أعمال الجبس', slug: 'aaamal-algbs' },
+          { id: 6, title_ar: 'تركيب سيراميك', slug: 'trkyb-syramyk' },
+        ]);
+      }
+    };
+    fetchServices();
+  }, [propServices]);
 
   // جلب المناطق
   useEffect(() => {
@@ -76,19 +107,6 @@ export default function Footer({ settings = {}, navigation = [] }: Props) {
       }
     };
     fetchAreas();
-  }, []);
-
-  // جلب الخدمات
-  useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        const data = await api.services();
-        setServices(Array.isArray(data) ? data.slice(0, 6) : []);
-      } catch (error) {
-        console.error('Failed to fetch services:', error);
-      }
-    };
-    fetchServices();
   }, []);
 
   // الروابط السريعة الافتراضية
@@ -121,12 +139,15 @@ export default function Footer({ settings = {}, navigation = [] }: Props) {
   };
 
   return (
-    <footer style={{
-      background: 'var(--footer-bg)',
-      color: 'var(--footer-text)',
-      position: 'relative',
-      overflow: 'hidden'
-    }}>
+    <footer 
+      className={`footer ${isLoaded ? 'loaded' : ''}`}
+      style={{
+        background: 'var(--footer-bg)',
+        color: 'var(--footer-text)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}
+    >
       {/* الشريط العلوي الملون */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, height: '3px',
@@ -210,8 +231,18 @@ export default function Footer({ settings = {}, navigation = [] }: Props) {
                       background: s.color,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       color: 'white', textDecoration: 'none', fontSize: '0.8125rem',
-                      fontWeight: '700'
-                    }}>
+                      fontWeight: '700',
+                      transition: 'transform 0.3s ease, box-shadow 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'scale(1.1)';
+                      e.currentTarget.style.boxShadow = `0 4px 12px ${s.color}40`;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
                     <s.Icon size={14} />
                   </a>
                 ))}
@@ -370,6 +401,15 @@ export default function Footer({ settings = {}, navigation = [] }: Props) {
       </div>
 
       <style>{`
+        /* ───────── منع FOUC ───────── */
+        .footer {
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        }
+        .footer.loaded {
+          opacity: 1;
+        }
+
         @keyframes gradient-shift {
           0% { background-position: 0% 50%; }
           50% { background-position: 100% 50%; }
@@ -470,6 +510,11 @@ export default function Footer({ settings = {}, navigation = [] }: Props) {
         .bottom-link:hover {
           opacity: 1;
           color: var(--color-secondary);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .footer { transition: none; }
+          .footer * { animation-duration: 0.01ms !important; }
         }
       `}</style>
     </footer>

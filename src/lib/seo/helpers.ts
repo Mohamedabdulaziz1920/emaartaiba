@@ -62,8 +62,8 @@ export function getFullAddress(settings?: SiteSettings) {
   if (!settings) return null;
   
   const street = toStr(settings.address_ar) || toStr(settings.address);
-  const city = toStr(settings.city_ar) || toStr(settings.city) || 'الرياض';
-  const region = toStr(settings.region_ar) || toStr(settings.region) || 'منطقة الرياض';
+  const city = toStr(settings.city_ar) || toStr(settings.city);
+  const region = toStr(settings.region_ar) || toStr(settings.region);
   const country = toStr(settings.country_code) || 'SA';
   const postalCode = toStr(settings.postal_code);
   

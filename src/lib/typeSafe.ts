@@ -149,10 +149,29 @@ export function safeObject<T extends Record<string, any>>(value: unknown, fallba
   if (!value || typeof value !== 'object' || Array.isArray(value)) return fallback;
   return value as T;
 }
+
 /**
  * تحويل null إلى undefined (مفيد للـ Metadata و Schemas)
  * لأن Next.js Metadata لا يقبل null
  */
 export function toUndefined<T>(value: T | null | undefined): T | undefined {
   return value === null ? undefined : value;
+}
+
+/**
+ * ════════════════════════════════════════════════
+ * 📦 استخراج مصفوفة من البيانات (يدعم عدة صيغ API)
+ * ════════════════════════════════════════════════
+ * مفيد للتعامل مع استجابات APIs المختلفة
+ */
+export function extractArray<T = any>(data: any): T[] {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  if (data.data && Array.isArray(data.data)) return data.data;
+  if (data.data?.data && Array.isArray(data.data.data)) return data.data.data;
+  if (data.items && Array.isArray(data.items)) return data.items;
+  if (data.results && Array.isArray(data.results)) return data.results;
+  if (data.data?.items && Array.isArray(data.data.items)) return data.data.items;
+  if (data.data?.results && Array.isArray(data.data.results)) return data.data.results;
+  return [];
 }

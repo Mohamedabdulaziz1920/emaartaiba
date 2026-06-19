@@ -1,6 +1,7 @@
 import { api } from '@/lib/api';
 import { getSiteSettings } from '@/lib/settings';
-import { generateSEO, buildBreadcrumb } from '@/lib/seo';
+// ✅ تغيير المسار إلى النظام الموحد
+import { generateSEO, buildBreadcrumb } from '@/lib/seo/metadata';
 import Link from 'next/link';
 import Image from 'next/image';
 import type { Metadata } from 'next';
@@ -71,13 +72,15 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     description = `اقرأ أحدث المقالات في تصنيف ${category} من مدونة البناء المتميز. نصائح وخبرات في مجال البناء والتشييد.`;
   }
 
+  // ✅ تصحيح: تمرير settings داخل object
   return generateSEO({
     title,
     description,
     keywords: ['مدونة مقاولات', 'مقالات بناء', 'نصائح تشطيب', 'دليل البناء', 'مقالات هندسية', category || '', search || ''],
     url: `/blog${search ? `?search=${search}` : ''}${category ? `?category=${category}` : ''}`,
     image: settings.site_logo,
-  }, settings);
+    settings, // ✅ تمرير settings داخل الـ object
+  });
 }
 
 // ============================================

@@ -10,10 +10,10 @@ import { getSiteSettings } from '@/lib/settings';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { SliderThemeProvider } from '@/components/providers/SliderThemeProvider';
 import { api, type NavItem } from '@/lib/api';
-import { Suspense } from 'react';
+import { Suspense } from 'react'; // ✅ إزالة useEffect
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
-import { getDesignSettings } from '@/lib/colors'; // ✅ استخدام الدالة الموجودة
+import { getDesignSettings } from '@/lib/colors';
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -26,7 +26,7 @@ export const viewport: Viewport = {
   colorScheme: 'light',
 };
 
-// ✅ تحسين generateMetadata لجلب البيانات بشكل صحيح مع fallback
+// ✅ generateMetadata - Server Component
 export async function generateMetadata(): Promise<Metadata> {
   try {
     const settings = await getSiteSettings();
@@ -110,9 +110,6 @@ export async function generateMetadata(): Promise<Metadata> {
 // 🛠️ Helper Functions
 // ============================================
 
-/**
- * ✅ إضافة أقسام التنقل (Sections) لتحسين SEO
- */
 async function fetchNavigationWithSections(): Promise<{ mainNav: NavItem[], footerNav: NavItem[], socialLinks: NavItem[] }> {
   try {
     const response = await api.navigation();
@@ -128,15 +125,12 @@ async function fetchNavigationWithSections(): Promise<{ mainNav: NavItem[], foot
       else if (data.success === true && data.data && Array.isArray(data.data)) navItems = data.data;
     }
     
-    // ✅ إذا كانت هناك بيانات من API، استخدمها ولكن تأكد من وجود التصنيفات والوسوم
     if (navItems.length > 0) {
       console.log('✅ Navigation loaded from API:', navItems.map(item => item.label));
       
-      // تحقق من وجود التصنيفات والوسوم
       const hasCategories = navItems.some(item => item.label === 'التصنيفات' || item.href === '/categories');
       const hasTags = navItems.some(item => item.label === 'الوسوم' || item.href === '/tags');
       
-      // تصنيف العناصر حسب الأقسام
       let mainNav = navItems.filter(item => 
         !item.href?.includes('facebook') && 
         !item.href?.includes('twitter') && 
@@ -144,7 +138,6 @@ async function fetchNavigationWithSections(): Promise<{ mainNav: NavItem[], foot
         !item.href?.includes('footer')
       );
       
-      // ✅ إضافة التصنيفات إذا كانت مفقودة
       if (!hasCategories) {
         mainNav.push({ 
           id: 999, 
@@ -157,7 +150,6 @@ async function fetchNavigationWithSections(): Promise<{ mainNav: NavItem[], foot
         console.log('✅ Added "التصنيفات" to navigation');
       }
       
-      // ✅ إضافة الوسوم إذا كانت مفقودة
       if (!hasTags) {
         mainNav.push({ 
           id: 998, 
@@ -170,7 +162,6 @@ async function fetchNavigationWithSections(): Promise<{ mainNav: NavItem[], foot
         console.log('✅ Added "الوسوم" to navigation');
       }
       
-      // ترتيب القائمة
       mainNav = mainNav.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
       
       const footerNav = navItems.filter(item => 
@@ -194,7 +185,6 @@ async function fetchNavigationWithSections(): Promise<{ mainNav: NavItem[], foot
       };
     }
     
-    // ✅ إذا لم تكن هناك بيانات، استخدم القيم الافتراضية
     console.log('⚠️ No navigation data from API, using default navigation');
     return getDefaultNavigationWithSections();
   } catch (error) {
@@ -203,9 +193,6 @@ async function fetchNavigationWithSections(): Promise<{ mainNav: NavItem[], foot
   }
 }
 
-/**
- * ✅ القائمة الافتراضية مع الأقسام
- */
 function getDefaultNavigationWithSections(): { mainNav: NavItem[], footerNav: NavItem[], socialLinks: NavItem[] } {
   return {
     mainNav: [
@@ -238,16 +225,11 @@ function getDefaultNavigationWithSections(): { mainNav: NavItem[], footerNav: Na
   };
 }
 
-// للتوافق مع الكود القديم
 async function fetchNavigation(): Promise<NavItem[]> {
   const { mainNav } = await fetchNavigationWithSections();
   return mainNav;
 }
 
-// ✅ حذف fetchDesignSettings واستخدام getDesignSettings من colors.ts
-// لأن fetchDesignSettings كان يسبب URL مكرر
-
-// ✅ استخدم دالة generateCSSVariables من colors.ts أو احتفظ بها هنا
 function generateCSSVariablesFromSettings(settings: any): string {
   if (!settings) return '';
   
@@ -258,18 +240,18 @@ function generateCSSVariablesFromSettings(settings: any): string {
   };
   
   const primaryRgb = getRgbFromHex(settings.primary_color || '#1a365d');
-  const secondaryRgb = getRgbFromHex(settings.secondary_color || '#ed8936');
-  const accentRgb = getRgbFromHex(settings.accent_color || '#10b981');
+  const secondaryRgb = getRgbFromHex(settings.secondary_color || '#D4AF37');
+  const accentRgb = getRgbFromHex(settings.accent_color || '#FFD700');
   
   return `
     /* 🎨 الألوان الأساسية من قاعدة البيانات */
     --color-primary: ${settings.primary_color || '#1a365d'};
     --color-primary-dark: ${settings.primary_dark || '#0f1729'};
     --color-primary-light: ${settings.primary_light || '#2b6cb0'};
-    --color-secondary: ${settings.secondary_color || '#ed8936'};
-    --color-secondary-dark: ${settings.secondary_dark || '#dd6b20'};
-    --color-secondary-light: ${settings.secondary_light || '#fbd38d'};
-    --color-accent: ${settings.accent_color || '#10b981'};
+    --color-secondary: ${settings.secondary_color || '#D4AF37'};
+    --color-secondary-dark: ${settings.secondary_dark || '#B8960F'};
+    --color-secondary-light: ${settings.secondary_light || '#F3E5AB'};
+    --color-accent: ${settings.accent_color || '#FFD700'};
     --color-warning: ${settings.warning_color || '#f59e0b'};
     --color-danger: ${settings.danger_color || '#ef4444'};
     --color-info: ${settings.info_color || '#3b82f6'};
@@ -282,17 +264,28 @@ function generateCSSVariablesFromSettings(settings: any): string {
     --color-primary-rgb: ${primaryRgb};
     --color-secondary-rgb: ${secondaryRgb};
     --color-accent-rgb: ${accentRgb};
+    
+    /* 📝 الخطوط الديناميكية من لوحة التحكم */
+    --font-family: '${settings.typography?.font_family || 'Cairo'}', sans-serif;
+    --font-family-headings: '${settings.typography?.font_family_headings || 'Cairo'}', sans-serif;
+    --font-size-base: ${settings.typography?.font_size_base || 16}px;
+    --font-size-h1: ${settings.typography?.font_size_h1 || 48}px;
+    --font-size-h2: ${settings.typography?.font_size_h2 || 36}px;
+    --font-size-h3: ${settings.typography?.font_size_h3 || 24}px;
   `;
 }
 
 // ============================================
-// 🖥️ Root Layout Component
+// 🖥️ Root Layout Component (Server Component)
+// ✅ استخدام async لجلب البيانات
 // ============================================
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [settings, navigationSections, designSettings] = await Promise.all([
+  // ─── جلب جميع البيانات بالتوازي ───
+  const [settings, navigationSections, designSettings, services] = await Promise.all([
     getSiteSettings(),
     fetchNavigationWithSections(),
-    getDesignSettings(), // ✅ استخدام الدالة من colors.ts بدلاً من fetchDesignSettings
+    getDesignSettings(),
+    api.featuredServices().catch(() => []),
   ]);
 
   const sortedNavigation = [...navigationSections.mainNav].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
@@ -342,6 +335,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         
         <link rel="manifest" href="/manifest.json" />
         
+        {/* ✅ تحميل الخط الديناميكي من Google Fonts */}
         <link href={googleFontsUrl} rel="stylesheet" />
         
         <style dangerouslySetInnerHTML={{ __html: `:root { ${cssVariables} }` }} />
@@ -373,7 +367,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               </Suspense>
             </main>
             
-            <Footer settings={settings} navigation={navigationSections.footerNav} />
+            <Footer 
+              settings={settings} 
+              navigation={navigationSections.footerNav}
+              services={services}
+            />
+            
             <FloatingButtons settings={settings} />
             <ScrollToTop />
           </ThemeProvider>

@@ -1,13 +1,10 @@
-// frontend/src/app/partners/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { api, type Partner } from '@/lib/api';
-import Breadcrumb from '@/components/seo/Breadcrumb';
-import { buildBreadcrumb } from '@/lib/seo';
 
-export default function PartnersPage() {
+export default function PartnersPageClient() {
   const [partners, setPartners] = useState<Partner[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,12 +30,10 @@ export default function PartnersPage() {
 
   // فلترة الشركاء
   const filteredPartners = partners.filter(partner => {
-    // فلتر المميزين
     if (filter === 'featured' && !partner.is_featured) {
       return false;
     }
     
-    // فلتر البحث
     if (searchTerm) {
       const name = partner.name || partner.name_ar;
       return name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -47,12 +42,9 @@ export default function PartnersPage() {
     return true;
   });
 
-  // الحصول على اسم الشريك
   const getPartnerName = (partner: Partner): string => {
     return partner.name || partner.name_ar || 'شريك';
   };
-
-  const breadcrumbs = buildBreadcrumb({ name: 'الشركاء', url: '/partners' });
 
   if (loading) {
     return (
@@ -112,8 +104,6 @@ export default function PartnersPage() {
         overflow: 'hidden'
       }}>
         <div className="container-custom" style={{ position: 'relative', zIndex: 1 }}>
-          <Breadcrumb items={breadcrumbs} variant="dark" />
-
           <div style={{ textAlign: 'center' }}>
             <span className="section-badge" style={{ background: 'rgba(237,137,54,0.15)', color: '#fbd38d' }}>
               🤝 شركاؤنا

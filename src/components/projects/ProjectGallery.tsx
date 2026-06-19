@@ -6,14 +6,20 @@ import {
   Download, Maximize2, Grid3x3, Image as ImageIcon 
 } from 'lucide-react';
 import { imageUrl } from '@/lib/image';
+import { generateAltText } from '@/lib/seo-image';
 
 interface ProjectGalleryProps {
   images: string[];
   title: string;
   imageAlt?: string | null;
+  project?: {
+    city?: string;
+    client_name?: string;
+    category?: { name_ar: string };
+  };
 }
 
-export default function ProjectGallery({ images, title, imageAlt }: ProjectGalleryProps) {
+export default function ProjectGallery({ images, title, imageAlt, project }: ProjectGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set());
@@ -22,8 +28,18 @@ export default function ProjectGallery({ images, title, imageAlt }: ProjectGalle
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
 
+  // ✅ دمج الصور من main_image و gallery
+  const allImages = (() => {
+    const imgList: string[] = [];
+    // الصور من gallery
+    if (Array.isArray(images) && images.length > 0) {
+      imgList.push(...images);
+    }
+    return imgList;
+  })();
+
   // تحويل المسارات إلى روابط كاملة وتصفية الصور الفارغة
-  const fullImages = (images || [])
+  const fullImages = allImages
     .filter(img => img && typeof img === 'string' && img.trim() !== '')
     .map(img => {
       try {
@@ -37,6 +53,22 @@ export default function ProjectGallery({ images, title, imageAlt }: ProjectGalle
   if (fullImages.length === 0) {
     return null;
   }
+
+  // ✅ توليد Alt Text محسن
+  const getImageAlt = (index: number): string => {
+    if (imageAlt) {
+      return generateAltText({
+        title: title,
+        type: 'project',
+        index: index,
+        city: project?.city,
+        clientName: project?.client_name,
+        category: project?.category?.name_ar,
+        isFeatured: index === 0,
+      });
+    }
+    return `${title} - صورة ${index + 1}`;
+  };
 
   const openLightbox = (index: number) => {
     setSelectedIndex(index);
@@ -64,7 +96,6 @@ export default function ProjectGallery({ images, title, imageAlt }: ProjectGalle
   const zoomIn = () => setZoom(prev => Math.min(prev + 0.5, 3));
   const zoomOut = () => setZoom(prev => Math.max(prev - 0.5, 0.5));
 
-  // تحميل الصورة
   const downloadImage = async () => {
     try {
       const response = await fetch(fullImages[selectedIndex]);
@@ -82,7 +113,6 @@ export default function ProjectGallery({ images, title, imageAlt }: ProjectGalle
     }
   };
 
-  // ملء الشاشة
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen();
@@ -130,14 +160,12 @@ export default function ProjectGallery({ images, title, imageAlt }: ProjectGalle
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, nextImage, prevImage]);
 
-  // تنظيف overflow
   useEffect(() => {
     return () => {
       document.body.style.overflow = 'auto';
     };
   }, []);
 
-  // معالجة اللمس (السحب على الموبايل)
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
   };
@@ -215,7 +243,7 @@ export default function ProjectGallery({ images, title, imageAlt }: ProjectGalle
               )}
               <img
                 src={img}
-                alt={`${imageAlt || title} - صورة ${idx + 1}`}
+                alt={getImageAlt(idx)}
                 loading="lazy"
                 onLoad={() => handleImageLoad(idx)}
                 className="gallery-image"
@@ -300,7 +328,7 @@ export default function ProjectGallery({ images, title, imageAlt }: ProjectGalle
           <div className="lightbox-image-wrapper" onClick={(e) => e.stopPropagation()}>
             <img
               src={fullImages[selectedIndex]}
-              alt={`${imageAlt || title} - ${selectedIndex + 1}`}
+              alt={getImageAlt(selectedIndex)}
               className="lightbox-image"
               style={{ transform: `scale(${zoom})` }}
               onError={(e) => {
@@ -333,7 +361,7 @@ export default function ProjectGallery({ images, title, imageAlt }: ProjectGalle
       )}
 
       {/* ════════════════════════════════════════════ */}
-      {/* الأنماط */}
+      {/* الأنماط (نفسها) */}
       {/* ════════════════════════════════════════════ */}
       <style jsx>{`
         .gallery-container {
@@ -399,7 +427,6 @@ export default function ProjectGallery({ images, title, imageAlt }: ProjectGalle
           box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
 
-        /* الشبكة */
         .gallery-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -490,9 +517,6 @@ export default function ProjectGallery({ images, title, imageAlt }: ProjectGalle
           font-weight: 700;
         }
 
-        /* ════════════════════════════════════════════ */
-        /* Lightbox */
-        /* ════════════════════════════════════════════ */
         .lightbox-overlay {
           position: fixed;
           inset: 0;
@@ -509,7 +533,6 @@ export default function ProjectGallery({ images, title, imageAlt }: ProjectGalle
           to { opacity: 1; }
         }
 
-        /* شريط الأدوات */
         .lightbox-toolbar {
           position: absolute;
           top: 0;
@@ -591,7 +614,6 @@ export default function ProjectGallery({ images, title, imageAlt }: ProjectGalle
           background: #ef4444;
         }
 
-        /* أزرار التنقل */
         .nav-btn {
           position: absolute;
           top: 50%;
@@ -624,7 +646,6 @@ export default function ProjectGallery({ images, title, imageAlt }: ProjectGalle
           right: 1.5rem;
         }
 
-        /* الصورة */
         .lightbox-image-wrapper {
           max-width: 90vw;
           max-height: 80vh;
@@ -643,7 +664,6 @@ export default function ProjectGallery({ images, title, imageAlt }: ProjectGalle
           box-shadow: 0 20px 60px rgba(0,0,0,0.5);
         }
 
-        /* شريط الصور المصغرة */
         .lightbox-thumbnails {
           position: absolute;
           bottom: 4rem;
@@ -699,7 +719,6 @@ export default function ProjectGallery({ images, title, imageAlt }: ProjectGalle
           object-fit: cover;
         }
 
-        /* تلميح المفاتيح */
         .keyboard-hint {
           position: absolute;
           bottom: 1rem;
@@ -714,7 +733,6 @@ export default function ProjectGallery({ images, title, imageAlt }: ProjectGalle
           backdrop-filter: blur(8px);
         }
 
-        /* الموبايل */
         @media (max-width: 768px) {
           .gallery-grid,
           .gallery-grid.masonry {

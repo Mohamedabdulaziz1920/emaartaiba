@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Phone, Clock, Mail, MapPin } from 'lucide-react';
 import { getTopBarData, type SiteSettings } from '@/lib/settings';
+
 interface Props {
   settings?: SiteSettings;
 }
@@ -15,8 +16,17 @@ export default function TopBar({ settings = {} }: Props) {
   const showTopBar = settings.show_top_bar !== false; // افتراضي true
 
   const [isVisible, setIsVisible] = useState(true);
+  const [isLoaded, setIsLoaded] = useState(false);
   const lastScrollRef = useRef(0);
   const ticking = useRef(false);
+
+  /* ✅ منع FOUC - إضافة كلاس loaded بعد التحميل */
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoaded(true);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleScroll = useCallback(() => {
     if (ticking.current) return;
@@ -43,16 +53,18 @@ export default function TopBar({ settings = {} }: Props) {
   if (!showTopBar || (!phone && !email && !address && !workingDays)) {
     return null;
   }
-if (!show || (!phone && !email && !address && !workingTime)) {
+
+  if (!show || (!phone && !email && !address && !workingTime)) {
     return null;
   }
+
   // تجميع نص ساعات العمل
   const workingTimeText = workingDays && workingHours
     ? `${workingDays} | ${workingHours}`
     : workingDays || workingHours;
 
   return (
-    <div className={`tb ${!isVisible ? 'tb--hidden' : ''}`}>
+    <div className={`tb ${!isVisible ? 'tb--hidden' : ''} ${isLoaded ? 'loaded' : ''}`}>
       <div className="tb__inner">
         {/* ── Left: working hours badge ── */}
         {workingTimeText && (
@@ -102,12 +114,22 @@ if (!show || (!phone && !email && !address && !workingTime)) {
       </div>
 
       <style jsx>{`
+        /* ───────── منع FOUC ───────── */
+        .tb {
+          opacity: 0;
+          transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .tb.loaded {
+          opacity: 1;
+        }
+
+        /* ───────── TopBar Styles ───────── */
         .tb {
           background: linear-gradient(90deg, #0b1120 0%, #111d35 50%, #0b1120 100%);
           border-bottom: 1px solid rgba(255, 255, 255, 0.06);
           position: relative;
           z-index: 95;
-          transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
+          transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .tb--hidden {
           transform: translateY(-100%);

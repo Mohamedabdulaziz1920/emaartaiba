@@ -1,10 +1,7 @@
 'use client';
 
 import { api } from '@/lib/api';
-import { getSiteSettings } from '@/lib/settings';
-import { buildBreadcrumb } from '@/lib/seo';
 import Link from 'next/link';
-import Breadcrumb from '@/components/seo/Breadcrumb';
 import ServiceCard from '@/components/services/ServiceCard';
 import { useEffect, useState, useCallback } from 'react';
 
@@ -47,13 +44,11 @@ interface ApiResponse {
 // ============================================
 // 🖥️ Main Component
 // ============================================
-export default function ServicesPage() {
+export default function ServicesPageClient() {
   const [services, setServices] = useState<Service[]>([]);
   const [filteredServices, setFilteredServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [settings, setSettings] = useState<any>(null);
-  const [breadcrumbs, setBreadcrumbs] = useState<any[]>([]);
   
   // الفلاتر
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -100,13 +95,6 @@ export default function ServicesPage() {
             self.findIndex(c => c.id === cat.id) === index
           );
         setCategories(uniqueCategories);
-        
-        // جلب الإعدادات
-        const siteSettings = await getSiteSettings();
-        setSettings(siteSettings);
-        
-        // بناء Breadcrumb
-        setBreadcrumbs(buildBreadcrumb({ name: 'الخدمات', url: '/services' }));
         
       } catch (err) {
         console.error('Error fetching services:', err);
@@ -166,12 +154,12 @@ export default function ServicesPage() {
       <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
         <div className="spinner"></div>
         <p style={{ marginTop: '1rem', color: '#64748b' }}>جاري تحميل الخدمات...</p>
-        <style jsx>{`
+        <style>{`
           .spinner {
             width: 40px;
             height: 40px;
             border: 3px solid #e2e8f0;
-            border-top: 3px solid var(--color-secondary, #ed8936);
+            border-top: 3px solid #ed8936;
             border-radius: 50%;
             animation: spin 1s linear infinite;
           }
@@ -219,10 +207,6 @@ export default function ServicesPage() {
         overflow: 'hidden'
       }}>
         <div className="container-custom" style={{ position: 'relative', zIndex: 1 }}>
-          {breadcrumbs.length > 0 && (
-            <Breadcrumb items={breadcrumbs} variant="dark" />
-          )}
-
           <div style={{ textAlign: 'center' }}>
             <span className="section-badge"
                   style={{ background: 'rgba(237,137,54,0.15)', color: '#fbd38d' }}>
@@ -328,30 +312,30 @@ export default function ServicesPage() {
             </div>
           ) : (
             <div className="services-grid">
-            {filteredServices.map((service) => (
-  <ServiceCard
-    key={service.id}
-    id={service.id}
-    title={service.title}
-    title_ar={service.title_ar}
-    slug={service.slug}
-    excerpt={service.excerpt}
-    excerpt_ar={service.excerpt_ar}
-    icon={service.icon}
-    image_url={service.image_url}
-    is_featured={service.is_featured}
-    category={service.category}
-    variant="default"
-    showCategory={true}
-    showFeatured={true}
-  />
-))}
+              {filteredServices.map((service) => (
+                <ServiceCard
+                  key={service.id}
+                  id={service.id}
+                  title={service.title}
+                  title_ar={service.title_ar}
+                  slug={service.slug}
+                  excerpt={service.excerpt}
+                  excerpt_ar={service.excerpt_ar}
+                  icon={service.icon}
+                  image_url={service.image_url}
+                  is_featured={service.is_featured}
+                  category={service.category}
+                  variant="default"
+                  showCategory={true}
+                  showFeatured={true}
+                />
+              ))}
             </div>
           )}
         </div>
       </section>
 
-      <style jsx>{`
+      <style>{`
         .filter-bar {
           display: flex;
           flex-wrap: wrap;
