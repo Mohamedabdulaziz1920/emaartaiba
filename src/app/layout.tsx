@@ -308,6 +308,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const favicon = settings?.site_favicon ? buildMediaUrl(settings.site_favicon) : null;
   const siteLogo = settings?.site_logo ? buildMediaUrl(settings.site_logo) : null;
 
+  // ✅ استخدام الشعار في الموقع
+  const logoUrl = siteLogo || '/logo.png'; // Fallback
+
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
       <head>
