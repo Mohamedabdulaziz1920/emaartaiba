@@ -47,7 +47,7 @@ export const SITE_FALLBACK: SiteInfo = {
   phone: '+966 50 000 0000',
   whatsapp: '966500000000',
   email: 'info@example.com',
-  address: 'الرياض، المملكة العربية السعودية',
+  address: 'جازان، المملكة العربية السعودية',
   meta_title: 'شركة البناء المتميز | أفضل شركة مقاولات في السعودية',
   meta_description: 'خبرة +20 سنة في الدهانات والديكورات والمقاولات',
   meta_keywords: 'مقاولات, دهانات, ديكورات, بناء, تشطيبات',

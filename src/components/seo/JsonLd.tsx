@@ -115,7 +115,7 @@ function getAreaServed(settings: SiteSettings) {
   }
   
   return [
-    { '@type': 'City', name: 'الرياض' },
+    { '@type': 'City', name: 'جازان' },
     { '@type': 'City', name: 'جدة' },
     { '@type': 'City', name: 'الدمام' },
     { '@type': 'City', name: 'مكة المكرمة' },
@@ -339,18 +339,29 @@ function getStatistics(settings: SiteSettings) {
 }
 
 // ═══════════════════════════════════════════════════
-// 🍞 Breadcrumb Schema
+// 🍞 Breadcrumb Schema - النسخة المحسنة
 // ═══════════════════════════════════════════════════
 function buildBreadcrumbSchema(
   breadcrumbs: Array<{ name: string; url: string }>,
   baseUrl: string
 ) {
-  if (!breadcrumbs || breadcrumbs.length === 0) return null;
+  // ✅ دائماً نعيد Breadcrumb Schema حتى مع عنصر واحد
+  const items = breadcrumbs && breadcrumbs.length > 0 ? breadcrumbs : [];
   
+  // ✅ إذا كان هناك عنصر واحد فقط، نضيف الرئيسية تلقائياً
+  const finalItems = items.length === 1 && items[0].url !== '/'
+    ? [{ name: 'الرئيسية', url: '/' }, ...items]
+    : items;
+
+  // ✅ تأكد من وجود عنصر واحد على الأقل
+  if (finalItems.length === 0) {
+    finalItems.push({ name: 'الرئيسية', url: '/' });
+  }
+
   return {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
-    itemListElement: breadcrumbs.map((item, index) => ({
+    itemListElement: finalItems.map((item, index) => ({
       '@type': 'ListItem',
       position: index + 1,
       name: item.name,
@@ -440,8 +451,8 @@ export function JsonLd({
     ...(toStr(settings.address_ar || settings.address) && { 
       streetAddress: toStr(settings.address_ar || settings.address) 
     }),
-    addressLocality: toStr(settings.city_ar || settings.city) || 'الرياض',
-    addressRegion: toStr(settings.region_ar || settings.region) || 'منطقة الرياض',
+    addressLocality: toStr(settings.city_ar || settings.city) || 'جازان',
+    addressRegion: toStr(settings.region_ar || settings.region) ,
     addressCountry: toStr(settings.country_code) || 'SA',
     ...(toStr(settings.postal_code) && { postalCode: toStr(settings.postal_code) }),
   };

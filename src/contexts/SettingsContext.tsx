@@ -36,7 +36,7 @@ const defaultSettings: SiteSettings = {
   phone: '+966500000000',
   whatsapp: '966500000000',
   email: 'info@construction.sa',
-  address: 'الرياض، المملكة العربية السعودية',
+  address: 'جازان، المملكة العربية السعودية',
   footer_text: 'شركة متخصصة في المقاولات العامة',
   working_hours: 'السبت - الخميس: 8 ص - 5 م',
 };

@@ -1,11 +1,12 @@
 // src/app/layout.tsx
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 import './globals.css';
-import Header           from '@/components/layout/Header';
-import Footer           from '@/components/layout/Footer';
-import FloatingButtons  from '@/components/shared/FloatingButtons';
-import ScrollToTop      from '@/components/shared/ScrollToTop';
-import { JsonLd }       from '@/components/seo/JsonLd';
+import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
+import FloatingButtons from '@/components/shared/FloatingButtons';
+import ScrollToTop from '@/components/shared/ScrollToTop';
+import { JsonLd } from '@/components/seo/JsonLd';
 import { getSiteSettings, buildMediaUrl } from '@/lib/settings';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { SliderThemeProvider } from '@/components/providers/SliderThemeProvider';
@@ -15,7 +16,13 @@ import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { getDesignSettings } from '@/lib/colors';
 
-const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
+const geist = Geist({ 
+  subsets: ['latin'], 
+  variable: '--font-sans',
+  display: 'swap',
+  preload: true,
+  weight: ['400', '500', '600', '700', '800'],
+});
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -125,8 +132,6 @@ async function fetchNavigationWithSections(): Promise<{ mainNav: NavItem[], foot
     }
     
     if (navItems.length > 0) {
-      console.log('✅ Navigation loaded from API:', navItems.map(item => item.label));
-      
       const hasCategories = navItems.some(item => item.label === 'التصنيفات' || item.href === '/categories');
       const hasTags = navItems.some(item => item.label === 'الوسوم' || item.href === '/tags');
       
@@ -146,7 +151,6 @@ async function fetchNavigationWithSections(): Promise<{ mainNav: NavItem[], foot
           sort_order: 99,
           children: []
         });
-        console.log('✅ Added "التصنيفات" to navigation');
       }
       
       if (!hasTags) {
@@ -158,7 +162,6 @@ async function fetchNavigationWithSections(): Promise<{ mainNav: NavItem[], foot
           sort_order: 100,
           children: []
         });
-        console.log('✅ Added "الوسوم" to navigation');
       }
       
       mainNav = mainNav.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
@@ -184,7 +187,6 @@ async function fetchNavigationWithSections(): Promise<{ mainNav: NavItem[], foot
       };
     }
     
-    console.log('⚠️ No navigation data from API, using default navigation');
     return getDefaultNavigationWithSections();
   } catch (error) {
     console.error('❌ Error fetching navigation:', error);
@@ -224,12 +226,6 @@ function getDefaultNavigationWithSections(): { mainNav: NavItem[], footerNav: Na
   };
 }
 
-async function fetchNavigation(): Promise<NavItem[]> {
-  const { mainNav } = await fetchNavigationWithSections();
-  return mainNav;
-}
-
-// ✅ دالة توليد CSS Variables
 function generateCSSVariablesFromSettings(settings: any): string {
   if (!settings) return '';
   
@@ -251,7 +247,6 @@ function generateCSSVariablesFromSettings(settings: any): string {
   const fontSizeH3 = settings.typography?.font_size_h3 || settings.font_size_h3 || 24;
   
   return `
-    /* 🎨 الألوان الأساسية من قاعدة البيانات */
     --color-primary: ${settings.primary_color || '#1a365d'};
     --color-primary-dark: ${settings.primary_dark || '#0f1729'};
     --color-primary-light: ${settings.primary_light || '#2b6cb0'};
@@ -271,8 +266,6 @@ function generateCSSVariablesFromSettings(settings: any): string {
     --color-primary-rgb: ${primaryRgb};
     --color-secondary-rgb: ${secondaryRgb};
     --color-accent-rgb: ${accentRgb};
-    
-    /* 📝 الخطوط الديناميكية من لوحة التحكم */
     --font-family: '${fontFamily}', sans-serif;
     --font-family-headings: '${fontFamilyHeadings}', sans-serif;
     --font-size-base: ${fontSizeBase}px;
@@ -296,20 +289,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const sortedNavigation = [...navigationSections.mainNav].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   const cssVariables = generateCSSVariablesFromSettings(designSettings);
   
-  // ✅ استخدام fontFamily من designSettings.typography أو fallback
   const fontFamily = designSettings?.typography?.font_family || 
                      settings?.font_family || 
                      'Cairo';
 
-  const googleFontsUrl = `https://fonts.googleapis.com/css2?family=${fontFamily.replace(' ', '+')}:wght@300;400;500;600;700;800&display=swap`;
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
-  // ✅ أيقونة الموقع الديناميكية
   const favicon = settings?.site_favicon ? buildMediaUrl(settings.site_favicon) : null;
   const siteLogo = settings?.site_logo ? buildMediaUrl(settings.site_logo) : null;
+  const logoUrl = siteLogo || '/logo.png';
 
-  // ✅ استخدام الشعار في الموقع
-  const logoUrl = siteLogo || '/logo.png'; // Fallback
+  const hasAnalytics = !!settings?.google_analytics_id;
+  const hasGTM = !!settings?.google_tag_manager;
 
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
@@ -341,50 +332,40 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         
-        {/* ✅ أيقونة الموقع الديناميكية */}
-        <link rel="icon" href={favicon || '/favicon.ico'} sizes="any" />
-        
-        {/* ✅ Apple Touch Icon */}
-        {favicon && (
-          <link rel="apple-touch-icon" href={favicon} />
+        {logoUrl && (
+          <link rel="preload" as="image" href={logoUrl} fetchPriority="high" />
         )}
+        
+        <link rel="icon" href={favicon || '/favicon.ico'} sizes="any" />
+        {favicon && <link rel="apple-touch-icon" href={favicon} />}
         
         <link rel="manifest" href="/manifest.json" />
         
-        <link href={googleFontsUrl} rel="stylesheet" />
-        
         <style dangerouslySetInnerHTML={{ __html: `:root { ${cssVariables} }` }} />
         
-        {settings?.google_analytics_id && (
-          <>
-            <script async src={`https://www.googletagmanager.com/gtag/js?id=${settings.google_analytics_id}`} />
-            <script dangerouslySetInnerHTML={{
-              __html: `
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', '${settings.google_analytics_id}');
-              `,
-            }} />
-          </>
-        )}
-        
-        {settings?.google_tag_manager && (
-          <script dangerouslySetInnerHTML={{
-            __html: `
-              (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-              new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-              j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-              'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-              })(window,document,'script','dataLayer','${settings.google_tag_manager}');
-            `,
-          }} />
-        )}
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            .header-loading { height: 80px; background: #f8faff; }
+            .content-loading { 
+              display: flex; 
+              align-items: center; 
+              justify-content: center; 
+              min-height: 70vh;
+              color: #64748b;
+              font-size: 1.2rem;
+            }
+            @media (max-width: 640px) {
+              .header-loading { height: 68px; }
+            }
+          `
+        }} />
       </head>
       <body suppressHydrationWarning>
+        {/* ✅ جميع الـ Scripts في نهاية body قبل إغلاقه */}
+
         <SliderThemeProvider>
           <ThemeProvider>
-            <Suspense fallback={<div className="header-loading" style={{ height: '100px' }} />}>
+            <Suspense fallback={<div className="header-loading" />}>
               <Header settings={settings} navigation={sortedNavigation} />
             </Suspense>
             
@@ -404,6 +385,49 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <ScrollToTop />
           </ThemeProvider>
         </SliderThemeProvider>
+
+        {/* ✅ Google Tag Manager - في نهاية body */}
+        {hasGTM && (
+          <Script
+            id="gtm-body"
+            strategy="afterInteractive"
+            dangerouslySetInnerHTML={{
+              __html: `
+                (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+                new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+                j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+                'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+                })(window,document,'script','dataLayer','${settings.google_tag_manager}');
+              `,
+            }}
+          />
+        )}
+
+        {/* ✅ Google Analytics - في نهاية body */}
+        {hasAnalytics && (
+          <>
+            <Script
+              id="gtag"
+              strategy="afterInteractive"
+              src={`https://www.googletagmanager.com/gtag/js?id=${settings.google_analytics_id}`}
+            />
+            <Script
+              id="gtag-config"
+              strategy="afterInteractive"
+              dangerouslySetInnerHTML={{
+                __html: `
+                  window.dataLayer = window.dataLayer || [];
+                  function gtag(){dataLayer.push(arguments);}
+                  gtag('js', new Date());
+                  gtag('config', '${settings.google_analytics_id}', { 
+                    send_page_view: false,
+                    cookie_flags: 'SameSite=None;Secure'
+                  });
+                `,
+              }}
+            />
+          </>
+        )}
       </body>
     </html>
   );

@@ -114,7 +114,7 @@ function getAreaServed(settings: SiteSettings): string[] {
   }
   
   // القائمة الافتراضية كآخر حل (ستُستبدل من قاعدة البيانات)
-  return ['الرياض', 'جدة', 'الدمام', 'مكة المكرمة', 'المدينة المنورة'];
+  return ['جازان', 'جدة', 'الدمام', 'مكة المكرمة', 'المدينة المنورة'];
 }
 
 // دالة للحصول على روابط التواصل الاجتماعي
@@ -234,8 +234,8 @@ export default function LocalBusinessSchema({ settings }: Props) {
   
   // ─── العنوان الكامل ───
   const address = toStr(s.address_ar) || toStr(s.address);
-  const city = toStr(s.city_ar) || toStr(s.city) || 'الرياض';
-  const region = toStr(s.region) || toStr(s.city_ar) || 'منطقة الرياض';
+  const city = toStr(s.city_ar) || toStr(s.city) || 'جازان';
+  const region = toStr(s.region) || toStr(s.city_ar) ;
   const country = toStr(s.country_ar) || toStr(s.country) || 'السعودية';
   const postalCode = toStr(s.postal_code);
 

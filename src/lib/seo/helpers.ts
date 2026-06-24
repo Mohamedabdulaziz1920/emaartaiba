@@ -130,12 +130,12 @@ export function getRatings(settings?: SiteSettings) {
  * استخراج المناطق المخدومة
  */
 export function getServiceAreas(settings?: SiteSettings): string[] {
-  if (!settings) return ['الرياض', 'جدة', 'الدمام', 'مكة المكرمة', 'المدينة المنورة'];
+  if (!settings) return ['جازان', 'جدة', 'الدمام', 'مكة المكرمة', 'المدينة المنورة'];
   
   const areas = toArray<string>(settings.service_areas_ar || settings.service_areas);
   if (areas.length > 0) return areas;
   
-  return ['الرياض', 'جدة', 'الدمام', 'مكة المكرمة', 'المدينة المنورة'];
+  return ['جازان', 'جدة', 'الدمام', 'مكة المكرمة', 'المدينة المنورة'];
 }
 
 /**

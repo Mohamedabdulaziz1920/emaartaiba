@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -18,6 +18,57 @@ interface Props {
   settings?: SiteSettings | null;
   navigation?: NavItem[];
 }
+
+// ✅ تحسين: استخراج مكونات فرعية للتقليل من إعادة الرسم
+const NavLink = memo(({ 
+  item, 
+  isActive, 
+  hasKids 
+}: { 
+  item: NavItem; 
+  isActive: boolean; 
+  hasKids: boolean;
+}) => (
+  <Link
+    href={item.href}
+    className={`site-hdr__nav-link ${isActive ? 'is-active' : ''}`}
+  >
+    <span>{item.label}</span>
+    {hasKids && (
+      <ChevronDown size={12} className="site-hdr__nav-chev" />
+    )}
+  </Link>
+));
+
+NavLink.displayName = 'NavLink';
+
+// ✅ تحسين: استخراج Dropdown
+const Dropdown = memo(({ children }: { children: NavItem[] }) => {
+  if (!children || children.length === 0) return null;
+  
+  const sortedChildren = [...children]
+    .filter(c => c.is_active !== false)
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
+  return (
+    <div className="site-hdr__dropdown">
+      <div className="site-hdr__dropdown-inner">
+        {sortedChildren.map((child) => (
+          <Link
+            key={child.id}
+            href={child.href}
+            className="site-hdr__dropdown-link"
+          >
+            <span className="site-hdr__dropdown-dot" />
+            <span>{child.label}</span>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+});
+
+Dropdown.displayName = 'Dropdown';
 
 export default function Header({ settings = {}, navigation = [] }: Props) {
   const safeSettings = settings || {};
@@ -51,53 +102,97 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
     mobileMenuSubtitle,
   } = getHeaderData(safeSettings);
 
-  const siteLogo = buildMediaUrl(siteLogoRaw);
+  const siteLogo = useMemo(() => buildMediaUrl(siteLogoRaw), [siteLogoRaw]);
 
-  /* ═══ معالجة عناصر القائمة ═══ */
+  /* ═══ معالجة عناصر القائمة - محسّن ═══ */
   const navItems = useMemo(() => {
-    return navigation && navigation.length > 0
-      ? navigation
-          .filter((item) => item.is_active !== false)
-          .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-      : [];
+    if (!navigation || navigation.length === 0) return [];
+    
+    return navigation
+      .filter((item) => item.is_active !== false)
+      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   }, [navigation]);
 
-  /* ═══ Effects ═══ */
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 80);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+  // ✅ تحسين: تخزين القوائم الفرعية في useMemo
+  const navItemsWithChildren = useMemo(() => {
+    return navItems.map(item => ({
+      ...item,
+      hasKids: !!(item.children && item.children.length > 0),
+      sortedChildren: item.children 
+        ? [...item.children]
+            .filter(c => c.is_active !== false)
+            .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+        : []
+    }));
+  }, [navItems]);
 
+  /* ═══ Effects - محسّنة ═══ */
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout | null = null;
+    
+    const onScroll = () => {
+      const shouldScrolled = window.scrollY > 80;
+      // ✅ تحسين: فقط تحديث إذا تغيرت القيمة
+      if (shouldScrolled !== scrolled) {
+        // ✅ استخدام requestAnimationFrame لتحسين الأداء
+        requestAnimationFrame(() => {
+          setScrolled(shouldScrolled);
+        });
+      }
+    };
+
+    // ✅ استخدام passive: true للتحسين
+    window.addEventListener('scroll', onScroll, { passive: true });
+    
+    // ✅ إضافة كلاس loaded لمنع FOUC
+    timeoutId = setTimeout(() => {
+      setIsLoaded(true);
+    }, 50);
+
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [scrolled]);
+
+  // ✅ تحسين: منع overflow منفصل
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    };
+  }, [open]);
+
+  // ✅ تحسين: إغلاق القوائم عند تغيير المسار
   useEffect(() => {
     setOpen(false);
     setSearchOpen(false);
     setOpenDropdowns([]);
   }, [pathname]);
 
+  // ✅ تحسين: تركيز البحث
   useEffect(() => {
-    document.body.style.overflow = open ? 'hidden' : '';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (searchOpen) searchRef.current?.focus();
+    if (searchOpen && searchRef.current) {
+      searchRef.current.focus();
+    }
   }, [searchOpen]);
 
-  /* ✅ إضافة كلاس loaded لمنع FOUC */
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoaded(true);
-    }, 50);
-    return () => clearTimeout(timer);
-  }, []);
-
-  /* ═══ Handlers ═══ */
+  /* ═══ Handlers - محسّنة ═══ */
   const toggleDropdown = useCallback((href: string) => {
-    setOpenDropdowns((p) =>
-      p.includes(href) ? p.filter((h) => h !== href) : [...p, href]
+    setOpenDropdowns((prev) =>
+      prev.includes(href) 
+        ? prev.filter((h) => h !== href) 
+        : [...prev, href]
     );
   }, []);
 
@@ -112,12 +207,22 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
 
   const handleSearch = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      window.location.href = `/search?q=${encodeURIComponent(searchQuery)}`;
+    const query = searchQuery.trim();
+    if (query) {
+      window.location.href = `/search?q=${encodeURIComponent(query)}`;
     }
   }, [searchQuery]);
 
-  /* ═══ Render ═══ */
+  // ✅ تحسين: منع التمرير عند البحث
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  }, []);
+
+  // ✅ تحسين: إغلاق القائمة
+  const closeMenu = useCallback(() => setOpen(false), []);
+  const toggleMenu = useCallback(() => setOpen(prev => !prev), []);
+  const toggleSearch = useCallback(() => setSearchOpen(prev => !prev), []);
+
   return (
     <>
       <TopBar settings={safeSettings} />
@@ -140,6 +245,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
                   priority
                   loading="eager"
                   onError={() => setLogoError(true)}
+                  sizes="(max-width: 640px) 130px, 170px"
                 />
               ) : (
                 <div className="site-hdr__logo-fb">
@@ -152,46 +258,15 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
               )}
             </Link>
 
-            {/* ═══ Desktop Nav ═══ */}
+            {/* ═══ Desktop Nav - محسّن ═══ */}
             <nav className="site-hdr__nav" role="navigation" aria-label={siteName}>
               <ul className="site-hdr__nav-list">
-                {navItems.map((item) => {
+                {navItemsWithChildren.map((item) => {
                   const active = isActive(item);
-                  const hasKids = item.children && item.children.length > 0;
                   return (
                     <li key={item.id} className="site-hdr__nav-item">
-                      <Link
-                        href={item.href}
-                        className={`site-hdr__nav-link ${active ? 'is-active' : ''}`}
-                      >
-                        <span>{item.label}</span>
-                        {hasKids && (
-                          <ChevronDown size={12} className="site-hdr__nav-chev" />
-                        )}
-                      </Link>
-
-                      {hasKids && (
-                        <div className="site-hdr__dropdown">
-                          <div className="site-hdr__dropdown-inner">
-                            {item
-                              .children!.filter((c) => c.is_active !== false)
-                              .sort(
-                                (a, b) =>
-                                  (a.sort_order || 0) - (b.sort_order || 0)
-                              )
-                              .map((child) => (
-                                <Link
-                                  key={child.id}
-                                  href={child.href}
-                                  className="site-hdr__dropdown-link"
-                                >
-                                  <span className="site-hdr__dropdown-dot" />
-                                  <span>{child.label}</span>
-                                </Link>
-                              ))}
-                          </div>
-                        </div>
-                      )}
+                      <NavLink item={item} isActive={active} hasKids={item.hasKids} />
+                      {item.hasKids && <Dropdown>{item.sortedChildren}</Dropdown>}
                     </li>
                   );
                 })}
@@ -201,7 +276,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
             {/* ═══ Actions ═══ */}
             <div className="site-hdr__actions">
               <button
-                onClick={() => setSearchOpen((s) => !s)}
+                onClick={toggleSearch}
                 className={`site-hdr__act-btn ${searchOpen ? 'is-active' : ''}`}
                 aria-label={searchButtonText}
                 type="button"
@@ -213,6 +288,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
                 <a
                   href={settingsHelpers.phoneLink(phone)}
                   className="site-hdr__cta"
+                  aria-label={`اتصل بنا على ${phone}`}
                 >
                   <Phone size={14} />
                   <span className="site-hdr__cta-label">{ctaButtonText}</span>
@@ -220,14 +296,12 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
               )}
 
               <button
-                onClick={() => setOpen(!open)}
+                onClick={toggleMenu}
                 className="site-hdr__burger"
-                aria-label="القائمة"
+                aria-label={open ? 'إغلاق القائمة' : 'فتح القائمة'}
                 type="button"
               >
-                <span
-                  className={`site-hdr__burger-lines ${open ? 'is-open' : ''}`}
-                >
+                <span className={`site-hdr__burger-lines ${open ? 'is-open' : ''}`}>
                   <span />
                   <span />
                   <span />
@@ -238,7 +312,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
 
           {/* ═══ Search bar ═══ */}
           <div className={`site-hdr__search ${searchOpen ? 'is-open' : ''}`}>
-            <form onSubmit={handleSearch} className="site-hdr__search-form">
+            <form onSubmit={handleSearch} className="site-hdr__search-form" role="search">
               <Search size={18} className="site-hdr__search-icon" />
               <input
                 ref={searchRef}
@@ -246,7 +320,8 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
                 placeholder={searchPlaceholder}
                 className="site-hdr__search-input"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={handleSearchChange}
+                aria-label={searchPlaceholder}
               />
               <button
                 type="submit"
@@ -262,9 +337,9 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
 
       {/* ═══ Mobile drawer ═══ */}
       <div className={`site-mob ${open ? 'is-open' : ''}`}>
-        <div className="site-mob__overlay" onClick={() => setOpen(false)} />
+        <div className="site-mob__overlay" onClick={closeMenu} />
 
-        <aside className="site-mob__panel">
+        <aside className="site-mob__panel" role="dialog" aria-label="القائمة">
           <div className="site-mob__head">
             <div className="site-mob__brand">
               {!logoError && siteLogo ? (
@@ -275,6 +350,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
                   height={40}
                   className="site-mob__brand-img"
                   loading="eager"
+                  sizes="120px"
                 />
               ) : (
                 <span className="site-mob__brand-icon">{siteIcon}</span>
@@ -285,7 +361,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
               </div>
             </div>
             <button
-              onClick={() => setOpen(false)}
+              onClick={closeMenu}
               className="site-mob__close"
               aria-label="إغلاق"
               type="button"
@@ -294,20 +370,20 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
             </button>
           </div>
 
-          <form onSubmit={handleSearch} className="site-mob__search">
+          <form onSubmit={handleSearch} className="site-mob__search" role="search">
             <Search size={16} />
             <input
               type="text"
               placeholder={searchPlaceholder}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={handleSearchChange}
+              aria-label={searchPlaceholder}
             />
           </form>
 
-          <nav className="site-mob__nav">
-            {navItems.map((item) => {
+          <nav className="site-mob__nav" role="navigation">
+            {navItemsWithChildren.map((item) => {
               const active = isActive(item);
-              const hasKids = item.children && item.children.length > 0;
               const isExpanded = openDropdowns.includes(item.href);
               return (
                 <div key={item.id} className="site-mob__item">
@@ -315,7 +391,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
                     <Link
                       href={item.href}
                       className={`site-mob__link ${active ? 'is-active' : ''}`}
-                      onClick={() => !hasKids && setOpen(false)}
+                      onClick={() => !item.hasKids && closeMenu()}
                     >
                       <span
                         className="site-mob__link-dot"
@@ -323,36 +399,30 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
                       />
                       {item.label}
                     </Link>
-                    {hasKids && (
+                    {item.hasKids && (
                       <button
                         onClick={() => toggleDropdown(item.href)}
                         className={`site-mob__expand ${isExpanded ? 'is-open' : ''}`}
                         type="button"
+                        aria-label={isExpanded ? 'إغلاق' : 'فتح'}
                       >
                         <ChevronDown size={16} />
                       </button>
                     )}
                   </div>
 
-                  {hasKids && (
-                    <div
-                      className={`site-mob__sub ${isExpanded ? 'is-open' : ''}`}
-                    >
-                      {item
-                        .children!.filter((c) => c.is_active !== false)
-                        .sort(
-                          (a, b) => (a.sort_order || 0) - (b.sort_order || 0)
-                        )
-                        .map((child) => (
-                          <Link
-                            key={child.id}
-                            href={child.href}
-                            className="site-mob__sublink"
-                            onClick={() => setOpen(false)}
-                          >
-                            {child.label}
-                          </Link>
-                        ))}
+                  {item.hasKids && (
+                    <div className={`site-mob__sub ${isExpanded ? 'is-open' : ''}`}>
+                      {item.sortedChildren.map((child) => (
+                        <Link
+                          key={child.id}
+                          href={child.href}
+                          className="site-mob__sublink"
+                          onClick={closeMenu}
+                        >
+                          {child.label}
+                        </Link>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -365,6 +435,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
               <a
                 href={settingsHelpers.phoneLink(phone)}
                 className="site-mob__foot-btn site-mob__foot-btn--call"
+                aria-label={`اتصل بنا على ${phone}`}
               >
                 <Phone size={18} />
                 <div>
@@ -379,6 +450,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="site-mob__foot-btn site-mob__foot-btn--wa"
+                aria-label="تواصل معنا عبر واتساب"
               >
                 <MessageCircle size={18} />
                 <div>
@@ -393,19 +465,13 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
 
       {/* ═══════════════════ Styles ═══════════════════ */}
       <style jsx global>{`
-        /* ───────── منع FOUC (بدون إخفاء العناصر) ───────── */
+        /* ───────── منع FOUC ───────── */
         .site-hdr {
           opacity: 0;
           transition: opacity 0.3s ease;
+          will-change: opacity;
         }
         .site-hdr.loaded {
-          opacity: 1;
-        }
-
-        /* ⚠️ منع تطبيق opacity على العناصر الداخلية */
-        .site-hdr.loaded .site-hdr__nav,
-        .site-hdr.loaded .site-hdr__logo,
-        .site-hdr.loaded .site-hdr__actions {
           opacity: 1;
         }
 
@@ -422,7 +488,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
           position: relative !important;
           z-index: 90 !important;
           padding: 0.75rem clamp(0.75rem, 2.5vw, 1.75rem) !important;
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
           width: 100% !important;
           box-sizing: border-box !important;
         }
@@ -446,7 +512,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
           width: 100% !important;
         }
 
-        /* ───────── Card - Grid Layout ───────── */
+        /* ───────── Card ───────── */
         .site-hdr__card {
           background: #ffffff !important;
           border-radius: 18px !important;
@@ -459,7 +525,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
           align-items: center !important;
           gap: 1rem !important;
           min-height: 70px !important;
-          transition: all 0.35s ease !important;
+          transition: all 0.3s ease !important;
           box-sizing: border-box !important;
         }
         .site-hdr--scrolled .site-hdr__card {
@@ -517,7 +583,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
           font-weight: 600 !important;
         }
 
-        /* ═══════════ Main Navigation ═══════════ */
+        /* ───────── Navigation ───────── */
         .site-hdr__nav {
           display: flex !important;
           align-items: center !important;
@@ -597,7 +663,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
           color: #D4AF37 !important;
         }
 
-        /* ═══════════ Dropdown ═══════════ */
+        /* ───────── Dropdown ───────── */
         .site-hdr__dropdown {
           position: absolute !important;
           top: calc(100% + 8px) !important;
@@ -694,7 +760,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
           font-size: 0.83rem !important;
           border-radius: 10px !important;
           text-decoration: none !important;
-          transition: all 0.35s ease !important;
+          transition: all 0.3s ease !important;
           box-shadow: 0 4px 12px rgba(15, 23, 42, 0.22) !important;
           white-space: nowrap !important;
           line-height: 1 !important;
@@ -706,7 +772,6 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
           color: #0f172a !important;
         }
 
-        /* Burger */
         .site-hdr__burger {
           width: 40px !important;
           height: 40px !important;
@@ -1108,7 +1173,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
         }
 
         /* ═══════════════════════════════════════════
-           Responsive Breakpoints
+           Responsive
            ═══════════════════════════════════════════ */
         @media (min-width: 1440px) {
           .site-hdr__nav-link {

@@ -1,3 +1,5 @@
+// src/components/seo/Breadcrumb.tsx
+
 'use client';
 
 import Link from 'next/link';
@@ -67,18 +69,21 @@ export default function Breadcrumb({
     }
   }, [pathname, propItems, homeText]);
   
+  // ✅ حتى مع عنصر واحد، نظهر الـ Breadcrumb (لكن مخفي)
+  if (items.length === 0) {
+    return null;
+  }
+  
   // الألوان حسب التباين
   const colors = variant === 'dark'
     ? { text: '#94a3b8', link: '#90cdf4', linkHover: '#fbd38d', current: '#fbd38d', separator: '#64748b' }
     : { text: '#64748b', link: '#1a365d', linkHover: '#ed8936', current: '#0f172a', separator: '#cbd5e0' };
   
-  if (items.length <= 1) {
-    return null;
-  }
-  
   return (
     <>
-      <BreadcrumbSchema items={items} />
+      {/* ✅ دائماً نرسل Breadcrumb Schema حتى مع عنصر واحد */}
+      <BreadcrumbSchema items={items.length > 0 ? items : [{ name: homeText, url: '/' }]} />
+      
       <nav aria-label="Breadcrumb" style={{
         fontSize: '0.8125rem',
         color: colors.text,

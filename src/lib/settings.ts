@@ -602,7 +602,7 @@ export const settingsHelpers = {
     phone: '+966 50 000 0000',
     whatsapp: '966500000000',
     email: 'info@example.com',
-    address_ar: 'الرياض، المملكة العربية السعودية',
+    address_ar: 'جازان، المملكة العربية السعودية',
     working_hours: '8:00 ص - 5:00 م',
     working_days: 'الأحد - الخميس',
     cta_button_text: 'اتصل بنا',

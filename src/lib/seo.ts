@@ -143,9 +143,13 @@ export function buildBreadcrumb(...items: Array<{ name: string; url: string }>) 
     ...items,
   ];
   
-  return breadcrumbs.filter((item, index, self) => 
+  // ✅ إزالة التكرارات فقط، لا تحذف العناصر
+  const unique = breadcrumbs.filter((item, index, self) => 
     item && item.name && item.url && self.findIndex(i => i.url === item.url) === index
   );
+  
+  // ✅ دائماً نعيد على الأقل عنصر واحد
+  return unique.length > 0 ? unique : [{ name: 'الرئيسية', url: '/' }];
 }
 
 /**

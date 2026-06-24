@@ -183,7 +183,7 @@ function getServiceAreas(settings?: SiteSettings): Array<{ '@type': string; name
   
   // قائمة افتراضية
   return [
-    { '@type': 'City', name: 'الرياض' },
+    { '@type': 'City', name: 'جازان' },
     { '@type': 'City', name: 'جدة' },
     { '@type': 'City', name: 'الدمام' },
     { '@type': 'City', name: 'مكة المكرمة' },
@@ -333,8 +333,8 @@ export default function ServiceSchema({
       address: {
         '@type': 'PostalAddress',
         addressCountry: toStr(settings.country_code) || 'SA',
-        addressRegion: toStr(settings.region_ar) || 'منطقة الرياض',
-        addressLocality: toStr(settings.city_ar) || 'الرياض',
+        addressRegion: toStr(settings.region_ar) ,
+        addressLocality: toStr(settings.city_ar) || 'جازان',
       },
       ...(socialLinks.length > 0 && { sameAs: socialLinks }),
     },

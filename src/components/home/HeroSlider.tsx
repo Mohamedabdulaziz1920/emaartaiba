@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import type { CSSProperties } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Phone, MessageCircle, ArrowLeft } from 'lucide-react';
 import type { HeroSlide } from '@/lib/api';
@@ -153,7 +154,7 @@ const DEFAULT_DESIGN = {
 };
 
 /* ═══════════════════════════════════════════════════════════════
-   Component
+   Component - محسّن للسرعة
    ═══════════════════════════════════════════════════════════════ */
 export default function HeroSlider({
   slides = [],
@@ -167,6 +168,7 @@ export default function HeroSlider({
   const [direction, setDirection] = useState<1 | -1>(1);
   const [progressKey, setProgressKey] = useState(0);
   const resumeRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Contact info
   const phone = String(settings.phone || settingsHelpers.defaults.phone || '').trim();
@@ -196,19 +198,35 @@ export default function HeroSlider({
     if (slides.length > 0 && currentSlide > slides.length - 1) setCurrentSlide(0);
   }, [slides.length, currentSlide]);
 
-  // Autoplay
+  // ✅ Autoplay محسّن - استخدام requestAnimationFrame
   useEffect(() => {
     if (!isAutoPlay || slides.length <= 1 || isHovering) return;
-    const id = setInterval(() => {
+
+    // تنظيف الـ timer السابق
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    timerRef.current = setInterval(() => {
       setDirection(1);
       setCurrentSlide((p) => (p + 1) % slides.length);
       setProgressKey((k) => k + 1);
     }, delay);
-    return () => clearInterval(id);
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
   }, [isAutoPlay, slides.length, delay, isHovering]);
 
   // Cleanup
-  useEffect(() => () => { if (resumeRef.current) clearTimeout(resumeRef.current); }, []);
+  useEffect(() => () => {
+    if (resumeRef.current) clearTimeout(resumeRef.current);
+    if (timerRef.current) clearInterval(timerRef.current);
+  }, []);
 
   const pauseAuto = useCallback(() => {
     setIsAutoPlay(false);
@@ -298,27 +316,22 @@ export default function HeroSlider({
     return { justifyContent: m[design.text_align] || 'flex-start' };
   };
 
-  /* ── Animation variants ── */
+  /* ── Animation variants (مبسطة للأداء) ── */
   const imgVariants = {
     fade: {
-      initial: { opacity: 0, scale: 1.08 },
-      animate: { opacity: 1, scale: 1 },
-      exit: { opacity: 0, scale: 1.02 },
+      initial: { opacity: 0 },
+      animate: { opacity: 1 },
+      exit: { opacity: 0 },
     },
     slide: {
-      initial: { opacity: 0, x: direction > 0 ? 120 : -120 },
+      initial: { opacity: 0, x: direction > 0 ? 80 : -80 },
       animate: { opacity: 1, x: 0 },
-      exit: { opacity: 0, x: direction > 0 ? -120 : 120 },
+      exit: { opacity: 0, x: direction > 0 ? -80 : 80 },
     },
     zoom: {
-      initial: { opacity: 0, scale: 1.25 },
+      initial: { opacity: 0, scale: 1.1 },
       animate: { opacity: 1, scale: 1 },
-      exit: { opacity: 0, scale: 0.92 },
-    },
-    flip: {
-      initial: { opacity: 0, rotateY: 70 },
-      animate: { opacity: 1, rotateY: 0 },
-      exit: { opacity: 0, rotateY: -70 },
+      exit: { opacity: 0, scale: 0.95 },
     },
   };
 
@@ -326,12 +339,20 @@ export default function HeroSlider({
   const imgUrl = getImageUrl(slide.image);
   const showContact = Boolean(slide.show_phone_button && phone);
 
+  // ✅ تحسين الصورة - تحديد الأبعاد الثابتة لمنع CLS
+  const imageDimensions = useMemo(() => {
+    // أبعاد ثابتة لمنع التغير في التخطيط
+    return { width: 1920, height: 1080 };
+  }, []);
+
   return (
     <section
       className="hero-slider"
       dir="rtl"
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
+      // ✅ منع إعادة الرسم غير الضرورية
+      style={{ contain: 'layout style paint' }}
     >
       {/* ── Background image ── */}
       <AnimatePresence mode="wait">
@@ -340,48 +361,46 @@ export default function HeroSlider({
           initial={anim.initial}
           animate={anim.animate}
           exit={anim.exit}
-          transition={{ duration: 1.1, ease: [0.25, 0.46, 0.45, 0.94] }}
+          transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
           className={`hero-bg ${design.enable_ken_burns ? 'ken-burns' : ''}`}
+          // ✅ تحسين الأداء
+          style={{ willChange: 'opacity' }}
         >
           {imgUrl ? (
-            <img
+            // ✅ استخدام Next.js Image مع تحسينات الأداء
+            <Image
               src={imgUrl}
               alt={slide.image_alt_ar || slide.title_ar || 'صورة السلايدر'}
+              fill
+              priority={currentSlide === 0}
+              loading={currentSlide === 0 ? 'eager' : 'lazy'}
+              sizes="100vw"
+              quality={80}
+              placeholder="blur"
+              blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCwAAAAAAAAAAAAAAAA/9k="
               className="hero-bg-img"
-              loading="eager"
+              onError={(e) => {
+                // Fallback إذا فشل تحميل الصورة
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+              }}
             />
           ) : (
             <div className="hero-bg-fallback" />
           )}
           <div className="hero-overlay" style={overlayStyle()} />
-          {/* Subtle noise texture */}
           <div className="hero-noise" aria-hidden="true" />
         </motion.div>
       </AnimatePresence>
 
-      {/* ── Decorative elements ── */}
+      {/* ── Decorative elements (مبسطة للأداء) ── */}
       {design.show_decoration && (
-        <motion.div
-          className="hero-deco"
-          initial={{ opacity: 0, x: 30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, delay: 0.3 }}
-          aria-hidden="true"
-        >
+        <div className="hero-deco" aria-hidden="true">
           <span className="deco-bar deco-bar--1" style={{ background: design.decoration_color }} />
           <span className="deco-bar deco-bar--2" style={{ background: design.decoration_color }} />
           <span className="deco-bar deco-bar--3" style={{ background: design.decoration_color }} />
-          <span
-            className="deco-glow"
-            style={{ background: `radial-gradient(circle,${hexToRgba(design.decoration_color, 0.35)} 0%,transparent 70%)` }}
-          />
-        </motion.div>
+        </div>
       )}
-
-      {/* ── Floating particles (pure CSS) ── */}
-      <div className="hero-particles" aria-hidden="true">
-        <span /><span /><span /><span /><span />
-      </div>
 
       {/* ── Content ── */}
       <div className="hero-body" style={contentWrapStyle()}>
@@ -389,19 +408,19 @@ export default function HeroSlider({
           <AnimatePresence mode="wait">
             <motion.div
               key={`content-${currentSlide}`}
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.65, delay: 0.18, ease: 'easeOut' }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
               className="hero-content"
               style={contentStyle()}
             >
               {/* Subtitle */}
               {slide.subtitle_ar && (
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.55, delay: 0.35 }}
+                  transition={{ duration: 0.4, delay: 0.2 }}
                   className="hero-subtitle"
                   style={{
                     color: design.subtitle_color,
@@ -415,9 +434,9 @@ export default function HeroSlider({
 
               {/* Title */}
               <motion.h1
-                initial={{ opacity: 0, y: 28 }}
+                initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.65, delay: 0.48 }}
+                transition={{ duration: 0.4, delay: 0.3 }}
                 className="hero-title"
                 style={{
                   color: design.title_color,
@@ -431,9 +450,9 @@ export default function HeroSlider({
               {/* Description */}
               {slide.description_ar && (
                 <motion.div
-                  initial={{ opacity: 0, y: 22 }}
+                  initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.62 }}
+                  transition={{ duration: 0.4, delay: 0.4 }}
                   className="hero-desc"
                   style={{
                     color: design.description_color,
@@ -445,9 +464,9 @@ export default function HeroSlider({
 
               {/* Buttons */}
               <motion.div
-                initial={{ opacity: 0, y: 24 }}
+                initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.78 }}
+                transition={{ duration: 0.4, delay: 0.5 }}
                 className="hero-actions"
                 style={flexAlign()}
               >
@@ -513,26 +532,22 @@ export default function HeroSlider({
       {/* ── Navigation arrows ── */}
       {slides.length > 1 && (
         <>
-          <motion.button
+          <button
             type="button"
             onClick={prev}
             className="hero-arrow hero-arrow--prev"
             aria-label="السابق"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.92 }}
           >
             <ChevronRight size={20} strokeWidth={2.5} />
-          </motion.button>
-          <motion.button
+          </button>
+          <button
             type="button"
             onClick={next}
             className="hero-arrow hero-arrow--next"
             aria-label="التالي"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.92 }}
           >
             <ChevronLeft size={20} strokeWidth={2.5} />
-          </motion.button>
+          </button>
         </>
       )}
 
@@ -578,7 +593,7 @@ export default function HeroSlider({
       {/* ── Bottom gradient line ── */}
       <div className="hero-bottom-line" style={{ background: `linear-gradient(90deg,transparent,${design.decoration_color},transparent)` }} />
 
-      {/* ═══════ Styles ═══════ */}
+      {/* ═══════ Styles محسّنة ═══════ */}
       <style jsx>{`
         /* ───── Base ───── */
         .hero-slider {
@@ -591,6 +606,8 @@ export default function HeroSlider({
           overflow: hidden;
           background: #0a0e1a;
           isolation: isolate;
+          /* ✅ تحسين الأداء */
+          contain: layout style paint;
         }
 
         /* ───── Background ───── */
@@ -599,7 +616,8 @@ export default function HeroSlider({
           inset: 0;
           z-index: 1;
           overflow: hidden;
-          will-change: transform, opacity;
+          /* ✅ تحسين الأداء */
+          will-change: opacity;
         }
         .hero-bg-img {
           position: absolute;
@@ -619,7 +637,7 @@ export default function HeroSlider({
         }
         @keyframes kb {
           0%   { transform: scale(1) translate(0, 0); }
-          100% { transform: scale(1.12) translate(-1.2%, -1%); }
+          100% { transform: scale(1.08) translate(-0.5%, -0.5%); }
         }
 
         /* Overlay */
@@ -630,13 +648,13 @@ export default function HeroSlider({
           pointer-events: none;
         }
 
-        /* Noise texture overlay */
+        /* Noise texture overlay (مخفف) */
         .hero-noise {
           position: absolute;
           inset: 0;
           z-index: 3;
           pointer-events: none;
-          opacity: 0.028;
+          opacity: 0.02;
           background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
           background-repeat: repeat;
           mix-blend-mode: overlay;
@@ -655,49 +673,17 @@ export default function HeroSlider({
           pointer-events: none;
         }
         .deco-bar {
-          width: 5px;
+          width: 4px;
           border-radius: 999px;
-          opacity: 0.9;
+          opacity: 0.85;
         }
-        .deco-bar--1 { height: 48px; box-shadow: 0 0 22px currentColor; }
-        .deco-bar--2 { height: 80px; margin-right: 14px; box-shadow: 0 0 28px currentColor; }
-        .deco-bar--3 { height: 36px; box-shadow: 0 0 18px currentColor; }
-        .deco-glow {
-          position: absolute;
-          width: 120px;
-          height: 120px;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          pointer-events: none;
-          z-index: -1;
-        }
+        .deco-bar--1 { height: 40px; }
+        .deco-bar--2 { height: 64px; margin-right: 12px; }
+        .deco-bar--3 { height: 28px; }
 
-        /* ───── Particles ───── */
+        /* ───── Particles (مخفف) ───── */
         .hero-particles {
-          position: absolute;
-          inset: 0;
-          z-index: 4;
-          pointer-events: none;
-          overflow: hidden;
-        }
-        .hero-particles span {
-          position: absolute;
-          display: block;
-          border-radius: 50%;
-          background: rgba(255, 255, 255, 0.08);
-          animation: float linear infinite;
-        }
-        .hero-particles span:nth-child(1) { width: 6px; height: 6px; top: 15%; left: 10%; animation-duration: 22s; animation-delay: 0s; }
-        .hero-particles span:nth-child(2) { width: 4px; height: 4px; top: 55%; left: 80%; animation-duration: 28s; animation-delay: 2s; }
-        .hero-particles span:nth-child(3) { width: 8px; height: 8px; top: 70%; left: 35%; animation-duration: 20s; animation-delay: 4s; }
-        .hero-particles span:nth-child(4) { width: 3px; height: 3px; top: 30%; left: 60%; animation-duration: 25s; animation-delay: 1s; }
-        .hero-particles span:nth-child(5) { width: 5px; height: 5px; top: 80%; left: 50%; animation-duration: 18s; animation-delay: 3s; }
-        @keyframes float {
-          0%   { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
-          10%  { opacity: 1; }
-          90%  { opacity: 1; }
-          100% { transform: translateY(-100vh) translateX(30px) rotate(720deg); opacity: 0; }
+          display: none;
         }
 
         /* ───── Content wrapper ───── */
@@ -743,7 +729,6 @@ export default function HeroSlider({
           height: 26px !important;
           border-radius: 999px !important;
           flex-shrink: 0 !important;
-          box-shadow: 0 0 20px currentColor;
         }
 
         /* ───── Title ───── */
@@ -771,29 +756,27 @@ export default function HeroSlider({
           position: absolute;
           top: 50%;
           transform: translateY(-50%);
-          width: 50px;
-          height: 50px;
-          border-radius: 16px;
-          background: rgba(255,255,255,0.1);
-          backdrop-filter: blur(16px);
-          -webkit-backdrop-filter: blur(16px);
+          width: 48px;
+          height: 48px;
+          border-radius: 14px;
+          background: rgba(255,255,255,0.08);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
           color: #fff;
-          border: 1px solid rgba(255,255,255,0.18);
+          border: 1px solid rgba(255,255,255,0.12);
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
           z-index: 22;
-          transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
-          box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+          transition: all 0.3s ease;
         }
         .hero-arrow:hover {
-          background: rgba(255,255,255,0.22);
-          border-color: rgba(255,255,255,0.35);
-          box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+          background: rgba(255,255,255,0.18);
+          border-color: rgba(255,255,255,0.3);
         }
-        .hero-arrow--prev { left: 20px; }
-        .hero-arrow--next { right: 20px; }
+        .hero-arrow--prev { left: 16px; }
+        .hero-arrow--next { right: 16px; }
 
         /* ───── Indicators ───── */
         .hero-indicators {
@@ -803,7 +786,7 @@ export default function HeroSlider({
           transform: translateX(-50%);
           display: flex;
           align-items: center;
-          gap: 0.5rem;
+          gap: 0.4rem;
           z-index: 24;
         }
         .hero-ind {
@@ -817,26 +800,26 @@ export default function HeroSlider({
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+          transition: width 0.35s ease;
         }
         .hero-ind--active {
-          width: 40px;
+          width: 36px;
         }
         .hero-ind__dot {
           display: block;
           width: 100%;
-          height: 4px;
+          height: 3px;
           border-radius: 999px;
-          transition: all 0.35s ease;
+          transition: all 0.3s ease;
         }
         .hero-ind--active .hero-ind__dot {
-          height: 5px;
+          height: 4px;
         }
         .hero-ind__progress {
           position: absolute;
           inset: 0;
           border-radius: 999px;
-          height: 5px;
+          height: 4px;
           top: 50%;
           transform: translateY(-50%);
           transform-origin: right;
@@ -872,7 +855,7 @@ export default function HeroSlider({
           right: 0;
           height: 2px;
           z-index: 20;
-          opacity: 0.5;
+          opacity: 0.4;
         }
 
         /* ═══════════════════════════════════════════
@@ -891,13 +874,12 @@ export default function HeroSlider({
           .hero-container { padding-inline: clamp(2rem, 5vw, 4rem); }
           .hero-deco { display: none; }
           .hero-arrow {
-            width: 42px;
-            height: 42px;
-            border-radius: 12px;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
           }
-          .hero-arrow--prev { left: 12px; }
-          .hero-arrow--next { right: 12px; }
-          .hero-particles { display: none; }
+          .hero-arrow--prev { left: 10px; }
+          .hero-arrow--next { right: 10px; }
         }
 
         @media (max-width: 640px) {
@@ -930,15 +912,15 @@ export default function HeroSlider({
             line-height: 1.7;
           }
           .hero-arrow {
-            width: 38px;
-            height: 38px;
+            width: 36px;
+            height: 36px;
             top: auto;
             bottom: 22px;
             transform: none;
             border-radius: 10px;
           }
-          .hero-arrow--prev { left: 14px; }
-          .hero-arrow--next { right: 14px; }
+          .hero-arrow--prev { left: 12px; }
+          .hero-arrow--next { right: 12px; }
           .hero-indicators { bottom: 32px; }
           .hero-counter { display: none; }
         }
@@ -963,19 +945,19 @@ export default function HeroSlider({
 
         @media (prefers-reduced-motion: reduce) {
           .ken-burns .hero-bg-img { animation: none; }
-          .hero-particles { display: none; }
+          .hero-arrow { transition: none !important; }
         }
       `}</style>
 
+      {/* ═══════ Global button styles ═══════ */}
       <style jsx global>{`
-        /* ═══════ Global button styles ═══════ */
         .hero-slider .hero-desc p { margin: 0; }
         .hero-slider .hero-desc p + p { margin-top: 0.5rem; }
 
         .hero-slider .hero-actions {
           display: flex !important;
           align-items: center !important;
-          gap: 0.7rem !important;
+          gap: 0.6rem !important;
           flex-wrap: wrap !important;
           margin-top: 1.5rem;
           width: 100%;
@@ -984,114 +966,100 @@ export default function HeroSlider({
           direction: rtl;
         }
 
-        /* ─── Base button ─── */
         .hero-slider .h-btn {
           position: relative;
           display: inline-flex !important;
           align-items: center;
           justify-content: center;
-          gap: 0.6rem;
-          min-height: 50px;
+          gap: 0.5rem;
+          min-height: 48px;
           max-width: 100%;
-          padding: 0.65rem 1.1rem;
-          border-radius: 14px;
+          padding: 0.6rem 1rem;
+          border-radius: 12px;
           text-decoration: none !important;
           color: #fff !important;
-          border: 1px solid rgba(255,255,255,0.15);
+          border: 1px solid rgba(255,255,255,0.12);
           overflow: hidden;
           isolation: isolate;
           white-space: nowrap;
           font-weight: 600;
           box-shadow: 0 8px 32px rgba(0,0,0,0.18);
-          backdrop-filter: blur(16px);
-          -webkit-backdrop-filter: blur(16px);
-          transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          transition: all 0.3s ease;
         }
 
-        /* Shine effect */
         .hero-slider .h-btn::before {
           content: '';
           position: absolute;
           inset: 0;
           z-index: -1;
           transform: translateX(120%) skewX(-18deg);
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
-          transition: transform 0.7s ease;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+          transition: transform 0.6s ease;
         }
         .hero-slider .h-btn:hover::before {
           transform: translateX(-120%) skewX(-18deg);
         }
         .hero-slider .h-btn:hover {
-          transform: translateY(-3px);
+          transform: translateY(-2px);
           box-shadow: 0 14px 44px rgba(0,0,0,0.28);
-          border-color: rgba(255,255,255,0.3);
+          border-color: rgba(255,255,255,0.25);
         }
         .hero-slider .h-btn:active {
           transform: translateY(-1px);
         }
 
-        /* ─── Primary ─── */
         .hero-slider .h-btn--primary {
-          min-height: 54px;
-          padding-inline: 1.4rem;
+          min-height: 52px;
+          padding-inline: 1.2rem;
           background: linear-gradient(135deg, var(--btn-bg, #F59E0B) 0%, var(--btn-bg2, #D97706) 100%);
           color: var(--btn-color, #fff) !important;
-          border-color: rgba(255,255,255,0.12);
-          box-shadow:
-            0 12px 36px rgba(0,0,0,0.25),
-            0 0 0 1px rgba(255,255,255,0.1) inset,
-            0 1px 0 rgba(255,255,255,0.15) inset;
+          border-color: rgba(255,255,255,0.1);
         }
         .hero-slider .h-btn--primary:hover {
-          filter: brightness(1.08) saturate(1.1);
-          box-shadow:
-            0 16px 48px rgba(0,0,0,0.32),
-            0 0 0 1px rgba(255,255,255,0.15) inset;
+          filter: brightness(1.05) saturate(1.1);
         }
 
-        /* Arrow in primary btn */
         .hero-slider .h-btn__arrow {
-          width: 32px;
-          height: 32px;
-          min-width: 32px;
+          width: 30px;
+          height: 30px;
+          min-width: 30px;
           border-radius: 50%;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          background: rgba(255,255,255,0.2);
-          transition: all 0.35s ease;
+          background: rgba(255,255,255,0.18);
+          transition: all 0.3s ease;
         }
         .hero-slider .h-btn--primary:hover .h-btn__arrow {
-          transform: translateX(-4px);
-          background: rgba(255,255,255,0.3);
+          transform: translateX(-3px);
+          background: rgba(255,255,255,0.28);
         }
 
-        /* ─── Glass ─── */
         .hero-slider .h-btn--glass {
-          background: rgba(255,255,255,0.08);
+          background: rgba(255,255,255,0.06);
         }
         .hero-slider .h-btn--glass:hover {
-          background: rgba(255,255,255,0.15);
+          background: rgba(255,255,255,0.12);
         }
 
-        /* ─── Icon ─── */
         .hero-slider .h-btn__icon {
           position: relative;
-          width: 36px;
-          height: 36px;
-          min-width: 36px;
+          width: 34px;
+          height: 34px;
+          min-width: 34px;
           border-radius: 50%;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          background: rgba(255,255,255,0.14);
+          background: rgba(255,255,255,0.12);
           transition: background 0.3s ease;
         }
         .hero-slider .h-btn__icon--accent {
           background: var(--accent, #F59E0B);
         }
 
-        /* ─── Copy ─── */
         .hero-slider .h-btn__label {
           display: flex;
           align-items: center;
@@ -1099,7 +1067,7 @@ export default function HeroSlider({
           line-height: 1.15;
         }
         .hero-slider .h-btn__label strong {
-          font-size: 0.95rem;
+          font-size: 0.9rem;
           font-weight: 800;
         }
         .hero-slider .h-btn__copy {
@@ -1111,54 +1079,39 @@ export default function HeroSlider({
           min-width: 0;
         }
         .hero-slider .h-btn__copy strong {
-          font-size: 0.88rem;
+          font-size: 0.85rem;
           font-weight: 800;
         }
         .hero-slider .h-btn__copy small {
-          max-width: 130px;
+          max-width: 120px;
           overflow: hidden;
           text-overflow: ellipsis;
-          font-size: 0.72rem;
+          font-size: 0.7rem;
           font-weight: 600;
           opacity: 0.85;
           direction: ltr;
           unicode-bidi: plaintext;
         }
 
-        /* ─── WhatsApp ─── */
         .hero-slider .h-btn--whatsapp {
           background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
-          border-color: rgba(37,211,102,0.25);
+          border-color: rgba(37,211,102,0.2);
         }
         .hero-slider .h-btn--whatsapp:hover {
           background: linear-gradient(135deg, #2be872 0%, #1aad70 100%);
-          border-color: rgba(37,211,102,0.4);
-        }
-        .hero-slider .h-btn--whatsapp .h-btn__icon::after {
-          content: '';
-          position: absolute;
-          inset: -5px;
-          border-radius: inherit;
-          background: rgba(37,211,102,0.3);
-          z-index: -1;
-          animation: waPulse 2s ease-out infinite;
-        }
-        @keyframes waPulse {
-          0%   { transform: scale(0.85); opacity: 0.7; }
-          100% { transform: scale(1.5); opacity: 0; }
+          border-color: rgba(37,211,102,0.35);
         }
 
-        /* ═══════ Responsive buttons ═══════ */
         @media (max-width: 1200px) {
-          .hero-slider .hero-actions { gap: 0.6rem !important; }
+          .hero-slider .hero-actions { gap: 0.5rem !important; }
           .hero-slider .h-btn {
-            min-height: 48px;
-            padding: 0.6rem 0.95rem;
+            min-height: 46px;
+            padding: 0.5rem 0.85rem;
           }
           .hero-slider .h-btn__icon {
-            width: 34px;
-            height: 34px;
-            min-width: 34px;
+            width: 32px;
+            height: 32px;
+            min-width: 32px;
           }
         }
 
@@ -1175,14 +1128,14 @@ export default function HeroSlider({
             align-items: stretch !important;
             justify-content: center !important;
             width: 100%;
-            max-width: 320px;
+            max-width: 300px;
             margin: 1.25rem auto 0;
-            gap: 0.6rem !important;
+            gap: 0.5rem !important;
           }
           .hero-slider .h-btn {
             width: 100%;
-            min-height: 48px;
-            border-radius: 14px;
+            min-height: 46px;
+            border-radius: 12px;
             justify-content: center;
           }
           .hero-slider .h-btn__copy {
@@ -1190,7 +1143,7 @@ export default function HeroSlider({
             text-align: center;
           }
           .hero-slider .h-btn__copy small {
-            max-width: 180px;
+            max-width: 160px;
           }
           .hero-slider .h-btn--primary {
             order: -1;
@@ -1198,14 +1151,14 @@ export default function HeroSlider({
         }
 
         @media (max-width: 420px) {
-          .hero-slider .hero-actions { max-width: 290px; }
+          .hero-slider .hero-actions { max-width: 270px; }
           .hero-slider .h-btn {
-            min-height: 46px;
-            padding: 0.55rem 0.8rem;
+            min-height: 44px;
+            padding: 0.5rem 0.7rem;
           }
-          .hero-slider .h-btn__copy strong { font-size: 0.84rem; }
+          .hero-slider .h-btn__copy strong { font-size: 0.8rem; }
           .hero-slider .h-btn__copy small { display: none; }
-          .hero-slider .h-btn__label strong { font-size: 0.9rem; }
+          .hero-slider .h-btn__label strong { font-size: 0.85rem; }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -1213,9 +1166,6 @@ export default function HeroSlider({
           .hero-slider .h-btn::before,
           .hero-slider .h-btn__arrow {
             transition: none !important;
-          }
-          .hero-slider .h-btn--whatsapp .h-btn__icon::after {
-            animation: none;
           }
         }
       `}</style>
