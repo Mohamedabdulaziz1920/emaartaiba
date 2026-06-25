@@ -1,45 +1,33 @@
 // src/app/robots.ts
 import { MetadataRoute } from 'next';
 
+export const revalidate = 86400;
+
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 // ═══════════════════════════════════════════════════
-// 📋 المسارات المسموحة (Public Routes)
+// 📋 المسارات المسموحة
 // ═══════════════════════════════════════════════════
 const PUBLIC_PATHS = [
   '/',
   '/about',
-  '/about/',
   '/services',
-  '/services/',
   '/projects',
-  '/projects/',
   '/blog',
-  '/blog/',
   '/categories',
-  '/categories/',
   '/tags',
-  '/tags/',
   '/areas',
-  '/areas/',
   '/gallery',
-  '/gallery/',
   '/partners',
-  '/partners/',
   '/testimonials',
-  '/testimonials/',
   '/contact',
-  '/contact/',
   '/faq',
-  '/faq/',
   '/privacy',
-  '/privacy/',
   '/terms',
-  '/terms/',
 ];
 
 // ═══════════════════════════════════════════════════
-// 🚫 المسارات الممنوعة (Private Routes)
+// 🚫 المسارات الممنوعة
 // ═══════════════════════════════════════════════════
 const PRIVATE_PATHS = [
   '/api/',
@@ -58,27 +46,27 @@ const PRIVATE_PATHS = [
   '/cart',
   '/checkout',
   '/payment',
-  '/debug',                    // ✨ صفحة debug
+  '/debug',
   '/_vercel',
   '/static/private/',
 ];
 
 // ═══════════════════════════════════════════════════
-// 🔍 المسارات الممنوعة مع Query Parameters
+// 🔍 Query Parameters الممنوعة
 // ═══════════════════════════════════════════════════
 const QUERY_DISALLOWED = [
-  '/*?sort=*',
-  '/*?filter=*',
-  '/*?per_page=*',
-  '/*?limit=*',
-  '/*?offset=*',
-  '/*?utm_*',
-  '/*?ref=*',
-  '/*?source=*',
-  '/*?session=*',
-  '/*?token=*',
-  '/search?*',
-  '/*?preview=*',
+  '/*?sort=',
+  '/*?filter=',
+  '/*?per_page=',
+  '/*?limit=',
+  '/*?offset=',
+  '/*?utm_',
+  '/*?ref=',
+  '/*?source=',
+  '/*?session=',
+  '/*?token=',
+  '/search',
+  '/*?preview=',
 ];
 
 // ═══════════════════════════════════════════════════
@@ -130,7 +118,7 @@ const SOCIAL_BOTS = [
 ];
 
 // ═══════════════════════════════════════════════════
-// ⚡ أدوات اختبار الأداء (مسموحة)
+// ⚡ أدوات اختبار الأداء
 // ═══════════════════════════════════════════════════
 const PERFORMANCE_TOOLS = [
   'Google-InspectionTool',
@@ -143,7 +131,7 @@ const PERFORMANCE_TOOLS = [
 ];
 
 // ═══════════════════════════════════════════════════
-// 🤖 محركات البحث الرئيسية
+// 🔍 محركات البحث الرئيسية
 // ═══════════════════════════════════════════════════
 const SEARCH_ENGINES_FULL_ACCESS = [
   'Googlebot',
@@ -154,9 +142,9 @@ const SEARCH_ENGINES_FULL_ACCESS = [
   'YandexBot',
   'DuckDuckBot',
   'Applebot',
-  'Slurp',                     // Yahoo
+  'Slurp',
   'Baiduspider',
-  'PetalBot',                  // Huawei
+  'PetalBot',
   'Sogou',
   'Exabot',
 ];
@@ -164,122 +152,76 @@ const SEARCH_ENGINES_FULL_ACCESS = [
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
-      // ═══════════════════════════════════════════════════
-      // 🌐 القاعدة العامة (افتراضي لكل bot غير محدد)
-      // ═══════════════════════════════════════════════════
+      // القاعدة العامة
       {
         userAgent: '*',
         allow: PUBLIC_PATHS,
         disallow: [...PRIVATE_PATHS, ...QUERY_DISALLOWED],
         crawlDelay: 1,
       },
-      
-      // ═══════════════════════════════════════════════════
-      // 🔍 محركات البحث الرئيسية (وصول كامل)
-      // ═══════════════════════════════════════════════════
+
+      // محركات البحث الرئيسية
       {
         userAgent: SEARCH_ENGINES_FULL_ACCESS,
         allow: '/',
         disallow: PRIVATE_PATHS,
       },
-      
-      // ═══════════════════════════════════════════════════
-      // 🖼️ Googlebot-Image - لزحف الصور
-      // ═══════════════════════════════════════════════════
+
+      // Googlebot-Image
       {
         userAgent: 'Googlebot-Image',
-        allow: [
-          '/',
-          '/storage/',
-          '/_next/image',
-          '/images/',
-          '/uploads/',
-          '/static/',
-        ],
+        allow: ['/', '/storage/', '/_next/image', '/images/', '/uploads/', '/static/'],
         disallow: ['/admin/', '/private/'],
       },
-      
-      // ═══════════════════════════════════════════════════
-      // 📰 Googlebot-News - للأخبار والمدونة
-      // ═══════════════════════════════════════════════════
+
+      // Googlebot-News
       {
         userAgent: 'Googlebot-News',
         allow: ['/blog/', '/blog'],
         disallow: ['/services/', '/projects/', '/gallery/'],
       },
-      
-      // ═══════════════════════════════════════════════════
-      // 🎬 Googlebot-Video - للفيديوهات
-      // ═══════════════════════════════════════════════════
+
+      // Googlebot-Video
       {
         userAgent: 'Googlebot-Video',
         allow: ['/gallery/', '/projects/', '/services/'],
         disallow: ['/admin/'],
       },
-      
-      // ═══════════════════════════════════════════════════
-      // ⚡ أدوات اختبار الأداء (وصول كامل)
-      // ═══════════════════════════════════════════════════
+
+      // أدوات الأداء
       {
         userAgent: PERFORMANCE_TOOLS,
         allow: '/',
       },
-      
-      // ═══════════════════════════════════════════════════
-      // 📱 روبوتات التواصل الاجتماعي (وصول كامل)
-      // ═══════════════════════════════════════════════════
+
+      // Social Bots
       {
         userAgent: SOCIAL_BOTS,
         allow: '/',
       },
-      
-      // ═══════════════════════════════════════════════════
-      // 💰 AdsBot - روبوتات الإعلانات
-      // ═══════════════════════════════════════════════════
+
+      // AdsBot
       {
         userAgent: ['AdsBot-Google', 'AdsBot-Google-Mobile', 'Mediapartners-Google'],
         allow: '/',
         disallow: ['/admin/', '/private/', '/auth/'],
       },
-      
-      // ═══════════════════════════════════════════════════
-      // 🚫 حظر روبوتات الذكاء الاصطناعي
-      // ═══════════════════════════════════════════════════
+
+      // AI Bots - محظورة
       {
         userAgent: AI_BOTS,
         disallow: '/',
       },
-      
-      // ═══════════════════════════════════════════════════
-      // 🚫 حظر روبوتات السبام والاختراق المعروفة
-      // ═══════════════════════════════════════════════════
+
+      // SEO Tools - إبطاء فقط
       {
-        userAgent: [
-          'SemrushBot',
-          'AhrefsBot',
-          'MJ12bot',
-          'DotBot',
-          'BLEXBot',
-          'Linguee Bot',
-          'spbot',
-        ],
+        userAgent: ['SemrushBot', 'AhrefsBot', 'MJ12bot', 'DotBot', 'BLEXBot', 'Linguee Bot', 'spbot'],
         crawlDelay: 10,
         disallow: ['/admin/', '/api/'],
       },
     ],
-    
-    // ═══════════════════════════════════════════════════
-    // 🗺️ Sitemap
-    // ═══════════════════════════════════════════════════
-    sitemap: [
-      `${BASE_URL}/sitemap.xml`,
-    ],
-    
-    // ═══════════════════════════════════════════════════
-    // 🏠 Host
-    // ═══════════════════════════════════════════════════
+
+    sitemap: [`${BASE_URL}/sitemap.xml`],
     host: BASE_URL,
   };
 }
-
-export const revalidate = 86400; // 24 ساعة

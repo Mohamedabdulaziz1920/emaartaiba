@@ -1,214 +1,308 @@
-// src/app/gallery/[slug]/page.tsx
+// src/app/tags/[slug]/page.tsx
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-// 🎯 SEO - النظام الموحد
-import { generateSEO, buildBreadcrumb } from '@/lib/seo/metadata';
-import { JsonLd } from '@/components/seo/JsonLd';
-import Breadcrumb from '@/components/seo/Breadcrumb';
+import { api, type Tag, type BlogPost, type Service, type Project } from '@/lib/api';
 import { getSiteSettings } from '@/lib/settings';
+import { generateSEO, buildBreadcrumb } from '@/lib/seo/metadata';
+import { JsonLd }    from '@/components/seo/JsonLd'; // ✅ مضاف
+import Breadcrumb    from '@/components/seo/Breadcrumb';
+import { getImageUrl } from '@/lib/image';  // ✅ من المكتبة
+import { toStr }       from '@/lib/typeSafe';
 
-// 🧩 Client Component
-import GalleryDetailClient from './GalleryDetailClient';
+// ✅ ISR بدون force-dynamic
+export const revalidate   = 300;
+export const dynamicParams = true;
 
-// 🛠️ Utilities
-import { api } from '@/lib/api';
-import { toStr } from '@/lib/typeSafe';
-import { getImageUrl } from '@/lib/image';
-
-// ════════════════════════════════════════════════
-// 🎯 Types - متوافقة مع Laravel API
-// ════════════════════════════════════════════════
-interface GalleryImage {
-  id: string;
-  title: string;
-  image: string;
-}
-
-interface GalleryData {
-  id: number;
-  title_ar: string;
-  slug: string;
-  description_ar: string | null;
-  category: string | null;
-  image: string | null;
-  gallery_images: string[] | null;
-  is_active: boolean;
-  is_featured: boolean;
-  order: number;
-  created_at: string;
-  updated_at: string;
-  images: GalleryImage[];
-  total_images: number;
+interface Props {
+  params:       Promise<{ slug: string }>;
+  searchParams: Promise<{ page?: string; type?: string }>;
 }
 
 // ════════════════════════════════════════════════
-// 🛠️ Helper: تحويل بيانات API إلى صيغة العرض
+// 🛠️ Helpers
 // ════════════════════════════════════════════════
-function transformGalleryData(data: any): GalleryData {
-  const galleryImages = Array.isArray(data.gallery_images) ? data.gallery_images : [];
-  
-  const images: GalleryImage[] = [];
-  
-  if (data.image) {
-    images.push({
-      id: 'main',
-      title: data.title_ar || 'الصورة الرئيسية',
-      image: getImageUrl(data.image),
-    });
-  }
-  
-  galleryImages.forEach((img: string, index: number) => {
-    if (img) {
-      images.push({
-        id: `img-${index + 1}`,
-        title: `${data.title_ar} - صورة ${index + 1}`,
-        image: getImageUrl(img),
-      });
-    }
-  });
-
-  return {
-    ...data,
-    images,
-    total_images: images.length,
-  };
-}
-
-// ════════════════════════════════════════════════
-// 🛠️ Helper: جلب المعرض بواسطة Slug (محلي فقط)
-// ════════════════════════════════════════════════
-async function getGalleryBySlug(slug: string): Promise<any | null> {
+function formatDate(date: string): string {
   try {
-    // ✅ استخدام api.galleries() لجلب جميع المعارض ثم البحث
-    const galleries = await api.galleries();
-    const gallery = galleries.find((g: any) => g.slug === slug);
-    return gallery || null;
-  } catch (error) {
-    console.error(`Error fetching gallery by slug ${slug}:`, error);
-    return null;
-  }
+    return new Date(date).toLocaleDateString('ar-SA', {
+      year: 'numeric', month: 'long', day: 'numeric',
+    });
+  } catch { return date; }
+}
+
+function truncate(text: string | null | undefined, max = 100): string {
+  if (!text) return '';
+  return text.length > max ? text.substring(0, max) + '...' : text;
 }
 
 // ════════════════════════════════════════════════
-// 📝 SEO Metadata - النظام الموحد
+// 📝 generateMetadata
 // ════════════════════════════════════════════════
-export async function generateMetadata({ 
-  params 
-}: { 
-  params: Promise<{ slug: string }> 
-}): Promise<Metadata> {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const [settings, gallery] = await Promise.all([
+
+  const [tag, settings] = await Promise.all([
+    api.tag(slug).catch(() => null),
     getSiteSettings(),
-    getGalleryBySlug(slug),
   ]);
 
-  if (!gallery) {
+  if (!tag) {
     return generateSEO({
       settings,
-      title: 'المعرض غير موجود',
-      description: 'عذراً، المعرض الذي تبحث عنه غير متوفر',
-      noindex: true,
+      title:       'الوسم غير موجود',
+      description: 'عذراً، الوسم الذي تبحث عنه غير موجود',
+      noindex:     true,
     });
   }
 
-  const title = toStr(gallery.title_ar) || 'معرض الصور';
-  const description = toStr(gallery.description_ar) || `معرض صور ${title}`;
-  const image = gallery.image ? getImageUrl(gallery.image) : undefined;
+  const tagName    = toStr(tag.name_ar) || toStr(tag.name_en) || tag.slug;
+  // ✅ لا defaults خاصة بنشاط
+  const siteName   = toStr(settings?.site_name_ar) || toStr(settings?.site_name) || '';
+  const title      = tag.meta_title ||
+                     (siteName ? `${tagName} | ${siteName}` : tagName) ||
+                     tagName;
+  const description = tag.meta_description || tag.description || tagName || '';
 
   return generateSEO({
     settings,
-    type: 'website',
     title,
     description,
-    keywords: ['معرض صور', 'صور', 'معرض', 'مشاريع', 'بناء', title],
-    url: `/gallery/${slug}`,
-    image,
+    keywords: [tagName, toStr(tag.name_en)].filter(Boolean) as string[],
+    url:      `/tags/${tag.slug}`,
+    type:     'website',
   });
 }
 
 // ════════════════════════════════════════════════
-// ⚡ ISR - إعادة التحقق كل ساعة
+// 🖥️ Page Component
 // ════════════════════════════════════════════════
-export const revalidate = 3600;
+export default async function TagPage({ params, searchParams }: Props) {
+  const { slug }         = await params;
+  const { page, type }   = await searchParams;
+  const currentPage      = Number(page) || 1;
+  const activeType       = type || 'blogs';
 
-// ════════════════════════════════════════════════
-// 🖥️ الصفحة الرئيسية (Server Component)
-// ════════════════════════════════════════════════
-export default async function GalleryDetailPage({ 
-  params 
-}: { 
-  params: Promise<{ slug: string }> 
-}) {
-  const { slug } = await params;
-  
-  // ─── جلب البيانات بالتوازي ───
-  const [settings, galleryRaw] = await Promise.all([
-    getSiteSettings(),
-    getGalleryBySlug(slug),
+  // ─── جلب البيانات ─────────────────────────────
+  const [tag, settings] = await Promise.all([
+    api.tag(slug).catch(() => null),
+    getSiteSettings(), // ✅ مضاف
   ]);
 
-  if (!galleryRaw) {
-    notFound();
-  }
+  if (!tag) notFound();
 
-  // ─── تحويل البيانات إلى صيغة العرض ───
-  const gallery = transformGalleryData(galleryRaw);
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.lamsataljarj.com';
+  const [blogsRaw, servicesRaw, projectsRaw] = await Promise.all([
+    api.blogs(currentPage, 6, { tag: slug }).catch(() => ({})),
+    api.searchServices(slug).catch(() => []),
+    api.searchProjects(slug).catch(() => ({ data: [] })),
+  ]);
 
-  // ─── Breadcrumbs ───
+  // ─── استخراج البيانات ─────────────────────────
+  const blogsResult = blogsRaw as any;
+  const blogs       = blogsResult?.data   || blogsResult?.items  || [];
+  const blogsTotal  = blogsResult?.total  || blogsResult?.meta?.total || 0;
+  const lastPage    = blogsResult?.last_page || blogsResult?.meta?.last_page || 1;
+  const services    = Array.isArray(servicesRaw) ? servicesRaw : [] as Service[];
+  const projects    = (projectsRaw as any)?.data || [];
+
+  // ─── Breadcrumbs ──────────────────────────────
+  const tagName     = toStr(tag.name_ar) || tag.slug;
   const breadcrumbs = buildBreadcrumb(
-    { name: 'المعرض', url: '/gallery' },
-    { name: gallery.title_ar, url: `/gallery/${slug}` }
+    { name: 'الوسوم',  url: '/tags' },
+    { name: tagName,   url: `/tags/${tag.slug}` }
   );
 
-  // ─── الصورة الرئيسية ───
-  const mainImage = gallery.image ? getImageUrl(gallery.image) : undefined;
-
-  // ─── Image Gallery Schema ───
-  const gallerySchema = {
-    '@context': 'https://schema.org',
-    '@type': 'ImageGallery',
-    '@id': `${siteUrl}/gallery/${slug}#gallery`,
-    name: gallery.title_ar,
-    description: gallery.description_ar || `معرض صور ${gallery.title_ar}`,
-    inLanguage: 'ar-SA',
-    image: gallery.images.map((img: GalleryImage) => ({
-      '@type': 'ImageObject',
-      url: img.image,
-      name: img.title || gallery.title_ar,
-      caption: img.title || gallery.title_ar,
-      contentUrl: img.image,
-    })),
-  };
-
+  // ════════════════════════════════════════════════
+  // 🎨 Render
+  // ════════════════════════════════════════════════
   return (
     <>
-      {/* ═══════════════════════════════════════
-          🎯 JSON-LD Schemas (Server-Side)
-          ═══════════════════════════════════════ */}
-      <JsonLd 
+      {/* ═══ SEO ═══ */}
+      {/* ✅ JsonLd مضاف */}
+      <JsonLd
         settings={settings}
-        pageType="about"
-        pageTitle={gallery.title_ar}
-        pageDescription={gallery.description_ar || `معرض صور ${gallery.title_ar}`}
-        pageUrl={`/gallery/${slug}`}
-        pageImage={mainImage}
+        pageType="blog"
+        pageTitle={tagName}
+        pageDescription={tag.description || undefined}
+        pageUrl={`/tags/${tag.slug}`}
         breadcrumbs={breadcrumbs}
       />
-      
-      {/* ImageGallery Schema */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(gallerySchema) }}
-      />
-      
-      {/* Breadcrumb Component */}
-      <Breadcrumb items={breadcrumbs} variant="dark" />
-      
-      {/* Client Component للتفاعل */}
-      <GalleryDetailClient gallery={gallery} />
+
+      {/* Hero */}
+      <section className="tag-hero">
+        <div className="container-custom">
+          <Breadcrumb items={breadcrumbs} variant="dark" />
+          <div className="tag-hero-content">
+            <span className="tag-hero-icon">🏷️</span>
+            <h1 className="tag-hero-title">{tagName}</h1>
+            {tag.description && (
+              <p className="tag-hero-desc">{tag.description}</p>
+            )}
+            <div className="tag-stats">
+              <span>📝 {blogsTotal}</span>
+              <span>🔧 {services.length}</span>
+              <span>📁 {projects.length}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Content */}
+      <section className="tag-content">
+        <div className="container-custom">
+
+          {/* Tabs */}
+          <div className="tag-tabs">
+            <Link
+              href={`/tags/${tag.slug}?type=blogs`}
+              className={`tab-btn ${activeType === 'blogs' ? 'active' : ''}`}
+            >
+              المقالات ({blogsTotal})
+            </Link>
+            <Link
+              href={`/tags/${tag.slug}?type=services`}
+              className={`tab-btn ${activeType === 'services' ? 'active' : ''}`}
+            >
+              الخدمات ({services.length})
+            </Link>
+            <Link
+              href={`/tags/${tag.slug}?type=projects`}
+              className={`tab-btn ${activeType === 'projects' ? 'active' : ''}`}
+            >
+              المشاريع ({projects.length})
+            </Link>
+          </div>
+
+          {/* ─── Blogs ─── */}
+          {activeType === 'blogs' && (
+            <div className="content-section">
+              {blogs.length > 0 ? (
+                <>
+                  <div className="items-grid">
+                    {blogs.map((blog: BlogPost) => {
+                      const imgUrl = getImageUrl(blog.featured_image ?? '');
+                      return (
+                        <Link key={blog.id} href={`/blog/${blog.slug}`} className="item-card">
+                          <div className="item-card-image">
+                            {imgUrl
+                              ? <img src={imgUrl} alt={blog.title_ar} className="item-image" />
+                              : <div className="image-placeholder">📝</div>
+                            }
+                          </div>
+                          <div className="item-card-content">
+                            <div className="item-meta">
+                              <span>{formatDate(blog.published_at)}</span>
+                              {blog.reading_time && <span>{blog.reading_time} د</span>}
+                            </div>
+                            <h3 className="item-title">{blog.title_ar}</h3>
+                            {/* ✅ truncate آمن */}
+                            <p className="item-excerpt">{truncate(blog.excerpt_ar)}</p>
+                            <span className="read-more">قراءة المقال ←</span>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+
+                  {/* Pagination */}
+                  {lastPage > 1 && (
+                    <div className="pagination">
+                      {currentPage > 1 && (
+                        <Link
+                          href={`/tags/${tag.slug}?type=blogs&page=${currentPage - 1}`}
+                          className="pagination-prev"
+                        >
+                          → السابق
+                        </Link>
+                      )}
+                      <span className="pagination-current">
+                        {currentPage} / {lastPage}
+                      </span>
+                      {currentPage < lastPage && (
+                        <Link
+                          href={`/tags/${tag.slug}?type=blogs&page=${currentPage + 1}`}
+                          className="pagination-next"
+                        >
+                          التالي ←
+                        </Link>
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="empty-state">
+                  <p>لا توجد مقالات مرتبطة بهذا الوسم</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ─── Services ─── */}
+          {activeType === 'services' && (
+            <div className="content-section">
+              {services.length > 0 ? (
+                <div className="items-grid">
+                  {services.map((service: Service) => {
+                    const imgUrl = getImageUrl((service as any).image ?? '');
+                    return (
+                      <Link key={service.id} href={`/services/${service.slug}`} className="item-card">
+                        <div className="item-card-image">
+                          {imgUrl
+                            ? <img src={imgUrl} alt={service.title_ar} className="item-image" />
+                            : <div className="image-placeholder">🔧</div>
+                          }
+                        </div>
+                        <div className="item-card-content">
+                          <h3 className="item-title">{service.title_ar}</h3>
+                          <p className="item-excerpt">{truncate(service.excerpt_ar)}</p>
+                          <span className="read-more">تفاصيل الخدمة ←</span>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <p>لا توجد خدمات مرتبطة بهذا الوسم</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ─── Projects ─── */}
+          {activeType === 'projects' && (
+            <div className="content-section">
+              {projects.length > 0 ? (
+                <div className="items-grid">
+                  {projects.map((project: Project) => {
+                    const imgUrl = getImageUrl(project.main_image ?? '');
+                    return (
+                      <Link key={project.id} href={`/projects/${project.slug}`} className="item-card">
+                        <div className="item-card-image">
+                          {imgUrl
+                            ? <img src={imgUrl} alt={project.title_ar} className="item-image" />
+                            : <div className="image-placeholder">📁</div>
+                          }
+                        </div>
+                        <div className="item-card-content">
+                          <h3 className="item-title">{project.title_ar}</h3>
+                          <p className="item-excerpt">{truncate(project.excerpt_ar)}</p>
+                          <span className="read-more">تفاصيل المشروع ←</span>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <p>لا توجد مشاريع مرتبطة بهذا الوسم</p>
+                </div>
+              )}
+            </div>
+          )}
+
+        </div>
+      </section>
     </>
   );
 }

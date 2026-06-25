@@ -10,7 +10,7 @@ import ServiceSchema from '@/components/seo/ServiceSchema';
 // 🛠️ Utilities
 import { api } from '@/lib/api';
 import { getSiteSettings } from '@/lib/settings';
-import { toStr, toArray } from '@/lib/typeSafe';
+import { toStr, toArray, extractArray } from '@/lib/typeSafe'; // ✅ extractArray من typeSafe
 
 // 🧩 Client Components
 import ServiceDetailClient from './ServiceDetailClient';
@@ -54,41 +54,36 @@ interface Service {
 async function fetchService(slug: string): Promise<Service | null> {
   try {
     const response: any = await api.service(slug);
-    
     if (!response) return null;
-    
-    // إذا كانت الاستجابة { success: true, data: {...} }
-    if (response.success === true && response.data) {
-      return response.data;
-    }
-    
-    // إذا كانت الاستجابة كائن مباشر
-    if (response.id) {
-      return response as Service;
-    }
-    
+
+    // { success: true, data: {...} }
+    if (response.success === true && response.data) return response.data;
+
+    // كائن مباشر
+    if (response.id) return response as Service;
+
     return null;
   } catch (error) {
-    console.error('❌ Error fetching service:', error);
+    console.error('❌ Error fetching service:', slug, error);
     return null;
   }
 }
 
 // ════════════════════════════════════════════════
-// 📝 generateMetadata - SEO ديناميكي
+// 📝 generateMetadata
 // ════════════════════════════════════════════════
-export async function generateMetadata({ 
-  params 
-}: { 
-  params: Promise<{ slug: string }> | { slug: string } 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const { slug } = await Promise.resolve(params);
-  
+  const { slug } = await params;
+
   const [settings, service] = await Promise.all([
     getSiteSettings(),
     fetchService(slug),
   ]);
-  
+
   if (!service) {
     return generateSEO({
       settings,
@@ -96,81 +91,71 @@ export async function generateMetadata({
       noindex: true,
     });
   }
-  
-  const title = toStr(service.meta_title) || toStr(service.title_ar) || toStr(service.title);
+
+  const title       = toStr(service.meta_title)       || toStr(service.title_ar)   || toStr(service.title);
   const description = toStr(service.meta_description) || toStr(service.excerpt_ar) || toStr(service.excerpt);
-  const image = toStr(service.og_image_url) || toStr(service.image_url);
-  const keywords = toArray<string>(service.meta_keywords);
-  
+  const image       = toStr(service.og_image_url)     || toStr(service.image_url);
+  const keywords    = toArray<string>(service.meta_keywords);
+
   return generateSEO({
     settings,
-    type: 'website',
+    type:      'website',
     title,
     description,
     keywords,
     image,
-    url: `/services/${slug}`,
+    url:       `/services/${slug}`,
     canonical: service.canonical_url || undefined,
-    noindex: service.robots?.includes('noindex'),
-    nofollow: service.robots?.includes('nofollow'),
+    noindex:   service.robots?.includes('noindex'),
+    nofollow:  service.robots?.includes('nofollow'),
   });
 }
 
 // ════════════════════════════════════════════════
-// 🖥️ Main Page Component (Server)
+// 🖥️ Page Component
 // ════════════════════════════════════════════════
-export default async function ServicePage({ 
-  params 
-}: { 
-  params: Promise<{ slug: string }> | { slug: string } 
+export default async function ServicePage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
 }) {
-  const { slug } = await Promise.resolve(params);
-  
-  // ─── جلب البيانات بالتوازي ───
-  const [settings, service, relatedServices] = await Promise.all([
+  const { slug } = await params;
+
+  const [settings, service, relatedRaw] = await Promise.all([
     getSiteSettings(),
     fetchService(slug),
     api.relatedServices(slug).catch(() => []),
   ]);
-  
-  // ─── 404 إذا الخدمة غير موجودة ───
-  if (!service) {
-    notFound();
-  }
-  
-  // ─── Breadcrumbs ───
+
+  if (!service) notFound();
+
   const breadcrumbs = buildBreadcrumb(
-    { name: 'الخدمات', url: '/services' },
-    { name: service.title_ar || service.title, url: `/services/${slug}` }
+    { name: 'الخدمات',                              url: '/services' },
+    { name: service.title_ar || service.title,      url: `/services/${slug}` }
   );
-  
-  // ─── الصفحة ───
+
+  const relatedServices = extractArray(relatedRaw);
+
   return (
     <>
-      {/* ═══════════════════════════════════════
-          🎯 JSON-LD Schemas (Server-Side)
-          ═══════════════════════════════════════ */}
-      
       {/* Organization + WebSite + WebPage + Breadcrumbs */}
-      <JsonLd 
+      <JsonLd
         settings={settings}
         pageType="service-detail"
         pageTitle={service.title_ar || service.title}
         pageDescription={service.excerpt_ar || service.excerpt}
         pageUrl={`/services/${slug}`}
-        pageImage={service.image_url || undefined}
+        pageImage={service.image_url ?? undefined}
         breadcrumbs={breadcrumbs}
       />
-      
+
       {/* Service Schema المتخصص */}
       <ServiceSchema service={service} settings={settings} />
-      
-      {/* ═══════════════════════════════════════
-          🎨 محتوى الصفحة (Client Component)
-          ═══════════════════════════════════════ */}
-      <ServiceDetailClient 
+
+      {/* محتوى الصفحة */}
+      <ServiceDetailClient
         service={service}
-        relatedServices={extractArray(relatedServices)}
+        relatedServices={relatedServices}
         settings={settings}
         breadcrumbs={breadcrumbs}
       />
@@ -179,25 +164,17 @@ export default async function ServicePage({
 }
 
 // ════════════════════════════════════════════════
-// 🛠️ Helper
+// ⚙️ Config
 // ════════════════════════════════════════════════
-function extractArray<T = any>(raw: any): T[] {
-  if (!raw) return [];
-  if (Array.isArray(raw)) return raw;
-  if (raw.data && Array.isArray(raw.data)) return raw.data;
-  if (raw.data?.data && Array.isArray(raw.data.data)) return raw.data.data;
-  return [];
-}
 
-// ISR
-export const revalidate = 60;
+// ✅ 300 ثانية - متوافق مع باقي الملفات
+export const revalidate = 300;
 
-// Static generation للروابط الشهيرة (اختياري)
 export async function generateStaticParams() {
   try {
-    const services = await api.featuredServices();
-    const list = extractArray<Service>(services);
-    return list.slice(0, 20).map((s) => ({ slug: s.slug }));
+    const raw      = await api.featuredServices();
+    const services = extractArray<Service>(raw);
+    return services.slice(0, 20).map(s => ({ slug: s.slug }));
   } catch {
     return [];
   }

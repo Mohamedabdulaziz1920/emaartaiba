@@ -1,8 +1,8 @@
 // src/app/sitemap.ts
 import { MetadataRoute } from 'next';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.lamsataljarj.com';
-const API = process.env.NEXT_PUBLIC_API_URL || 'https://api.lamsataljarj.com/api/v1';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+const API = process.env.NEXT_PUBLIC_API_URL       || 'http://localhost:8000/api/v1';
 
 // حد Google الأقصى
 const MAX_URLS_PER_SITEMAP = 45000;
@@ -13,41 +13,38 @@ const MAX_BLOG_PAGINATION_PAGES = 10;
 // ═══════════════════════════════════════════════════
 async function fetchData(path: string): Promise<any[]> {
   try {
-    const res = await fetch(`${API}${path}`, { 
+    const res = await fetch(`${API}${path}`, {
       next: { revalidate: 3600 },
-      headers: { 'Accept': 'application/json' }
+      headers: { 'Accept': 'application/json' },
     });
-    
+
     if (!res.ok) {
       console.warn(`⚠️ Sitemap fetch failed [${path}]: ${res.status}`);
       return [];
     }
-    
+
     const json = await res.json();
-    
-    // ✅ دعم جميع صيغ الاستجابة الممكنة
-    if (Array.isArray(json.data)) return json.data;
-    if (Array.isArray(json)) return json;
-    if (json.data?.data && Array.isArray(json.data.data)) return json.data.data;
-    if (json.data?.items && Array.isArray(json.data.items)) return json.data.items;
-    if (json.data?.results && Array.isArray(json.data.results)) return json.data.results;
-    if (json.items && Array.isArray(json.items)) return json.items;
-    if (json.results && Array.isArray(json.results)) return json.results;
-    if (json.data && json.data.length !== undefined && typeof json.data === 'object' && !Array.isArray(json.data)) {
-      // إذا كان data كائن وليس مصفوفة، نحاول استخراج المصفوفة منه
-      for (const key of ['items', 'results', 'data', 'list']) {
+
+    // ✅ ترتيب واضح بدون تكرار
+    if (Array.isArray(json))                              return json;
+    if (Array.isArray(json.data))                         return json.data;
+    if (Array.isArray(json.data?.data))                   return json.data.data;
+    if (Array.isArray(json.data?.items))                  return json.data.items;
+    if (Array.isArray(json.data?.results))                return json.data.results;
+    if (Array.isArray(json.items))                        return json.items;
+    if (Array.isArray(json.results))                      return json.results;
+
+    // محاولة أخيرة إذا كان data كائن
+    if (json.data && typeof json.data === 'object' && !Array.isArray(json.data)) {
+      for (const key of ['items', 'results', 'list']) {
         if (Array.isArray(json.data[key])) return json.data[key];
       }
     }
-    // ✅ إذا كانت الاستجابة { data: { data: [...] } }
-    if (json.data && json.data.data && Array.isArray(json.data.data)) {
-      return json.data.data;
-    }
-    
-    console.warn(`⚠️ Unexpected API response format for ${path}:`, typeof json, Object.keys(json));
+
+    console.warn(`⚠️ Unexpected format [${path}]:`, Object.keys(json));
     return [];
   } catch (error) {
-    console.error(`❌ Failed to fetch sitemap data for ${path}:`, error);
+    console.error(`❌ Sitemap fetch error [${path}]:`, error);
     return [];
   }
 }
@@ -91,42 +88,41 @@ function getPagePriority(path: string): { priority: number; frequency: ChangeFre
 // ═══════════════════════════════════════════════════
 async function generateBlogPaginationPages(): Promise<MetadataRoute.Sitemap> {
   try {
-    const response = await fetch(`${API}/blogs?per_page=1`, {
+    const res = await fetch(`${API}/blogs?per_page=1`, {
       next: { revalidate: 3600 },
-      headers: { 'Accept': 'application/json' }
+      headers: { 'Accept': 'application/json' },
     });
-    
-    if (!response.ok) return [];
-    
-    const json = await response.json();
-    let totalCount = 0;
-    
-    if (json.data && typeof json.data === 'object') {
-      totalCount = json.data.total || json.total || 0;
-    } else if (json.total) {
-      totalCount = json.total;
-    } else if (Array.isArray(json.data)) {
-      totalCount = json.data.length;
-    } else if (Array.isArray(json)) {
-      totalCount = json.length;
-    }
-    
+
+    if (!res.ok) return [];
+
+    const json = await res.json();
+
+    // ✅ استخراج total بترتيب منطقي
+    const totalCount: number =
+      json?.meta?.total    ||
+      json?.data?.total    ||
+      json?.data?.meta?.total ||
+      json?.total          ||
+      0;
+
+    if (totalCount === 0) return [];
+
     const postsPerPage = 12;
-    const totalPages = Math.ceil(totalCount / postsPerPage);
+    const totalPages   = Math.ceil(totalCount / postsPerPage);
     const pages: MetadataRoute.Sitemap = [];
-    
+
     for (let i = 2; i <= Math.min(totalPages, MAX_BLOG_PAGINATION_PAGES); i++) {
       pages.push({
-        url: `${BASE_URL}/blog?page=${i}`,
-        lastModified: new Date(),
+        url:             `${BASE_URL}/blog?page=${i}`,
+        lastModified:    new Date(),
         changeFrequency: 'weekly',
-        priority: 0.7,
+        priority:        0.7,
       });
     }
-    
+
     return pages;
   } catch (error) {
-    console.error('❌ Error generating blog pagination pages:', error);
+    console.error('❌ Blog pagination error:', error);
     return [];
   }
 }
@@ -188,7 +184,7 @@ async function getAllDynamicData() {
     const [services, projects, blogs, areas, galleries] = await Promise.all([
       fetchData('/services'),
       fetchData('/projects'),
-      fetchData('/blogs?per_page=200'),
+      fetchData('/blogs/sitemap'), 
       fetchData('/areas'),
       fetchData('/galleries').catch(() => []),
     ]);
@@ -199,6 +195,7 @@ async function getAllDynamicData() {
     return { services: [], projects: [], blogs: [], areas: [], galleries: [] };
   }
 }
+export const revalidate = 3600;
 
 // ═══════════════════════════════════════════════════
 // 🗺️ Main Sitemap
@@ -335,4 +332,3 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return finalPages;
 }
 
-export const revalidate = 3600;

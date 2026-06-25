@@ -15,6 +15,8 @@ import { Suspense } from 'react';
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { getDesignSettings } from '@/lib/colors';
+import { toStr, toNumber } from '@/lib/typeSafe';
+export const revalidate = 300;
 
 const geist = Geist({ 
   subsets: ['latin'], 
@@ -24,99 +26,160 @@ const geist = Geist({
   weight: ['400', '500', '600', '700', '800'],
 });
 
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 5,
-  userScalable: true,
-  themeColor: '#F59E0B',
-  colorScheme: 'light',
-};
+// ═══════════════════════════════════════════════════
+// 🎨 Viewport - ديناميكي
+// ═══════════════════════════════════════════════════
+export async function generateViewport(): Promise<Viewport> {
+  let themeColor = '#1a365d'; // fallback
+  
+  try {
+    const settings = await getSiteSettings();
+    themeColor = toStr(settings?.primary_color) || themeColor;
+  } catch {
+    // استخدم fallback
+  }
 
+  return {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+    themeColor,
+    colorScheme: 'light',
+  };
+}
+
+// ═══════════════════════════════════════════════════
+// 📋 Metadata - ديناميكي 100%
+// ═══════════════════════════════════════════════════
 export async function generateMetadata(): Promise<Metadata> {
   try {
     const settings = await getSiteSettings();
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
     
-    const siteName = settings?.site_name_ar || settings?.site_name || 'البناء المتميز';
-    const metaTitle = settings?.meta_title_ar || settings?.meta_title || siteName;
-    const metaDescription = settings?.meta_description_ar || settings?.meta_description || 
-      'أفضل شركة مقاولات عامة في السعودية - خبرة +20 سنة';
-    const metaKeywords = settings?.meta_keywords ? 
-      settings.meta_keywords.split(',').map((k: string) => k.trim()) : 
-      ['شركة مقاولات', 'مقاولات عامة', 'بناء فلل', 'مقاول بناء', 'تشطيبات'];
+    const siteName = toStr(settings?.site_name_ar) || toStr(settings?.site_name) || '';
+    const metaTitle = toStr(settings?.meta_title_ar) || toStr(settings?.meta_title) || siteName;
+    const metaDescription = toStr(settings?.meta_description_ar) || 
+                            toStr(settings?.meta_description) || 
+                            toStr(settings?.site_description_ar) || '';
+    
+    const metaKeywords = toStr(settings?.meta_keywords) 
+      ? settings.meta_keywords!.split(/[,،]/).map((k: string) => k.trim()).filter(Boolean)
+      : [];
+    
     const siteLogo = settings?.site_logo ? buildMediaUrl(settings.site_logo) : null;
-    const googleVerification = settings?.google_site_verification || null;
+    const ogImage = settings?.og_image ? buildMediaUrl(settings.og_image) : siteLogo;
+    const googleVerification = toStr(settings?.google_site_verification);
+    const bingVerification = toStr(settings?.bing_site_verification);
+    const yandexVerification = toStr(settings?.yandex_verification);
+
+    // Robots
+    const allowIndex = settings?.robots_index !== false;
+    const allowFollow = settings?.robots_follow !== false;
 
     return {
       metadataBase: new URL(baseUrl),
       title: {
-        default: metaTitle,
-        template: `%s | ${siteName}`,
+        default: metaTitle || siteName || 'Loading...',
+        template: siteName ? `%s | ${siteName}` : '%s',
       },
       description: metaDescription,
-      keywords: metaKeywords,
-      authors: [{ name: siteName }],
-      creator: siteName,
-      publisher: siteName,
+      keywords: metaKeywords.length > 0 ? metaKeywords : undefined,
+      
+      // Authors
+      authors: siteName ? [{ name: siteName }] : undefined,
+      creator: siteName || undefined,
+      publisher: siteName || undefined,
+      
+      // Robots
       robots: {
-        index: true,
-        follow: true,
+        index: allowIndex,
+        follow: allowFollow,
         googleBot: {
-          index: true,
-          follow: true,
+          index: allowIndex,
+          follow: allowFollow,
           'max-image-preview': 'large',
           'max-snippet': -1,
           'max-video-preview': -1,
         },
       },
+      
+      // Open Graph
       openGraph: {
         type: 'website',
         locale: 'ar_SA',
         url: baseUrl,
         siteName: siteName,
-        title: metaTitle,
-        description: metaDescription,
-        images: siteLogo ? [{
-          url: siteLogo,
+        title: toStr(settings?.og_title) || metaTitle,
+        description: toStr(settings?.og_description) || metaDescription,
+        images: ogImage ? [{
+          url: ogImage,
           width: 1200,
           height: 630,
           alt: siteName,
         }] : [],
       },
+      
+      // Twitter
       twitter: {
         card: 'summary_large_image',
-        title: siteName,
+        title: metaTitle,
         description: metaDescription,
-        images: siteLogo ? [siteLogo] : [],
+        images: ogImage ? [ogImage] : [],
+        ...(toStr(settings?.twitter_handle) && {
+          creator: settings.twitter_handle,
+          site: settings.twitter_handle,
+        }),
       },
+      
+      // Canonical & hreflang
       alternates: {
-        canonical: '/',
-        languages: { 'ar-SA': '/' },
+        canonical: baseUrl,
+        languages: { 
+          'ar-SA': baseUrl,
+          'x-default': baseUrl,
+        },
       },
-      verification: googleVerification ? { google: googleVerification } : undefined,
-      category: 'construction',
+      
+      // Verification
+      ...(googleVerification || bingVerification || yandexVerification ? {
+        verification: {
+          ...(googleVerification && { google: googleVerification }),
+          ...(yandexVerification && { yandex: yandexVerification }),
+          ...(bingVerification && { other: { 'msvalidate.01': bingVerification } }),
+        }
+      } : {}),
+      
+      // Category
+      category: toStr(settings?.business_type) || 'business',
+      
+      // Format Detection
+      formatDetection: {
+        telephone: true,
+        email: true,
+        address: true,
+      },
     };
   } catch (error) {
     console.error('❌ Error generating metadata:', error);
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
     return {
       metadataBase: new URL(baseUrl),
-      title: {
-        default: 'شركة البناء المتميز | شركة مقاولات عامة في السعودية',
-        template: '%s | شركة البناء المتميز',
-      },
-      description: 'أفضل شركة مقاولات عامة في السعودية - خبرة +20 سنة',
+      title: 'Loading...',
+      description: '',
       robots: { index: true, follow: true },
     };
   }
 }
 
-// ============================================
-// 🛠️ Helper Functions
-// ============================================
-
-async function fetchNavigationWithSections(): Promise<{ mainNav: NavItem[], footerNav: NavItem[], socialLinks: NavItem[] }> {
+// ═══════════════════════════════════════════════════
+// 🛠️ Helper: جلب القوائم
+// ═══════════════════════════════════════════════════
+async function fetchNavigationWithSections(): Promise<{ 
+  mainNav: NavItem[], 
+  footerNav: NavItem[], 
+  socialLinks: NavItem[] 
+}> {
   try {
     const response = await api.navigation();
     const data = response as any;
@@ -128,12 +191,15 @@ async function fetchNavigationWithSections(): Promise<{ mainNav: NavItem[], foot
       if (data.data && Array.isArray(data.data)) navItems = data.data;
       else if (data.items && Array.isArray(data.items)) navItems = data.items;
       else if (data.navigation && Array.isArray(data.navigation)) navItems = data.navigation;
-      else if (data.success === true && data.data && Array.isArray(data.data)) navItems = data.data;
     }
     
     if (navItems.length > 0) {
-      const hasCategories = navItems.some(item => item.label === 'التصنيفات' || item.href === '/categories');
-      const hasTags = navItems.some(item => item.label === 'الوسوم' || item.href === '/tags');
+      const hasCategories = navItems.some(item => 
+        item.label === 'التصنيفات' || item.href === '/categories'
+      );
+      const hasTags = navItems.some(item => 
+        item.label === 'الوسوم' || item.href === '/tags'
+      );
       
       let mainNav = navItems.filter(item => 
         !item.href?.includes('facebook') && 
@@ -142,27 +208,6 @@ async function fetchNavigationWithSections(): Promise<{ mainNav: NavItem[], foot
         !item.href?.includes('footer')
       );
       
-      if (!hasCategories) {
-        mainNav.push({ 
-          id: 999, 
-          label: 'التصنيفات', 
-          href: '/categories', 
-          is_active: true, 
-          sort_order: 99,
-          children: []
-        });
-      }
-      
-      if (!hasTags) {
-        mainNav.push({ 
-          id: 998, 
-          label: 'الوسوم', 
-          href: '/tags', 
-          is_active: true, 
-          sort_order: 100,
-          children: []
-        });
-      }
       
       mainNav = mainNav.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
       
@@ -194,7 +239,7 @@ async function fetchNavigationWithSections(): Promise<{ mainNav: NavItem[], foot
   }
 }
 
-function getDefaultNavigationWithSections(): { mainNav: NavItem[], footerNav: NavItem[], socialLinks: NavItem[] } {
+function getDefaultNavigationWithSections() {
   return {
     mainNav: [
       { id: 1, label: 'الرئيسية', href: '/', is_active: true, sort_order: 1, children: [] },
@@ -216,16 +261,13 @@ function getDefaultNavigationWithSections(): { mainNav: NavItem[], footerNav: Na
       { id: 107, label: 'سياسة الخصوصية', href: '/privacy', is_active: true, sort_order: 7, children: [] },
       { id: 108, label: 'الشروط والأحكام', href: '/terms', is_active: true, sort_order: 8, children: [] },
     ],
-    socialLinks: [
-      { id: 201, label: 'فيسبوك', href: 'https://facebook.com', is_active: true, sort_order: 1, children: [] },
-      { id: 202, label: 'تويتر', href: 'https://twitter.com', is_active: true, sort_order: 2, children: [] },
-      { id: 203, label: 'انستغرام', href: 'https://instagram.com', is_active: true, sort_order: 3, children: [] },
-      { id: 204, label: 'لينكد إن', href: 'https://linkedin.com', is_active: true, sort_order: 4, children: [] },
-      { id: 205, label: 'يوتيوب', href: 'https://youtube.com', is_active: true, sort_order: 5, children: [] },
-    ],
+    socialLinks: [],
   };
 }
 
+// ═══════════════════════════════════════════════════
+// 🎨 توليد CSS Variables
+// ═══════════════════════════════════════════════════
 function generateCSSVariablesFromSettings(settings: any): string {
   if (!settings) return '';
   
@@ -275,10 +317,11 @@ function generateCSSVariablesFromSettings(settings: any): string {
   `;
 }
 
-// ============================================
+// ═══════════════════════════════════════════════════
 // 🖥️ Root Layout Component
-// ============================================
+// ═══════════════════════════════════════════════════
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // جلب البيانات بالتوازي
   const [settings, navigationSections, designSettings, services] = await Promise.all([
     getSiteSettings(),
     fetchNavigationWithSections(),
@@ -286,63 +329,79 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     api.featuredServices().catch(() => []),
   ]);
 
-  const sortedNavigation = [...navigationSections.mainNav].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
   const cssVariables = generateCSSVariablesFromSettings(designSettings);
   
-  const fontFamily = designSettings?.typography?.font_family || 
-                     settings?.font_family || 
-                     'Cairo';
-
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-
   const favicon = settings?.site_favicon ? buildMediaUrl(settings.site_favicon) : null;
   const siteLogo = settings?.site_logo ? buildMediaUrl(settings.site_logo) : null;
-  const logoUrl = siteLogo || '/logo.png';
 
-  const hasAnalytics = !!settings?.google_analytics_id;
-  const hasGTM = !!settings?.google_tag_manager;
+  // Geo coordinates - ديناميكي
+  const latStr = toStr(settings?.google_maps_lat || settings?.latitude);
+  const lngStr = toStr(settings?.google_maps_lng || settings?.longitude);
+  const lat    = latStr ? parseFloat(latStr) : NaN;
+  const lng    = lngStr ? parseFloat(lngStr) : NaN;
+  const hasGeo = !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
+  
+  // Country code - ديناميكي
+  const countryCode = toStr(settings?.country_code) ||
+                    toStr((settings as any)?.address_country_code) ||
+                    '';
+  const regionName = toStr(settings?.region_ar) || toStr(settings?.region) || toStr(settings?.country_ar) || '';
+
+  const hasAnalytics = !!toStr(settings?.google_analytics_id);
+  const hasGTM = !!toStr(settings?.google_tag_manager);
+  const siteName = toStr(settings?.site_name_ar) || toStr(settings?.site_name) || '';
 
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
       <head>
+        {/* Schema.org */}
         <JsonLd settings={settings} />
         
-        <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        {/* PWA & Mobile */}
         <meta name="format-detection" content="telephone=yes" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        {siteName && <meta name="apple-mobile-web-app-title" content={siteName} />}
         
-        <meta name="robots" content="index, follow" />
-        <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+        {/* Geo Tags - ديناميكية */}
+       {countryCode && (
+  <meta name="geo.region" content={countryCode} />
+)}
+{regionName && (
+  <meta name="geo.placename" content={regionName} />
+)}
+{hasGeo && (
+  <>
+    <meta name="geo.position" content={`${lat};${lng}`} />
+    <meta name="ICBM"         content={`${lat}, ${lng}`} />
+  </>
+)}
         
-        <meta name="geo.region" content="SA" />
-        <meta name="geo.placename" content="Saudi Arabia" />
-        <meta name="geo.position" content={settings?.google_maps_lat ? `${settings.google_maps_lat};${settings.google_maps_lng || '46.6753'}` : '24.7136;46.6753'} />
-        <meta name="ICBM" content={settings?.google_maps_lat ? `${settings.google_maps_lat}, ${settings.google_maps_lng || '46.6753'}` : '24.7136, 46.6753'} />
-        
-        <meta name="author" content={settings?.site_name_ar || 'البناء المتميز'} />
-        <meta name="publisher" content={settings?.site_name_ar || 'البناء المتميز'} />
-        
-        <link rel="canonical" href={baseUrl} />
-        <link rel="alternate" href={baseUrl} hrefLang="ar" />
-        <link rel="alternate" href={baseUrl} hrefLang="x-default" />
-        
-        <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_API_URL} />
+        {/* Preconnect لتسريع التحميل */}
+        {process.env.NEXT_PUBLIC_API_URL && (
+          <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_API_URL} />
+        )}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         
-        {logoUrl && (
-          <link rel="preload" as="image" href={logoUrl} fetchPriority="high" />
+        {/* Preload Logo */}
+        {siteLogo && (
+          <link rel="preload" as="image" href={siteLogo} fetchPriority="high" />
         )}
         
+        {/* Icons */}
         <link rel="icon" href={favicon || '/favicon.ico'} sizes="any" />
         {favicon && <link rel="apple-touch-icon" href={favicon} />}
         
+        {/* Manifest */}
         <link rel="manifest" href="/manifest.json" />
         
+        {/* CSS Variables */}
         <style dangerouslySetInnerHTML={{ __html: `:root { ${cssVariables} }` }} />
         
+        {/* Loading Styles */}
         <style dangerouslySetInnerHTML={{
           __html: `
             .header-loading { height: 80px; background: #f8faff; }
@@ -361,12 +420,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         }} />
       </head>
       <body suppressHydrationWarning>
-        {/* ✅ جميع الـ Scripts في نهاية body قبل إغلاقه */}
-
         <SliderThemeProvider>
           <ThemeProvider>
             <Suspense fallback={<div className="header-loading" />}>
-              <Header settings={settings} navigation={sortedNavigation} />
+              <Header settings={settings} navigation={navigationSections.mainNav} />
+
             </Suspense>
             
             <main style={{ minHeight: '70vh' }}>
@@ -386,7 +444,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </ThemeProvider>
         </SliderThemeProvider>
 
-        {/* ✅ Google Tag Manager - في نهاية body */}
+        {/* Google Tag Manager */}
         {hasGTM && (
           <Script
             id="gtm-body"
@@ -403,7 +461,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           />
         )}
 
-        {/* ✅ Google Analytics - في نهاية body */}
+        {/* Google Analytics */}
         {hasAnalytics && (
           <>
             <Script
@@ -428,9 +486,49 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             />
           </>
         )}
+
+        {/* Facebook Pixel */}
+        {toStr(settings?.facebook_pixel_id) && (
+          <Script
+            id="fb-pixel"
+            strategy="afterInteractive"
+            dangerouslySetInnerHTML={{
+              __html: `
+                !function(f,b,e,v,n,t,s)
+                {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+                n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+                if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+                n.queue=[];t=b.createElement(e);t.async=!0;
+                t.src=v;s=b.getElementsByTagName(e)[0];
+                s.parentNode.insertBefore(t,s)}(window, document,'script',
+                'https://connect.facebook.net/en_US/fbevents.js');
+                fbq('init', '${settings.facebook_pixel_id}');
+                fbq('track', 'PageView');
+              `,
+            }}
+          />
+        )}
+
+        {/* Hotjar */}
+        {toStr(settings?.hotjar_id) && (
+          <Script
+            id="hotjar"
+            strategy="afterInteractive"
+            dangerouslySetInnerHTML={{
+              __html: `
+                (function(h,o,t,j,a,r){
+                  h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};
+                  h._hjSettings={hjid:${settings.hotjar_id},hjsv:6};
+                  a=o.getElementsByTagName('head')[0];
+                  r=o.createElement('script');r.async=1;
+                  r.src=t+h._hjSettings.hjid+j+h._hjSettings.hjsv;
+                  a.appendChild(r);
+                })(window,document,'https://static.hotjar.com/c/hotjar-','.js?sv=');
+              `,
+            }}
+          />
+        )}
       </body>
     </html>
   );
 }
-
-export const revalidate = 60;

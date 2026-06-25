@@ -286,7 +286,7 @@ export async function getSiteColors(): Promise<SiteColors> {
     const url = getDesignSettingsUrl();
     // ✅ استخدام next: { revalidate } بدلاً من cache: 'no-store'
   const response = await fetch(url, {
-  next: { revalidate: 60 },
+  next: { revalidate: 3600 }, 
   headers: { 'Accept': 'application/json' },
 });
     
@@ -345,7 +345,7 @@ export async function getDesignSettings(): Promise<DesignSettings> {
     const url = getDesignSettingsUrl();
     // ✅ استخدام next: { revalidate } بدلاً من cache: 'no-store'
     const response = await fetch(url, {
-      next: { revalidate: 60 },
+      next: { revalidate: 3600 },
       headers: {
         'Accept': 'application/json',
       },
@@ -446,7 +446,7 @@ export async function validateDesignSettings(): Promise<DesignValidation | null>
   try {
     const url = `${getDesignSettingsUrl()}/validate`;
     const response = await fetch(url, {
-      next: { revalidate: 60 },
+      next: { revalidate: 3600 },
       headers: {
         'Accept': 'application/json',
       },
@@ -542,7 +542,7 @@ export async function getDesignCSSVariables(): Promise<string | null> {
   try {
     const url = `${getDesignSettingsUrl()}/css`;
     const response = await fetch(url, {
-      next: { revalidate: 60 },
+      next: { revalidate: 3600 },
     });
     
     if (!response.ok) {

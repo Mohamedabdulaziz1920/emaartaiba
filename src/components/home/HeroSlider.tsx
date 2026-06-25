@@ -171,8 +171,8 @@ export default function HeroSlider({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Contact info
-  const phone = String(settings.phone || settingsHelpers.defaults.phone || '').trim();
-  const whatsVal = String(((settings as SettingsWithWhatsapp).whatsapp || phone || '')).trim();
+  const phone = String(settings?.phone || '').trim();
+  const whatsVal = String(((settings as SettingsWithWhatsapp)?.whatsapp || phone || '')).trim();
   const whatsNum = toWhatsAppNumber(whatsVal);
   const whatsHref = whatsNum ? `https://wa.me/${whatsNum}` : settingsHelpers.phoneLink(phone);
 

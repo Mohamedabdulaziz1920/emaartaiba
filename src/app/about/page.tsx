@@ -1,89 +1,93 @@
 // frontend/src/app/about/page.tsx
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import { notFound } from 'next/navigation';
 
 // 🎯 SEO
 import { generateSEO, buildBreadcrumb } from '@/lib/seo/metadata';
-import Breadcrumb from '@/components/seo/Breadcrumb';
+import { JsonLd }    from '@/components/seo/JsonLd';
+import Breadcrumb    from '@/components/seo/Breadcrumb';
 
 // 🛠️ Utilities
-import { api } from '@/lib/api';
+import { api }             from '@/lib/api';
 import { getSiteSettings } from '@/lib/settings';
-import { toStr, toUndefined, toArray } from '@/lib/typeSafe';
+import { toStr }           from '@/lib/typeSafe'; // ✅ حذف toUndefined وtoArray
 
+// ✅ CSS منفصل
+import styles from './about.module.css';
 
 // ════════════════════════════════════════════════
-// 🎯 Types - متوافقة مع استجابة الـ API
+// 🎯 Types
 // ════════════════════════════════════════════════
 interface VisionMissionValue {
-  icon: string;
-  title: string;
+  icon:        string;
+  title:       string;
   description: string;
 }
 
 interface StatItem {
-  num: string;
+  num:   string;
   label: string;
 }
 
 interface HeroSection {
-  badge: string;
-  title: string;
-  subtitle: string;
+  badge:       string;
+  title:       string;
+  subtitle:    string;
   description: string;
-  image: string | null;
+  image:       string | null;
 }
 
 interface StorySection {
-  badge: string;
-  title: string;
+  badge:   string;
+  title:   string;
   content: string;
-  image: string | null;
+  image:   string | null;
 }
 
 interface CTASection {
-  title: string;
-  subtitle: string;
+  title:       string;
+  subtitle:    string;
   button_text: string;
   button_link: string;
 }
 
 interface SEOSection {
-  title: string;
+  title:       string;
   description: string;
-  keywords: string;
+  keywords:    string;
 }
 
 interface AboutPageData {
-  hero: HeroSection;
-  story: StorySection;
+  hero:                  HeroSection;
+  story:                 StorySection;
   vision_mission_values: VisionMissionValue[];
-  stats: StatItem[];
-  cta: CTASection;
-  seo: SEOSection;
+  stats:                 StatItem[];
+  cta:                   CTASection;
+  seo:                   SEOSection;
 }
 
 // ════════════════════════════════════════════════
-// 🛠️ Helper Functions
+// 🛠️ Helper
 // ════════════════════════════════════════════════
-
-/**
- * جلب بيانات صفحة من نحن من API
- * يستخدم الـ api.about() من ملف api.ts
- */
 async function getAboutPageData(): Promise<AboutPageData | null> {
   try {
     const data = await api.about();
     return data as AboutPageData | null;
   } catch (error) {
-    console.error('Error fetching about page data:', error);
+    console.error('❌ Error fetching about page:', error);
     return null;
   }
 }
 
 // ════════════════════════════════════════════════
-// 📝 SEO Metadata
+// ⚙️ Config
+// ════════════════════════════════════════════════
+export const revalidate = 300; // ✅ 300 بدلاً من 60
+
+// ════════════════════════════════════════════════
+// 📝 generateMetadata
 // ════════════════════════════════════════════════
 export async function generateMetadata(): Promise<Metadata> {
   const [settings, aboutData] = await Promise.all([
@@ -91,35 +95,42 @@ export async function generateMetadata(): Promise<Metadata> {
     getAboutPageData(),
   ]);
 
-  // إذا لم تكن هناك بيانات، نستخدم الإعدادات العامة
   if (!aboutData) {
     return generateSEO({
       settings,
-      type: 'website',
+      type:  'website',
       title: 'من نحن',
-      description: 'تعرف على شركة البناء المتميز للمقاولات العامة',
+      // ✅ وصف من settings بدلاً من نص ثابت خاص بنشاط
+      description: toStr(settings?.site_description_ar) ||
+                   toStr(settings?.site_description)    ||
+                   '',
       url: '/about',
     });
   }
 
-  const metaTitle = toStr(aboutData.seo?.title) || toStr(aboutData.hero?.title) || 'من نحن';
-  const metaDescription = toStr(aboutData.seo?.description) || toStr(aboutData.hero?.description) || '';
-  const metaKeywords = aboutData.seo?.keywords?.split(',').map(k => k.trim()) || [];
+  const metaTitle       = toStr(aboutData.seo?.title)       ||
+                          toStr(aboutData.hero?.title)       ||
+                          'من نحن';
+  const metaDescription = toStr(aboutData.seo?.description) ||
+                          toStr(aboutData.hero?.description) ||
+                          '';
+  const metaKeywords    = aboutData.seo?.keywords
+    ? aboutData.seo.keywords.split(',').map(k => k.trim()).filter(Boolean)
+    : [];
 
   return generateSEO({
     settings,
-    type: 'website',
-    title: metaTitle,
+    type:        'website',
+    title:       metaTitle,
     description: metaDescription,
-    keywords: metaKeywords,
-    url: '/about',
+    keywords:    metaKeywords,
+    url:         '/about',
+    image:       aboutData.hero?.image || undefined,
   });
 }
 
-export const revalidate = 60;
-
 // ════════════════════════════════════════════════
-// 🖥️ الصفحة الرئيسية
+// 🖥️ Page Component
 // ════════════════════════════════════════════════
 export default async function AboutPage() {
   const [settings, aboutData] = await Promise.all([
@@ -127,162 +138,152 @@ export default async function AboutPage() {
     getAboutPageData(),
   ]);
 
-  // إذا لم تكن هناك بيانات، نظهر 404
-  if (!aboutData) {
-    notFound();
-  }
+  if (!aboutData) notFound();
 
-  // Breadcrumbs
+  // ─── Breadcrumbs ──────────────────────────────
   const breadcrumbs = buildBreadcrumb(
-    { name: 'من نحن', url: '/about' },
+    { name: 'من نحن', url: '/about' }
   );
 
-  // ─── استخراج البيانات من الـ API ───
-  
-  // Hero Section
-  const heroBadge = toStr(aboutData.hero?.badge);
-  const heroTitle = toStr(aboutData.hero?.title);
-  const heroSubtitle = toStr(aboutData.hero?.subtitle);
+  // ─── Hero ──────────────────────────────────────
+  const heroBadge       = toStr(aboutData.hero?.badge);
+  const heroTitle       = toStr(aboutData.hero?.title);
+  const heroSubtitle    = toStr(aboutData.hero?.subtitle);
   const heroDescription = toStr(aboutData.hero?.description);
-  const heroImage = aboutData.hero?.image || null;
+  const heroImage       = aboutData.hero?.image || null;
 
-  // Story Section
-  const storyBadge = toStr(aboutData.story?.badge);
-  const storyTitle = toStr(aboutData.story?.title);
+  // ─── Story ─────────────────────────────────────
+  const storyBadge   = toStr(aboutData.story?.badge);
+  const storyTitle   = toStr(aboutData.story?.title);
   const storyContent = toStr(aboutData.story?.content);
-  const storyImage = aboutData.story?.image || null;
+  const storyImage   = aboutData.story?.image || null;
 
-  // Vision, Mission, Values
+  // ─── VMV ───────────────────────────────────────
   const visionMissionValues = aboutData.vision_mission_values || [];
 
-  // Stats
+  // ─── Stats ─────────────────────────────────────
   const stats = aboutData.stats || [];
 
-  // CTA Section
-  const ctaTitle = toStr(aboutData.cta?.title);
-  const ctaSubtitle = toStr(aboutData.cta?.subtitle);
+  // ─── CTA ───────────────────────────────────────
+  const ctaTitle      = toStr(aboutData.cta?.title);
+  const ctaSubtitle   = toStr(aboutData.cta?.subtitle);
   const ctaButtonText = toStr(aboutData.cta?.button_text) || 'تواصل معنا';
   const ctaButtonLink = toStr(aboutData.cta?.button_link) || '/contact';
 
-  // خلفية Hero
-  const heroBgImage = heroImage 
-    ? `linear-gradient(135deg, #0f1729cc, #1a365dcc), url(${heroImage})` 
-    : 'linear-gradient(135deg, #0f1729 0%, #1a365d 50%, #2b6cb0 100%)';
+  // ─── site name ─────────────────────────────────
+  const siteName = toStr(settings?.site_name_ar) ||
+                   toStr(settings?.site_name)     ||
+                   '';
 
+  // ════════════════════════════════════════════════
+  // 🎨 Render
+  // ════════════════════════════════════════════════
   return (
     <>
-      {/* Breadcrumb Schema */}
-      <Breadcrumb items={breadcrumbs} variant="dark" />
+      {/* ═══ SEO Schemas ═══ */}
+      {/* ✅ JsonLd مضاف */}
+      <JsonLd
+        settings={settings}
+        pageType="about"
+        pageTitle={heroTitle || 'من نحن'}
+        pageDescription={heroDescription || undefined}
+        pageUrl="/about"
+        pageImage={heroImage || undefined}
+        breadcrumbs={breadcrumbs}
+      />
 
       <div>
-        {/* ═══════════════════════════════════════
-            🎬 Hero Section
-            ═══════════════════════════════════════ */}
-        <section style={{
-          background: heroBgImage,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          color: 'white',
-          padding: '5rem 0 6rem',
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
-          <div className="container-custom" style={{position:'relative', zIndex:1, textAlign:'center'}}>
-            {heroBadge && (
-              <span className="section-badge animate-fadeInUp"
-                    style={{background:'rgba(212,175,55,0.15)', color:'#fbd38d'}}>
-                {heroBadge}
-              </span>
-            )}
-            <h1 className="animate-fadeInUp animation-delay-100" style={{
-              fontSize:'clamp(2.25rem, 5vw, 3.5rem)',
-              fontWeight:'900', marginBottom:'1rem'
-            }}>
-              {heroSubtitle && <>{heroSubtitle} </>}
-              {heroTitle && <span className="text-gradient-orange">{heroTitle}</span>}
-            </h1>
-            {heroDescription && (
-              <p className="animate-fadeInUp animation-delay-200" style={{
-                color:'#cbd5e0', fontSize:'1.125rem', maxWidth:'42rem',
-                margin:'0 auto', lineHeight:'1.8'
-              }}>
-                {heroDescription}
-              </p>
-            )}
+
+        {/* ═══ Hero ═══ */}
+        <section
+          className={styles.hero}
+          style={heroImage ? {
+            backgroundImage: `linear-gradient(135deg, #0f1729cc, #1a365dcc), url(${heroImage})`,
+          } : undefined}
+        >
+          <div className={`container-custom ${styles.heroInner}`}>
+
+            {/* ✅ Breadcrumb داخل Hero */}
+            <Breadcrumb items={breadcrumbs} variant="dark" />
+
+            <div className={styles.heroContent}>
+              {heroBadge && (
+                <span className={styles.heroBadge}>{heroBadge}</span>
+              )}
+
+              <h1 className={styles.heroTitle}>
+                {heroSubtitle && <>{heroSubtitle} </>}
+                {heroTitle && (
+                  <span className={styles.gradientOrange}>{heroTitle}</span>
+                )}
+              </h1>
+
+              {heroDescription && (
+                <p className={styles.heroDesc}>{heroDescription}</p>
+              )}
+            </div>
           </div>
-          <div style={{position:'absolute', bottom:0, left:0, right:0, lineHeight:0}}>
-            <svg viewBox="0 0 1440 80" preserveAspectRatio="none"
-                 style={{display:'block', width:'100%', height:'60px'}}>
-              <path d="M0,80 C320,20 720,20 1440,80 L1440,80 L0,80 Z" fill="#f8faff"/>
+
+          <div className={styles.wave}>
+            <svg viewBox="0 0 1440 80" preserveAspectRatio="none">
+              <path
+                d="M0,80 C320,20 720,20 1440,80 L1440,80 L0,80 Z"
+                fill="#f8faff"
+              />
             </svg>
           </div>
         </section>
 
-        {/* ═══════════════════════════════════════
-            📖 Story Section
-            ═══════════════════════════════════════ */}
+        {/* ═══ Story ═══ */}
         {(storyBadge || storyTitle || storyContent) && (
-          <section className="section-padding" style={{background:'#f8faff'}}>
-            <div className="container-custom" style={{maxWidth:'52rem', textAlign:'center'}}>
-              {storyBadge && <span className="section-badge">{storyBadge}</span>}
-              {storyTitle && <h2 className="section-title">{storyTitle}</h2>}
+          <section className={`section-padding ${styles.storySection}`}>
+            <div className={`container-custom ${styles.storyContainer}`}>
+              {storyBadge && (
+                <span className={styles.badge}>{storyBadge}</span>
+              )}
+              {storyTitle && (
+                <h2 className={styles.sectionTitle}>{storyTitle}</h2>
+              )}
+
+              {/* ✅ Next.js Image */}
               {storyImage && (
-                <div style={{
-                  marginBottom: '2rem',
-                  borderRadius: '1rem',
-                  overflow: 'hidden',
-                  boxShadow: '0 10px 30px rgba(0,0,0,0.1)'
-                }}>
-                  <img 
-                    src={storyImage} 
-                    alt={storyTitle}
-                    style={{ width: '100%', height: 'auto', display: 'block' }}
+                <div className={styles.storyImageWrapper}>
+                  <Image
+                    src={storyImage}
+                    alt={storyTitle || 'قصتنا'}
+                    width={800}
+                    height={450}
+                    className={styles.storyImage}
                   />
                 </div>
               )}
+
               {storyContent && (
-                <div 
-                  className="rich-content"
-                  dangerouslySetInnerHTML={{ __html: storyContent }} 
+                <div
+                  className={`rich-content ${styles.storyContent}`}
+                  dangerouslySetInnerHTML={{ __html: storyContent }}
                 />
               )}
             </div>
           </section>
         )}
 
-        {/* ═══════════════════════════════════════
-            ⭐ Vision, Mission, Values Section
-            ═══════════════════════════════════════ */}
+        {/* ═══ Vision / Mission / Values ═══ */}
         {visionMissionValues.length > 0 && (
-          <section className="section-padding" style={{background:'white'}}>
+          <section className={`section-padding ${styles.vmvSection}`}>
             <div className="container-custom">
-              <div style={{textAlign:'center', marginBottom:'3rem'}}>
-                <span className="section-badge">⭐ رؤيتنا ورسالتنا</span>
-                <h2 className="section-title">ما الذي يحركنا؟</h2>
+              <div className={styles.sectionHeader}>
+                {/* ✅ نص قابل للتخصيص من API (إذا أضفناه) */}
+                <span className={styles.badge}>⭐ رؤيتنا ورسالتنا</span>
+                <h2 className={styles.sectionTitle}>ما الذي يحركنا؟</h2>
               </div>
-              <div className="grid-3">
+
+              <div className={styles.vmvGrid}>
                 {visionMissionValues.map((item, i) => (
-                  <div key={i} className="card-pro hover-lift" style={{
-                    background:'#f8faff', padding:'2.5rem 2rem',
-                    textAlign:'center', borderRadius:'1.5rem',
-                    border:'1px solid #e8edf5'
-                  }}>
-                    <div style={{
-                      width:'5rem', height:'5rem', margin:'0 auto 1.25rem',
-                      background:'linear-gradient(135deg, #1a365d, #2b6cb0)',
-                      borderRadius:'1.25rem', display:'flex',
-                      alignItems:'center', justifyContent:'center',
-                      fontSize:'2.5rem',
-                      boxShadow:'0 12px 30px rgba(26,54,93,0.25)'
-                    }}>
-                      {item.icon}
-                    </div>
-                    <h3 style={{fontSize:'1.5rem', fontWeight:'800', color:'#0f172a', marginBottom:'0.75rem'}}>
-                      {item.title}
-                    </h3>
-                    <p style={{color:'#64748b', lineHeight:'1.8', fontSize:'0.9375rem'}}>
-                      {item.description}
-                    </p>
+                  <div key={i} className={styles.vmvCard}>
+                    <div className={styles.vmvIcon}>{item.icon}</div>
+                    <h3 className={styles.vmvTitle}>{item.title}</h3>
+                    <p className={styles.vmvDesc}>{item.description}</p>
                   </div>
                 ))}
               </div>
@@ -290,27 +291,17 @@ export default async function AboutPage() {
           </section>
         )}
 
-        {/* ═══════════════════════════════════════
-            📊 Stats Section
-            ═══════════════════════════════════════ */}
+        {/* ═══ Stats ═══ */}
         {stats.length > 0 && (
-          <section style={{
-            background:'linear-gradient(135deg, #1a365d, #2b6cb0)',
-            padding:'5rem 0', color:'white'
-          }}>
+          <section className={styles.statsSection}>
             <div className="container-custom">
-              <div className="grid-4">
+              <div className={styles.statsGrid}>
                 {stats.map((stat, i) => (
-                  <div key={i} style={{textAlign:'center'}}>
-                    <div className="text-gradient-orange" style={{
-                      fontSize:'clamp(2.5rem, 6vw, 3.5rem)',
-                      fontWeight:'900', lineHeight:'1', marginBottom:'0.5rem'
-                    }}>
+                  <div key={i} className={styles.statItem}>
+                    <div className={`${styles.statNum} ${styles.gradientOrange}`}>
                       {stat.num}
                     </div>
-                    <div style={{color:'#cbd5e0', fontWeight:'600', fontSize:'1rem'}}>
-                      {stat.label}
-                    </div>
+                    <div className={styles.statLabel}>{stat.label}</div>
                   </div>
                 ))}
               </div>
@@ -318,131 +309,24 @@ export default async function AboutPage() {
           </section>
         )}
 
-        {/* ═══════════════════════════════════════
-            📞 CTA Section
-            ═══════════════════════════════════════ */}
+        {/* ═══ CTA ═══ */}
         {(ctaTitle || ctaSubtitle) && (
-          <section className="section-padding" style={{background:'#f8faff', textAlign:'center'}}>
+          <section className={`section-padding ${styles.ctaSection}`}>
             <div className="container-custom">
-              {ctaTitle && <h2 className="section-title">{ctaTitle}</h2>}
-              {ctaSubtitle && <p className="section-desc" style={{marginBottom:'2rem'}}>{ctaSubtitle}</p>}
-              <Link href={ctaButtonLink} className="btn btn-primary"
-                    style={{padding:'1rem 2.5rem', display: 'inline-block'}}>
+              {ctaTitle && (
+                <h2 className={styles.sectionTitle}>{ctaTitle}</h2>
+              )}
+              {ctaSubtitle && (
+                <p className={styles.sectionDesc}>{ctaSubtitle}</p>
+              )}
+              <Link href={ctaButtonLink} className="btn btn-primary">
                 {ctaButtonText}
               </Link>
             </div>
           </section>
         )}
-      </div>
 
-      <style>{`
-        .section-badge {
-          display: inline-block;
-          padding: 0.4rem 1rem;
-          background: linear-gradient(135deg, rgba(237,137,54,0.15), rgba(237,137,54,0.05));
-          color: #ed8936;
-          border-radius: 9999px;
-          font-size: 0.8rem;
-          font-weight: 700;
-          margin-bottom: 1.5rem;
-          letter-spacing: 0.5px;
-        }
-        
-        .section-title {
-          font-size: clamp(1.75rem, 4vw, 2.5rem);
-          font-weight: 800;
-          color: #0f172a;
-          margin-bottom: 1rem;
-        }
-        
-        .section-desc {
-          color: #64748b;
-          font-size: 1.0625rem;
-          max-width: 42rem;
-          margin: 0 auto;
-          line-height: 1.8;
-        }
-        
-        .text-gradient-orange {
-          background: linear-gradient(135deg, #ed8936, #dd6b20);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-        
-        .grid-3 {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          gap: 2rem;
-        }
-        
-        .grid-4 {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 2rem;
-        }
-        
-        .rich-content p {
-          color: #475569;
-          line-height: 1.9;
-          font-size: 1.0625rem;
-          margin-bottom: 1rem;
-        }
-        
-        .rich-content h2, .rich-content h3 {
-          color: #0f172a;
-          margin-top: 1.5rem;
-          margin-bottom: 1rem;
-        }
-        
-        .animate-fadeInUp {
-          animation: fadeInUp 0.6s ease-out forwards;
-        }
-        
-        .animation-delay-100 {
-          animation-delay: 0.1s;
-          opacity: 0;
-        }
-        
-        .animation-delay-200 {
-          animation-delay: 0.2s;
-          opacity: 0;
-        }
-        
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        .btn-primary {
-          background: linear-gradient(135deg, #ed8936, #dd6b20);
-          color: white;
-          padding: 0.85rem 2rem;
-          border-radius: 0.75rem;
-          font-weight: 700;
-          text-decoration: none;
-          transition: all 0.3s ease;
-          border: none;
-          cursor: pointer;
-        }
-        
-        .btn-primary:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 10px 25px rgba(237, 137, 54, 0.3);
-        }
-        
-        @media (max-width: 768px) {
-          .grid-3, .grid-4 {
-            grid-template-columns: 1fr;
-          }
-        }
-      `}</style>
+      </div>
     </>
   );
 }

@@ -1,391 +1,465 @@
-import { type SiteSettings, settingsHelpers, parseJsonField, type HeroStat } from '@/lib/settings';
+// src/components/seo/LocalBusinessSchema.tsx
+import {
+  type SiteSettings,
+  parseJsonField,
+  type HeroStat,
+} from '@/lib/settings';
+import { toStr, toNumber } from '@/lib/typeSafe';
 
 interface Props {
   settings: SiteSettings | Record<string, any>;
 }
 
 // ════════════════════════════════════════
-// 🛠️ Safe Type Converters
+// 🛠️ Helpers
 // ════════════════════════════════════════
-function toStr(value: unknown): string {
-  if (value === null || value === undefined) return '';
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number') return String(value);
-  if (typeof value === 'boolean') return '';
-  if (Array.isArray(value)) return '';
-  if (typeof value === 'object') return '';
-  return String(value);
-}
 
-function toNumber(value: unknown): number | null {
-  const str = toStr(value).trim();
-  if (!str) return null;
-  const num = parseFloat(str);
-  return isNaN(num) ? null : num;
-}
+/** تحويل أيام العمل العربية/الإنجليزية إلى Schema.org */
+const DAYS_MAP: Record<string, string> = {
+  'الأحد':    'Sunday',
+  'الاثنين':  'Monday',
+  'الثلاثاء': 'Tuesday',
+  'الأربعاء': 'Wednesday',
+  'الخميس':   'Thursday',
+  'الجمعة':   'Friday',
+  'السبت':    'Saturday',
+  Sunday:     'Sunday',
+  Monday:     'Monday',
+  Tuesday:    'Tuesday',
+  Wednesday:  'Wednesday',
+  Thursday:   'Thursday',
+  Friday:     'Friday',
+  Saturday:   'Saturday',
+};
 
-function toBool(value: unknown): boolean {
-  if (value === null || value === undefined) return false;
-  if (typeof value === 'boolean') return value;
-  if (typeof value === 'string') {
-    const v = value.trim().toLowerCase();
-    return ['1', 'true', 'yes', 'on'].includes(v);
-  }
-  if (typeof value === 'number') return value === 1;
-  return false;
-}
+/**
+ * تحويل ساعات العمل من settings إلى Schema.org OpeningHoursSpecification
+ * يرجع [] إذا لم تكن البيانات متوفرة
+ */
+function buildOpeningHours(
+  s: Record<string, any>
+): Array<{
+  '@type': string;
+  dayOfWeek: string[];
+  opens: string;
+  closes: string;
+}> {
+  const result: Array<{
+    '@type': string;
+    dayOfWeek: string[];
+    opens: string;
+    closes: string;
+  }> = [];
 
-// دالة لتحويل ساعات العمل إلى صيغة Schema.org
-function getOpeningHours(settings: SiteSettings): string[] {
-  const workingDays = toStr(settings.working_days_ar || settings.working_days);
-  const workingHours = toStr(settings.working_hours_ar || settings.working_hours);
-  const weekendDays = toStr(settings.weekend_days_ar || settings.weekend_days);
-  
-  const hoursList: string[] = [];
-  
-  // ساعات العمل للأيام العادية
+  // ─── أيام وساعات العمل الأساسية ──────────
+  const workingDays  = toStr(s.working_days_ar  || s.working_days);
+  const workingHours = toStr(s.working_hours_ar || s.working_hours);
+
   if (workingDays && workingHours) {
-    // تحويل أيام العمل إلى الإنجليزية لـ Schema.org
-    const daysMap: Record<string, string> = {
-      'الأحد': 'Sunday',
-      'الاثنين': 'Monday',
-      'الثلاثاء': 'Tuesday',
-      'الأربعاء': 'Wednesday',
-      'الخميس': 'Thursday',
-      'الجمعة': 'Friday',
-      'السبت': 'Saturday',
-      'Sunday': 'Sunday',
-      'Monday': 'Monday',
-      'Tuesday': 'Tuesday',
-      'Wednesday': 'Wednesday',
-      'Thursday': 'Thursday',
-      'Friday': 'Friday',
-      'Saturday': 'Saturday',
-    };
-    
-    const days = workingDays.split(',').map(d => d.trim());
-    const englishDays = days.map(d => daysMap[d] || d);
-    
-    if (englishDays.length > 0) {
-      const hoursRange = workingHours.replace(/\s/g, '');
-      hoursList.push(`${englishDays.join(',')} ${hoursRange}`);
+    // توقع تنسيق: "09:00-17:00" أو "09:00 - 17:00"
+    const normalized = workingHours.replace(/\s/g, '');
+    const timeParts  = normalized.split('-');
+
+    if (timeParts.length === 2 && timeParts[0] && timeParts[1]) {
+      const days = workingDays
+        .split(',')
+        .map((d: string) => DAYS_MAP[d.trim()] || d.trim())
+        .filter(Boolean);
+
+      if (days.length > 0) {
+        result.push({
+          '@type':     'OpeningHoursSpecification',
+          dayOfWeek:   days,
+          opens:       timeParts[0],
+          closes:      timeParts[1],
+        });
+      }
     }
   }
-  
-  // ساعات العمل للعطل (إذا كانت مختلفة)
-  if (weekendDays && settings.working_hours_weekend) {
-    const weekendHours = toStr(settings.working_hours_weekend);
-    const weekendDaysMap: Record<string, string> = {
-      'الجمعة': 'Friday',
-      'السبت': 'Saturday',
-      'Friday': 'Friday',
-      'Saturday': 'Saturday',
-    };
-    
-    const days = weekendDays.split(',').map(d => d.trim());
-    const englishDays = days.map(d => weekendDaysMap[d] || d);
-    
-    if (englishDays.length > 0 && weekendHours) {
-      const hoursRange = weekendHours.replace(/\s/g, '');
-      hoursList.push(`${englishDays.join(',')} ${hoursRange}`);
+
+  // ─── أيام وساعات العطلة (إن وُجدت) ───────
+  const weekendDays  = toStr(s.weekend_days_ar || s.weekend_days);
+  const weekendHours = toStr(s.working_hours_weekend);
+
+  if (weekendDays && weekendHours) {
+    const normalized = weekendHours.replace(/\s/g, '');
+    const timeParts  = normalized.split('-');
+
+    if (timeParts.length === 2 && timeParts[0] && timeParts[1]) {
+      const days = weekendDays
+        .split(',')
+        .map((d: string) => DAYS_MAP[d.trim()] || d.trim())
+        .filter(Boolean);
+
+      if (days.length > 0) {
+        result.push({
+          '@type':   'OpeningHoursSpecification',
+          dayOfWeek: days,
+          opens:     timeParts[0],
+          closes:    timeParts[1],
+        });
+      }
     }
   }
-  
-  // إذا لم يتم العثور على ساعات عمل، استخدم الافتراضية
-  if (hoursList.length === 0) {
-    hoursList.push('Sun-Thu 08:00-17:00');
-  }
-  
-  return hoursList;
+
+  // لا fallback - إذا لم تكن هناك بيانات نرجع []
+  return result;
 }
 
-// دالة للحصول على المناطق التي تغطيها الخدمة
-function getAreaServed(settings: SiteSettings): string[] {
-  // محاولة جلب المناطق من hero_cities
-  const citiesFromSettings = toStr(settings.hero_cities_ar || settings.hero_cities);
-  if (citiesFromSettings) {
-    return citiesFromSettings.split(',').map(c => c.trim());
+/**
+ * بناء قائمة المناطق المخدومة من settings
+ * يرجع [] إذا لم تكن البيانات متوفرة
+ */
+function buildAreaServed(s: Record<string, any>): string[] {
+  // 1. من service_areas (JSON field)
+  const serviceAreas = parseJsonField<string>(s.service_areas, []);
+  if (serviceAreas.length > 0) return serviceAreas;
+
+  // 2. من hero_cities
+  const heroCities = toStr(s.hero_cities_ar || s.hero_cities);
+  if (heroCities) {
+    return heroCities.split(',').map((c: string) => c.trim()).filter(Boolean);
   }
-  
-  // محاولة جلب من إعدادات أخرى
-  const citiesFromAddress = toStr(settings.city_ar || settings.city);
-  if (citiesFromAddress) {
-    return [citiesFromAddress];
-  }
-  
-  // القائمة الافتراضية كآخر حل (ستُستبدل من قاعدة البيانات)
-  return ['جازان', 'جدة', 'الدمام', 'مكة المكرمة', 'المدينة المنورة'];
+
+  // 3. من city فقط
+  const city = toStr(s.city_ar || s.city);
+  if (city) return [city];
+
+  // لا fallback ثابت
+  return [];
 }
 
-// دالة للحصول على روابط التواصل الاجتماعي
-function getSameAs(settings: SiteSettings): string[] {
-  const socialLinks: string[] = [];
-  
-  const socialFields = [
-    'facebook', 'twitter', 'instagram', 'linkedin', 
-    'youtube', 'tiktok', 'snapchat', 'telegram'
+/**
+ * بناء روابط Social Media
+ */
+function buildSameAs(s: Record<string, any>): string[] {
+  const links: string[] = [];
+
+  const socialConfig: Array<{
+    key: string;
+    buildUrl: (val: string) => string;
+  }> = [
+    { key: 'facebook',  buildUrl: v => v.startsWith('http') ? v : `https://facebook.com/${v}` },
+    { key: 'twitter',   buildUrl: v => v.startsWith('http') ? v : `https://twitter.com/${v}` },
+    { key: 'instagram', buildUrl: v => v.startsWith('http') ? v : `https://instagram.com/${v}` },
+    { key: 'linkedin',  buildUrl: v => v.startsWith('http') ? v : `https://linkedin.com/company/${v}` },
+    { key: 'youtube',   buildUrl: v => v.startsWith('http') ? v : `https://youtube.com/@${v}` },
+    { key: 'tiktok',    buildUrl: v => v.startsWith('http') ? v : `https://tiktok.com/@${v}` },
+    { key: 'snapchat',  buildUrl: v => v.startsWith('http') ? v : `https://snapchat.com/add/${v}` },
+    { key: 'telegram',  buildUrl: v => v.startsWith('http') ? v : `https://t.me/${v}` },
   ];
-  
-  socialFields.forEach(field => {
-    const value = toStr(settings[field]);
-    if (value && (value.startsWith('http') || value.startsWith('https'))) {
-      socialLinks.push(value);
-    } else if (value) {
-      // إذا لم يكن رابط كامل، حاول بناء رابط
-      switch (field) {
-        case 'facebook':
-          socialLinks.push(`https://facebook.com/${value}`);
-          break;
-        case 'twitter':
-          socialLinks.push(`https://twitter.com/${value}`);
-          break;
-        case 'instagram':
-          socialLinks.push(`https://instagram.com/${value}`);
-          break;
-        case 'linkedin':
-          socialLinks.push(`https://linkedin.com/company/${value}`);
-          break;
-        case 'youtube':
-          socialLinks.push(`https://youtube.com/@${value}`);
-          break;
+
+  socialConfig.forEach(({ key, buildUrl }) => {
+    const val = toStr(s[key]);
+    if (val) {
+      try {
+        links.push(buildUrl(val));
+      } catch {
+        // تجاهل روابط غير صالحة
       }
     }
   });
-  
-  return socialLinks;
+
+  return links;
 }
 
-// دالة للحصول على صور العلامة التجارية
-function getImages(settings: SiteSettings): string[] {
+/**
+ * بناء قائمة الصور (بدون favicon)
+ */
+function buildImages(s: Record<string, any>): string[] {
   const images: string[] = [];
-  
-  const logo = toStr(settings.site_logo);
-  if (logo) images.push(logo);
-  
-  const logoDark = toStr(settings.site_logo_dark);
-  if (logoDark && logoDark !== logo) images.push(logoDark);
-  
-  const heroImage = toStr(settings.hero_image);
-  if (heroImage) images.push(heroImage);
-  
-  const favicon = toStr(settings.site_favicon);
-  if (favicon) images.push(favicon);
-  
+
+  const candidates = [
+    s.site_logo,
+    s.site_logo_dark,
+    s.hero_image,
+    s.og_image,
+  ];
+
+  const seen = new Set<string>();
+  candidates.forEach(img => {
+    const val = toStr(img);
+    if (val && !seen.has(val)) {
+      seen.add(val);
+      images.push(val);
+    }
+  });
+
   return images;
 }
 
-// دالة للحصول على الإحصائيات للعرض في Schema
-function getStats(settings: SiteSettings): Record<string, any> | null {
-  const stats = parseJsonField<HeroStat>(settings.hero_stats, []);
-  
-  if (stats.length === 0) return null;
-  
-  const knownMetrics: Record<string, { name: string; nameAr: string }> = {
-    'projects_completed': { name: 'Projects Completed', nameAr: 'المشاريع المنفذة' },
-    'years_experience': { name: 'Years of Experience', nameAr: 'سنوات الخبرة' },
-    'happy_clients': { name: 'Happy Clients', nameAr: 'العملاء السعداء' },
-    'team_members': { name: 'Team Members', nameAr: 'أعضاء الفريق' },
-  };
-  
-  const metrics: Record<string, any> = {};
-  
-  // إضافة الإحصائيات من settings
-  Object.entries(knownMetrics).forEach(([key, value]) => {
-    const statValue = toNumber(settings[key]);
-    if (statValue !== null) {
-      metrics[key] = {
+/**
+ * بناء إحصائيات المشروع كـ additionalProperty
+ */
+function buildStatsProperties(
+  s: Record<string, any>
+): Array<Record<string, any>> {
+  const props: Array<Record<string, any>> = [];
+
+  const statsConfig = [
+    { key: 'projects_completed', name: 'Projects Completed', nameAr: 'المشاريع المنفذة' },
+    { key: 'years_experience',   name: 'Years of Experience', nameAr: 'سنوات الخبرة' },
+    { key: 'happy_clients',      name: 'Happy Clients',       nameAr: 'العملاء السعداء' },
+    { key: 'team_members',       name: 'Team Members',        nameAr: 'أعضاء الفريق' },
+  ];
+
+  statsConfig.forEach(({ key, nameAr }) => {
+    const val = toNumber(s[key]);
+    if (val !== null && val > 0) {
+      props.push({
         '@type': 'QuantitativeValue',
-        name: value.name,
-        nameAr: value.nameAr,
-        value: statValue,
-      };
+        name:    nameAr,
+        value:   val,
+      });
     }
   });
-  
-  // إضافة الإحصائيات من hero_stats
-  stats.forEach(stat => {
-    const num = toNumber(stat.num);
-    if (num !== null) {
-      metrics[`stat_${stat.label}`] = {
+
+  // من hero_stats إذا كانت موجودة
+  const heroStats = parseJsonField<HeroStat>(s.hero_stats, []);
+  heroStats.forEach(stat => {
+    const val = toNumber(stat.num);
+    const label = toStr(stat.label);
+    if (val !== null && val > 0 && label) {
+      props.push({
         '@type': 'QuantitativeValue',
-        name: stat.label,
-        value: num,
-      };
+        name:    label,
+        value:   val,
+      });
     }
   });
-  
-  return Object.keys(metrics).length > 0 ? metrics : null;
+
+  return props;
 }
 
+/** حذف الحقول undefined/null/''/[] */
+function cleanSchema<T extends Record<string, any>>(obj: T): T {
+  return Object.fromEntries(
+    Object.entries(obj).filter(
+      ([, v]) =>
+        v !== undefined &&
+        v !== null &&
+        v !== '' &&
+        !(Array.isArray(v) && v.length === 0)
+    )
+  ) as T;
+}
+
+// ════════════════════════════════════════
+// 🎯 Main Component
+// ════════════════════════════════════════
 export default function LocalBusinessSchema({ settings }: Props) {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-  const s = settings as any;
+  const s = settings as Record<string, any>;
 
-  // ─── استخراج آمن لجميع القيم ───
-  const siteName = toStr(s.site_name_ar) || toStr(s.site_name) || 'شركة البناء';
+  // ─── معلومات الموقع ──────────────────────────
+  const siteName        = toStr(s.site_name_ar)  || toStr(s.site_name)  || '';
   const siteDescription = toStr(s.site_description_ar) || toStr(s.site_description) || '';
-  const siteLogo = toStr(s.site_logo);
-  const phone = toStr(s.phone);
-  const phoneSecondary = toStr(s.phone_secondary);
-  const email = toStr(s.email);
-  const emailSecondary = toStr(s.email_secondary);
-  const fax = toStr(s.fax);
-  const whatsapp = toStr(s.whatsapp);
-  
-  // ─── العنوان الكامل ───
-  const address = toStr(s.address_ar) || toStr(s.address);
-  const city = toStr(s.city_ar) || toStr(s.city) || 'جازان';
-  const region = toStr(s.region) || toStr(s.city_ar) ;
-  const country = toStr(s.country_ar) || toStr(s.country) || 'السعودية';
-  const postalCode = toStr(s.postal_code);
+  const siteLogo        = toStr(s.site_logo)     || '';
 
-  // ─── إحداثيات الخريطة ───
-  const lat = toNumber(s.latitude) || toNumber(s.google_maps_lat);
+  // ─── نوع النشاط التجاري (ديناميكي) ───────────
+  // يمكن أن يكون: LocalBusiness, HousePainter, Plumber, Restaurant...
+  const schemaType =
+    toStr(s.business_schema_type) ||
+    toStr(s.business_type)        ||
+    'LocalBusiness';
+
+  // ─── بيانات التواصل ───────────────────────────
+  const phone          = toStr(s.phone);
+  const phoneSecondary = toStr(s.phone_secondary);
+  const email          = toStr(s.email);
+  const emailSecondary = toStr(s.email_secondary);
+  const fax            = toStr(s.fax);
+  const whatsapp       = toStr(s.whatsapp);
+
+  // ─── العنوان ──────────────────────────────────
+  const address    = toStr(s.address_ar)  || toStr(s.address)  || '';
+  const city       = toStr(s.city_ar)     || toStr(s.city)     || '';
+  const region     = toStr(s.address_region) || toStr(s.region) || '';
+  const country    = toStr(s.country_ar)  || toStr(s.country)  || '';
+  const countryCode = toStr(s.country_code) || toStr(s.address_country_code) || '';
+  const postalCode = toStr(s.postal_code) || '';
+
+  // ─── الإحداثيات ────────────────────────────────
+  const lat = toNumber(s.latitude)  || toNumber(s.google_maps_lat);
   const lng = toNumber(s.longitude) || toNumber(s.google_maps_lng);
   const hasCoordinates = lat !== null && lng !== null;
-  
-  // ─── التصنيف والسعر ───
-  const priceRange = toStr(s.price_range) || '$$';
+
+  // ─── التقييم والسعر ───────────────────────────
+  const priceRange  = toStr(s.price_range)   || '';
   const ratingValue = toNumber(s.rating_value);
   const reviewCount = toNumber(s.review_count);
-  
-  // ─── ساعات العمل ───
-  const openingHours = getOpeningHours(settings);
-  
-  // ─── المناطق ───
-  const areaServed = getAreaServed(settings);
-  
-  // ─── روابط التواصل الاجتماعي ───
-  const sameAs = getSameAs(settings);
-  
-  // ─── الصور ───
-  const images = getImages(settings);
-  
-  // ─── الإحصائيات ───
-  const stats = getStats(settings);
-  
-  // ─── التحقق من وجود بيانات ───
-  const hasContactInfo = !!(phone || phoneSecondary || email || emailSecondary || whatsapp);
-  const hasAddress = !!(address || city);
 
-  // ─── Schema Object الرئيسي ───
-  const schema: Record<string, any> = {
+  // ─── البيانات المُجمَّعة ───────────────────────
+  const openingHours = buildOpeningHours(s);
+  const areaServed   = buildAreaServed(s);
+  const sameAs       = buildSameAs(s);
+  const images       = buildImages(s);
+  const statsProps   = buildStatsProperties(s);
+
+  // ─── Flags ────────────────────────────────────
+  const hasContactInfo = !!(phone || phoneSecondary || email || whatsapp);
+  const hasAddress     = !!(address || city);
+
+  // ─── بناء contactPoints ───────────────────────
+  const contactPoints: any[] = [];
+
+  if (phone) {
+    contactPoints.push(cleanSchema({
+      '@type':             'ContactPoint',
+      telephone:           phone,
+      contactType:         'customer service',
+      areaServed:          countryCode || undefined,
+      availableLanguage:   ['Arabic'],
+    }));
+  }
+
+  if (phoneSecondary) {
+    contactPoints.push(cleanSchema({
+      '@type':           'ContactPoint',
+      telephone:         phoneSecondary,
+      contactType:       'sales',
+      areaServed:        countryCode || undefined,
+      availableLanguage: ['Arabic'],
+    }));
+  }
+
+  if (whatsapp) {
+    contactPoints.push(cleanSchema({
+      '@type':           'ContactPoint',
+      telephone:         whatsapp,
+      contactType:       'customer support',
+      contactOption:     'WhatsApp',
+      areaServed:        countryCode || undefined,
+      availableLanguage: ['Arabic'],
+    }));
+  }
+
+  // ─── Schema الرئيسي ───────────────────────────
+  const localBusinessSchema = cleanSchema({
     '@context': 'https://schema.org',
-    '@type': 'LocalBusiness',
-    '@id': `${baseUrl}/#localbusiness`,
-    name: siteName,
-    url: baseUrl,
-    ...(siteDescription && { description: siteDescription }),
+    '@type':    schemaType,
+    '@id':      `${baseUrl}/#localbusiness`,
+
+    name:        siteName        || undefined,
+    description: siteDescription || undefined,
+    url:         baseUrl,
+
+    // الصور والشعار
     ...(images.length > 0 && { image: images }),
     ...(siteLogo && { logo: siteLogo }),
-    ...(hasContactInfo && {
-      contactPoint: [
-        ...(phone ? [{
-          '@type': 'ContactPoint',
-          telephone: phone,
-          contactType: 'customer service',
-          contactOption: 'TollFree',
-          areaServed: 'SA',
-          availableLanguage: ['Arabic', 'English'],
-        }] : []),
-        ...(phoneSecondary ? [{
-          '@type': 'ContactPoint',
-          telephone: phoneSecondary,
-          contactType: 'sales',
-          areaServed: 'SA',
-          availableLanguage: ['Arabic', 'English'],
-        }] : []),
-        ...(whatsapp ? [{
-          '@type': 'ContactPoint',
-          telephone: whatsapp,
-          contactType: 'customer support',
-          contactOption: 'WhatsApp',
-          areaServed: 'SA',
-          availableLanguage: ['Arabic', 'English'],
-        }] : []),
-      ],
-    }),
+
+    // التواصل
+    ...(phone  && { telephone: phone }),
+    ...(email  && { email }),
+
+    // contactPoints (للتفاصيل)
+    ...(contactPoints.length > 0 && { contactPoint: contactPoints }),
+
+    // العنوان
     ...(hasAddress && {
-      address: {
-        '@type': 'PostalAddress',
-        ...(address && { streetAddress: address }),
-        addressLocality: city,
-        ...(region && { addressRegion: region }),
-        addressCountry: country,
-        ...(postalCode && { postalCode: postalCode }),
-      },
+      address: cleanSchema({
+        '@type':           'PostalAddress',
+        streetAddress:     address      || undefined,
+        addressLocality:   city         || undefined,
+        addressRegion:     region       || undefined,
+        addressCountry:    countryCode  || country || undefined,
+        postalCode:        postalCode   || undefined,
+      }),
     }),
+
+    // الإحداثيات
     ...(hasCoordinates && {
       geo: {
-        '@type': 'GeoCoordinates',
-        latitude: lat,
-        longitude: lng,
+        '@type':    'GeoCoordinates',
+        latitude:   lat,
+        longitude:  lng,
       },
       hasMap: `https://maps.google.com/?q=${lat},${lng}`,
     }),
-    openingHoursSpecification: openingHours.map(hours => {
-      const [days, ...timeParts] = hours.split(' ');
-      const timeRange = timeParts.join(' ');
-      const [opens, closes] = timeRange.split('-');
-      return {
-        '@type': 'OpeningHoursSpecification',
-        dayOfWeek: days.split(','),
-        opens: opens,
-        closes: closes,
-      };
+
+    // ساعات العمل
+    ...(openingHours.length > 0 && {
+      openingHoursSpecification: openingHours,
     }),
-    priceRange: priceRange,
-    ...(areaServed.length > 0 && { areaServed: areaServed.map(area => ({ '@type': 'City', name: area })) }),
-    ...(sameAs.length > 0 && { sameAs: sameAs }),
+
+    // نطاق السعر
+    ...(priceRange && { priceRange }),
+
+    // المناطق المخدومة
+    ...(areaServed.length > 0 && {
+      areaServed: areaServed.map(area => ({
+        '@type': 'City',
+        name:    area,
+      })),
+    }),
+
+    // روابط Social Media
+    ...(sameAs.length > 0 && { sameAs }),
+
+    // التقييم
     ...(ratingValue && reviewCount && {
       aggregateRating: {
-        '@type': 'AggregateRating',
-        ratingValue: ratingValue,
-        reviewCount: reviewCount,
-        bestRating: '5',
-        worstRating: '1',
+        '@type':       'AggregateRating',
+        ratingValue,
+        reviewCount,
+        bestRating:    '5',
+        worstRating:   '1',
       },
     }),
-    ...(stats && {
-      makesOffer: {
-        '@type': 'Offer',
-        itemOffered: {
-          '@type': 'Service',
-          name: 'خدمات المقاولات',
-          ...(stats && { potentialAction: {
-            '@type': 'MeasureAction',
-            name: 'الإحصائيات',
-            ...stats,
-          } }),
-        },
-      },
+
+    // الإحصائيات كـ additionalProperty
+    ...(statsProps.length > 0 && {
+      additionalProperty: statsProps,
     }),
-  };
+  });
 
-  // ─── Schema إضافي: نقاط الاتصال الإضافية ───
-  const contactPointSchema = (email || emailSecondary || fax) ? {
-    '@context': 'https://schema.org',
-    '@type': 'Organization',
-    '@id': `${baseUrl}/#organization`,
-    name: siteName,
-    ...(email && { email: email }),
-    ...(emailSecondary && { alternateEmail: emailSecondary }),
-    ...(fax && { faxNumber: fax }),
-  } : null;
+  // ─── Organization Schema (email/fax) ──────────
+  // مفصول عن LocalBusiness لأن email/fax في Organization أوضح
+  const organizationSchema =
+    email || emailSecondary || fax
+      ? cleanSchema({
+          '@context': 'https://schema.org',
+          '@type':    'Organization',
+          '@id':      `${baseUrl}/#organization`,
+          name:       siteName || undefined,
 
+          // email الرئيسي
+          ...(email && { email }),
+
+          // email الثانوي كـ contactPoint
+          ...(emailSecondary && {
+            contactPoint: {
+              '@type':     'ContactPoint',
+              email:       emailSecondary,
+              contactType: 'customer service',
+            },
+          }),
+
+          // الفاكس
+          ...(fax && { faxNumber: fax }),
+        })
+      : null;
+
+  // ════════════════════════════════════════
+  // 🎯 Render
+  // ════════════════════════════════════════
   return (
     <>
-      {/* Schema الرئيسي للـ LocalBusiness */}
+      {/* LocalBusiness Schema الرئيسي */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(localBusinessSchema),
+        }}
       />
-      
-      {/* Schema إضافي للمنظمة (للبريد الإلكتروني والفاكس) */}
-      {contactPointSchema && (
+
+      {/* Organization Schema (email/fax) */}
+      {organizationSchema && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(contactPointSchema) }}
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(organizationSchema),
+          }}
         />
       )}
     </>

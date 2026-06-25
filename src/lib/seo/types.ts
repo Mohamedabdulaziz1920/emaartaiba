@@ -1,11 +1,19 @@
+// src/lib/seo/types.ts
 import type { SiteSettings } from '../settings';
 
-export type SchemaType = 
-  | 'WebSite' 
-  | 'WebPage' 
-  | 'Organization' 
-  | 'LocalBusiness' 
-  | 'GeneralContractor'
+// ════════════════════════════════════════════════
+// 📋 Schema Types
+// ════════════════════════════════════════════════
+
+/**
+ * أنواع Schema.org المدعومة
+ * ✅ بدون GeneralContractor (يأتي من settings.business_type)
+ */
+export type SchemaType =
+  | 'WebSite'
+  | 'WebPage'
+  | 'Organization'
+  | 'LocalBusiness'
   | 'Service'
   | 'Product'
   | 'Article'
@@ -15,7 +23,13 @@ export type SchemaType =
   | 'ImageObject'
   | 'VideoObject'
   | 'Review'
-  | 'AggregateRating';
+  | 'AggregateRating'
+  | 'CreativeWork'
+  | 'ItemList';
+
+// ════════════════════════════════════════════════
+// 🎯 SEO Props
+// ════════════════════════════════════════════════
 
 export interface BaseSeoProps {
   title?: string;
@@ -44,10 +58,18 @@ export interface WebpageSeoProps extends BaseSeoProps {
 
 export type SeoProps = ArticleSeoProps | WebpageSeoProps;
 
+// ════════════════════════════════════════════════
+// 🍞 Breadcrumb
+// ════════════════════════════════════════════════
+
 export interface BreadcrumbItem {
   name: string;
   url: string;
 }
+
+// ════════════════════════════════════════════════
+// 🏢 Organization Data
+// ════════════════════════════════════════════════
 
 export interface OrganizationData {
   name: string;
@@ -61,7 +83,7 @@ export interface OrganizationData {
     addressLocality?: string;
     addressRegion?: string;
     postalCode?: string;
-    addressCountry: string;
+    addressCountry?: string; // ✅ optional - لا افتراض لدولة
   };
   geo?: {
     latitude: number;

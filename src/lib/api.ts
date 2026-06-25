@@ -791,12 +791,14 @@ export const api = {
   contactInfo: () => get<ContactInfo[]>('/contact-info', 3600),
 
   // 🎬 Hero Slides
-  heroSlides: () => get<HeroSlide[]>('/hero-slides', 300),
+heroSlides: () => get<HeroSlide[]>('/hero-slides', 300),  // كان 300 ✅
+
 
   // 🧭 Navigation
-  navigation: () => get<NavItem[]>('/navigation', 3600),
-  navigationFooter: () => get<NavItem[]>('/navigation/footer', 3600),
-  navigationMobile: () => get<NavItem[]>('/navigation/mobile', 3600),
+// ─── Navigation ───
+navigation:       () => get<NavItem[]>('/navigation', 3600),        // ✅
+navigationFooter: () => get<NavItem[]>('/navigation/footer', 3600), // ✅
+navigationMobile: () => get<NavItem[]>('/navigation/mobile', 3600), // ✅
 
   // 🛠️ Services
   services: async () => {
@@ -811,388 +813,348 @@ export const api = {
       return [];
     }
   },
-  featuredServices: () => get<Service[]>('/services/featured', 60),
-  service: (slug: string) => get<Service>(`/services/${slug}`, 60),
-  relatedServices: (slug: string) => get<Service[]>(`/services/${slug}/related`, 60),
-  servicesByCategory: (categoryId: number) => get<Service[]>(`/services?category_id=${categoryId}`, 60),
-  searchServices: (query: string) => get<Service[]>(`/services?search=${encodeURIComponent(query)}`, 60),
-
+featuredServices: () => get<Service[]>('/services/featured', 300),
+service: (slug: string) => get<Service>(`/services/${slug}`, 300),
+relatedServices: (slug: string) => get<Service[]>(`/services/${slug}/related`, 300),
+servicesByCategory: (categoryId: number) => get<Service[]>(`/services?category_id=${categoryId}`, 300),
+searchServices: (query: string) => get<Service[]>(`/services?search=${encodeURIComponent(query)}`, 60),
   // ════════════════════════════════════════════
   // 🏢 Projects (محدّثة بالكامل)
   // ════════════════════════════════════════════
 
-  /**
-   * جلب جميع المشاريع (مع دعم الفلترة)
-   */
-  projects: (filters?: ProjectFilters) => 
-    getProjectsResponse(`/projects${buildQueryString(filters)}`, 60),
+   // ════════════════════════════════════════════
+  // 🏢 Projects
+  // ════════════════════════════════════════════
+  projects: (filters?: ProjectFilters) =>
+    getProjectsResponse(`/projects${buildQueryString(filters)}`, 300),
 
-  /**
-   * جلب المشاريع المميزة (للصفحة الرئيسية)
-   */
-  featuredProjects: (limit: number = 6) => 
-    getProjectsResponse(`/projects/featured?limit=${limit}`, 60),
+  featuredProjects: (limit: number = 6) =>
+    getProjectsResponse(`/projects/featured?limit=${limit}`, 300),
 
-  /**
-   * جلب أحدث المشاريع
-   */
-  latestProjects: (limit: number = 6) => 
-    getProjectsResponse(`/projects/latest?limit=${limit}`, 60),
+  latestProjects: (limit: number = 6) =>
+    getProjectsResponse(`/projects/latest?limit=${limit}`, 300),
 
-  /**
-   * جلب تفاصيل مشروع واحد بواسطة الـ slug
-   * يُرجع المشروع + المشاريع المرتبطة (related)
-   */
-  project: (slug: string) => 
-    getProjectResponse(`/projects/${slug}`, 60),
+  project: (slug: string) =>
+    getProjectResponse(`/projects/${slug}`, 300),
 
-  /**
-   * البحث في المشاريع
-   */
-  searchProjects: (query: string) => 
+  searchProjects: (query: string) =>
     getProjectsResponse(`/projects?search=${encodeURIComponent(query)}`, 60),
 
-  /**
-   * المشاريع حسب التصنيف
-   */
-  projectsByCategory: (categoryId: number, limit?: number) => 
-    getProjectsResponse(`/projects?category_id=${categoryId}${limit ? `&limit=${limit}` : ''}`, 60),
+  projectsByCategory: (categoryId: number, limit?: number) =>
+    getProjectsResponse(`/projects?category_id=${categoryId}${limit ? `&limit=${limit}` : ''}`, 300),
 
-  /**
-   * المشاريع حسب الخدمة
-   */
-  projectsByService: (serviceId: number, limit?: number) => 
-    getProjectsResponse(`/projects?service_id=${serviceId}${limit ? `&limit=${limit}` : ''}`, 60),
+  projectsByService: (serviceId: number, limit?: number) =>
+    getProjectsResponse(`/projects?service_id=${serviceId}${limit ? `&limit=${limit}` : ''}`, 300),
 
   // ════════════════════════════════════════════
-  // 📰 BLOG API
+  // 📰 Blog
   // ════════════════════════════════════════════
-  blogs: (page: number = 1, perPage: number = 12, filters?: { category?: string; tag?: string; search?: string; featured?: boolean }) => {
+  blogs: (
+    page: number = 1,
+    perPage: number = 12,
+    filters?: { category?: string; tag?: string; search?: string; featured?: boolean }
+  ) => {
     const params = new URLSearchParams();
     params.append('page', String(page));
     params.append('per_page', String(perPage));
     if (filters?.category) params.append('category', filters.category);
-    if (filters?.tag) params.append('tag', filters.tag);
-    if (filters?.search) params.append('search', filters.search);
+    if (filters?.tag)      params.append('tag',      filters.tag);
+    if (filters?.search)   params.append('search',   filters.search);
     if (filters?.featured) params.append('featured', '1');
     const query = params.toString();
-    return getBlogListResponse(`/blogs${query ? `?${query}` : ''}`, 30);
+    return getBlogListResponse(`/blogs${query ? `?${query}` : ''}`, 60); // ✅ 60 بدل 30
   },
-  
-  latestBlogs: (limit: number = 6) => get<BlogPost[]>(`/blogs/latest?limit=${limit}`, 30),
-  featuredBlogs: (limit: number = 3) => get<BlogPost[]>(`/blogs/featured?limit=${limit}`, 30),
-  
-  blog: async (slug: string) => {
-    const post = await get<BlogPost>(`/blogs/${slug}`, 30);
-    fetch(`${API}/blogs/${slug}/views`, { method: 'POST' }).catch(() => {});
-    return post;
-  },
-  
-  relatedBlogs: (slug: string, limit: number = 4) => get<BlogPost[]>(`/blogs/${slug}/related?limit=${limit}`, 30),
-  searchBlogs: (query: string, limit: number = 20) => getBlogListResponse(`/blogs?search=${encodeURIComponent(query)}&per_page=${limit}`, 0),
-  
-  // 📂 Blog Categories (simple)
+
+  latestBlogs:  (limit: number = 6) => get<BlogPost[]>(`/blogs/latest?limit=${limit}`,           60), // ✅
+  featuredBlogs: (limit: number = 3) => get<BlogPost[]>(`/blogs/featured?limit=${limit}`,         60), // ✅
+
+  // ✅ حذف view counter من SSR
+  blog: (slug: string) => get<BlogPost>(`/blogs/${slug}`, 60),
+
+  relatedBlogs: (slug: string, limit: number = 4) =>
+    get<BlogPost[]>(`/blogs/${slug}/related?limit=${limit}`, 60), // ✅
+
+  searchBlogs: (query: string, limit: number = 20) =>
+    getBlogListResponse(`/blogs?search=${encodeURIComponent(query)}&per_page=${limit}`, 0),
+
+  blogsByCategory: (slug: string, page: number = 1, perPage: number = 12) =>
+    getBlogListResponse(`/blogs?category=${slug}&page=${page}&per_page=${perPage}`, 60), // ✅
+
+  // 📂 Categories
   blogCategories: () => get<BlogCategory[]>('/categories', 3600),
-  blogCategory: (slug: string) => get<BlogCategory>(`/categories/${slug}`, 3600),
-  blogsByCategory: (slug: string, page: number = 1, perPage: number = 12) => 
-    getBlogListResponse(`/blogs?category=${slug}&page=${page}&per_page=${perPage}`, 30),
-  
-  // 🏷️ Tags API
+  blogCategory:   (slug: string) => get<BlogCategory>(`/categories/${slug}`, 3600),
+
+  // 🏷️ Tags
   tags: async (): Promise<Tag[]> => {
-    const response = await fetch(`${API}/tags?per_page=100`, { next: { revalidate: 3600 } });
-    const data = await response.json();
-    if (data.success && Array.isArray(data.data)) return data.data;
-    if (Array.isArray(data)) return data;
-    return [];
-  },
-  
-  tag: async (slug: string): Promise<Tag | null> => {
-    const response = await fetch(`${API}/tags/${slug}`, { next: { revalidate: 3600 } });
-    const data = await response.json();
-    if (data.success && data.data) return data.data;
-    return null;
-  },
-  
-  tagPosts: async (slug: string, page: number = 1, perPage: number = 12): Promise<TagPostsResponse> => {
-    const response = await fetch(`${API}/tags/${slug}/posts?page=${page}&per_page=${perPage}`, {
-      next: { revalidate: 60 }
+    const response = await fetch(`${API}/tags?per_page=100`, {
+      next: { revalidate: 3600 },
+      headers: { 'Accept': 'application/json' },
     });
-    const data = await response.json();
-    return {
-      success: data.success || false,
-      data: data.data || [],
-      current_page: data.current_page || page,
-      last_page: data.last_page || 1,
-      per_page: data.per_page || perPage,
-      total: data.total || 0,
-      tag: data.tag || null,
-      message: data.message
-    };
-  },
-  
-  popularTags: async (limit: number = 20): Promise<Tag[]> => {
-    const response = await fetch(`${API}/tags/popular?limit=${limit}`, { next: { revalidate: 3600 } });
     const data = await response.json();
     if (data.success && Array.isArray(data.data)) return data.data;
     if (Array.isArray(data)) return data;
     return [];
   },
 
-  // 📂 Advanced Categories API (نظام التصنيفات المتقدم)
+  tag: async (slug: string): Promise<Tag | null> => {
+    const response = await fetch(`${API}/tags/${slug}`, {
+      next: { revalidate: 3600 },
+      headers: { 'Accept': 'application/json' },
+    });
+    const data = await response.json();
+    if (data.success && data.data) return data.data;
+    return null;
+  },
+
+  tagPosts: async (slug: string, page: number = 1, perPage: number = 12): Promise<TagPostsResponse> => {
+    const response = await fetch(
+      `${API}/tags/${slug}/posts?page=${page}&per_page=${perPage}`,
+      { next: { revalidate: 300 }, headers: { 'Accept': 'application/json' } } // ✅ 300
+    );
+    const data = await response.json();
+    return {
+      success:      data.success      || false,
+      data:         data.data         || [],
+      current_page: data.current_page || page,
+      last_page:    data.last_page    || 1,
+      per_page:     data.per_page     || perPage,
+      total:        data.total        || 0,
+      tag:          data.tag          || null,
+      message:      data.message,
+    };
+  },
+
+  popularTags: async (limit: number = 20): Promise<Tag[]> => {
+    const response = await fetch(`${API}/tags/popular?limit=${limit}`, {
+      next: { revalidate: 3600 },
+      headers: { 'Accept': 'application/json' },
+    });
+    const data = await response.json();
+    if (data.success && Array.isArray(data.data)) return data.data;
+    if (Array.isArray(data)) return data;
+    return [];
+  },
+
+  // 📂 Advanced Categories
   getCategories: async (type?: string): Promise<Category[]> => {
     const url = type ? `/categories?type=${type}` : '/categories';
-    const response = await fetch(`${API}${url}`, { next: { revalidate: 3600 } });
+    const response = await fetch(`${API}${url}`, {
+      next: { revalidate: 3600 },
+      headers: { 'Accept': 'application/json' },
+    });
     const data = await response.json();
     if (data.success && Array.isArray(data.data)) return data.data;
     return [];
   },
 
   getMainCategories: async (type?: string): Promise<Category[]> => {
-    const url = type ? `/categories?type=${type}&parent_only=true` : '/categories?parent_only=true';
-    const response = await fetch(`${API}${url}`, { next: { revalidate: 3600 } });
+    const url = type
+      ? `/categories?type=${type}&parent_only=true`
+      : '/categories?parent_only=true';
+    const response = await fetch(`${API}${url}`, {
+      next: { revalidate: 3600 },
+      headers: { 'Accept': 'application/json' },
+    });
     const data = await response.json();
     if (data.success && Array.isArray(data.data)) return data.data;
     return [];
   },
 
   getCategoryBySlug: async (slug: string): Promise<Category | null> => {
-    const response = await fetch(`${API}/categories/${slug}`, { next: { revalidate: 3600 } });
+    const response = await fetch(`${API}/categories/${slug}`, {
+      next: { revalidate: 3600 },
+      headers: { 'Accept': 'application/json' },
+    });
     const data = await response.json();
     if (data.success && data.data) return data.data;
     return null;
   },
 
   getCategoryWithChildren: async (slug: string): Promise<Category | null> => {
-    const response = await fetch(`${API}/categories/${slug}?with=children`, { next: { revalidate: 3600 } });
+    const response = await fetch(`${API}/categories/${slug}?with=children`, {
+      next: { revalidate: 3600 },
+      headers: { 'Accept': 'application/json' },
+    });
     const data = await response.json();
     if (data.success && data.data) return data.data;
     return null;
   },
 
-  getCategoryPosts: async (slug: string, page: number = 1, perPage: number = 12): Promise<CategoryPostsResponse> => {
-    const response = await fetch(`${API}/categories/${slug}/posts?page=${page}&per_page=${perPage}`, {
-      next: { revalidate: 60 }
-    });
+  getCategoryPosts: async (
+    slug: string,
+    page: number = 1,
+    perPage: number = 12
+  ): Promise<CategoryPostsResponse> => {
+    const response = await fetch(
+      `${API}/categories/${slug}/posts?page=${page}&per_page=${perPage}`,
+      { next: { revalidate: 300 }, headers: { 'Accept': 'application/json' } } // ✅ 300
+    );
     const data = await response.json();
     return {
-      success: data.success || false,
-      data: data.data || [],
+      success:      data.success      || false,
+      data:         data.data         || [],
       current_page: data.current_page || page,
-      last_page: data.last_page || 1,
-      per_page: data.per_page || perPage,
-      total: data.total || 0,
+      last_page:    data.last_page    || 1,
+      per_page:     data.per_page     || perPage,
+      total:        data.total        || 0,
     };
   },
 
   getCategoryServices: async (slug: string): Promise<Service[]> => {
-    const response = await fetch(`${API}/categories/${slug}/services`, { next: { revalidate: 3600 } });
+    const response = await fetch(`${API}/categories/${slug}/services`, {
+      next: { revalidate: 3600 },
+      headers: { 'Accept': 'application/json' },
+    });
     const data = await response.json();
     if (data.success && Array.isArray(data.data)) return data.data;
     return [];
   },
 
   getCategoryProjects: async (slug: string): Promise<Project[]> => {
-    const response = await fetch(`${API}/categories/${slug}/projects`, { next: { revalidate: 3600 } });
+    const response = await fetch(`${API}/categories/${slug}/projects`, {
+      next: { revalidate: 3600 },
+      headers: { 'Accept': 'application/json' },
+    });
     const data = await response.json();
     if (data.success && Array.isArray(data.data)) return data.data;
     return [];
   },
 
-  // 📍 Areas
-  areas: async () => {
-    try {
-      const res = await fetch(`${API}/areas`);
-      const json = await res.json();
-      if (json && json.success && Array.isArray(json.data)) return json.data;
-      if (Array.isArray(json)) return json;
-      return [];
-    } catch (error) {
-      console.error('Error fetching areas:', error);
-      return [];
-    }
-  },
-  area: (slug: string) => get<any>(`/areas/${slug}`, 86400),
+  // 📍 Areas ✅ محسّن
+  areas: () => get<any[]>('/areas', 3600),
+  area:  (slug: string) => get<any>(`/areas/${slug}`, 86400),
 
-  // 🖼️ المعرض
-  galleries: () => get<Gallery[]>('/galleries', 60),
-  galleryFeatured: () => get<Gallery[]>('/galleries/featured', 60),
-  gallery: (id: number) => get<Gallery>(`/galleries/${id}`, 60),
-  galleryImages: () => get<GalleryImage[]>('/gallery-images', 60),
-  galleryImagesFeatured: () => get<GalleryImage[]>('/gallery-images/featured', 60),
-  galleryImagesByCategory: (category: string) => get<GalleryImage[]>(`/gallery-images/category/${category}`, 60),
-  galleryImage: (id: number) => get<GalleryImage>(`/gallery-images/${id}`, 60),
+  // 🖼️ Gallery ✅ محسّن (slug بدل id، 300 بدل 60)
+  galleries:              () => get<Gallery[]>('/galleries', 300),
+  galleryFeatured:        () => get<Gallery[]>('/galleries/featured', 300),
+  gallery:     (slug: string) => get<Gallery>(`/galleries/${slug}`, 300), // ✅ slug
+  galleryImages:          () => get<GalleryImage[]>('/gallery-images', 300),
+  galleryImagesFeatured:  () => get<GalleryImage[]>('/gallery-images/featured', 300),
+  galleryImagesByCategory: (category: string) =>
+    get<GalleryImage[]>(`/gallery-images/category/${category}`, 300),
+  galleryImage: (id: number) => get<GalleryImage>(`/gallery-images/${id}`, 300),
 
-  // 💬 Testimonials
-  testimonials: () => get<Testimonial[]>('/testimonials', 60),
-  featuredTestimonials: () => get<Testimonial[]>('/testimonials/featured', 60),
-  testimonial: (id: number) => get<Testimonial>(`/testimonials/${id}`, 60),
-  testimonialsStats: () => get<TestimonialStats>('/testimonials/stats', 3600),
-  submitTestimonial: (data: SubmitTestimonialData) => post<SubmitTestimonialResponse>('/testimonials', data),
-    
+  // 💬 Testimonials ✅ 300 بدل 60
+  testimonials:       () => get<Testimonial[]>('/testimonials', 300),
+  featuredTestimonials: () => get<Testimonial[]>('/testimonials/featured', 300),
+  testimonial:    (id: number) => get<Testimonial>(`/testimonials/${id}`, 300),
+  testimonialsStats:  () => get<TestimonialStats>('/testimonials/stats', 3600),
+  submitTestimonial: (data: SubmitTestimonialData) =>
+    post<SubmitTestimonialResponse>('/testimonials', data),
+
   // 🤝 Partners
-  partners: () => get<Partner[]>('/partners', 3600),
+  partners:        () => get<Partner[]>('/partners',          3600),
   featuredPartners: () => get<Partner[]>('/partners/featured', 3600),
-  partner: (slug: string) => get<Partner>(`/partners/${slug}`, 3600),
-  
-  // ❓ FAQs
-  faqs: () => get<any[]>('/faqs', 3600),
-  faqsByCategory: (categoryId: number) => get<any[]>(`/faqs/category/${categoryId}`, 3600),
-  
-  // 📄 About Page (من نحن) - جديد
-  about: async () => {
-    try {
-      const response = await fetch(`${API}/about`, {
-        next: { revalidate: 3600 },
-        headers: { 'Accept': 'application/json' }
-      });
-      const data = await response.json();
-      if (data.success && data.data) return data.data;
-      return null;
-    } catch (error) {
-      console.error('Error fetching about page:', error);
-      return null;
-    }
-  },
+  partner:  (slug: string) => get<Partner>(`/partners/${slug}`, 3600),
 
-  // 📤 POST Requests
-  submitContact: (data: unknown) => post('/contact', data),
-  submitQuote: (data: unknown) => post('/quote-request', data),
-  subscribe: (data: unknown) => post('/newsletter/subscribe', data),
+  // ❓ FAQs
+  faqs:             () => get<any[]>('/faqs', 3600),
+  faqsByCategory: (categoryId: number) =>
+    get<any[]>(`/faqs/category/${categoryId}`, 3600),
+
+  // 📄 About ✅ مبسط
+  about: () => get<any>('/about', 3600),
+
+  // 📤 POST
+  submitContact: (data: unknown) => post('/contact',             data),
+  submitQuote:   (data: unknown) => post('/quote-request',       data),
+  subscribe:     (data: unknown) => post('/newsletter/subscribe', data),
 
   // 🔍 Search
   search: (query: string) => get<any>(`/search?q=${encodeURIComponent(query)}`, 0),
 
-  // ════════════════════════════════════════════
-  // 🤖 SEO & Sitemap API
-  // ════════════════════════════════════════════
-  getRobots: async () => {
-    const response = await fetch(`${API}/robots`);
-    return response.json();
-  },
-
-  getSitemap: async () => {
-    const response = await fetch(`${API}/sitemap`);
-    return response.json();
-  },
-
-  getSitemapPages: async () => {
-    const response = await fetch(`${API}/sitemap/pages`);
-    return response.json();
-  },
+  // 🤖 SEO ✅ محسّن بـ revalidate
+  getRobots:       () => get<any>('/robots',        86400),
+  getSitemap:      () => get<any>('/sitemap',       3600),
+  getSitemapPages: () => get<any>('/sitemap/pages', 3600),
 };
 
 // ════════════════════════════════════════════
 // 🎨 PROJECT HELPERS
 // ════════════════════════════════════════════
 
-/**
- * الحصول على أيقونة وتسمية الحالة
- */
-export function getProjectStatusInfo(status: ProjectStatus): { label: string; color: string; icon: string } {
-  const statusMap = {
+export function getProjectStatusInfo(status: ProjectStatus): {
+  label: string;
+  color: string;
+  icon: string;
+} {
+  const statusMap: Record<string, { label: string; color: string; icon: string }> = {
     planned: {
       label: 'مخطط',
       color: '#64748b',
-      icon: '📅',
+      icon:  '📅',
     },
     in_progress: {
       label: 'قيد التنفيذ',
       color: '#ed8936',
-      icon: '🔨',
+      icon:  '🔨',
     },
     completed: {
       label: 'مكتمل',
       color: '#10b981',
-      icon: '✅',
+      icon:  '✅',
     },
   };
-
-  return statusMap[status] || statusMap.completed;
+  return statusMap[status] ?? statusMap.completed;
 }
 
-/**
- * الحصول على أفضل صورة متوفرة للمشروع
- */
 export function getProjectImage(project: Project): string | null {
-  return project.main_image 
-    ?? project.cover_image 
-    ?? project.thumbnail 
-    ?? (Array.isArray(project.gallery) && project.gallery.length > 0 ? project.gallery[0] : null);
+  return (
+    project.main_image ??
+    project.cover_image ??
+    project.thumbnail ??
+    (Array.isArray(project.gallery) && project.gallery.length > 0
+      ? project.gallery[0]
+      : null)
+  );
 }
 
-/**
- * تنسيق المساحة بالعربية
- */
 export function formatArea(area: number | null | undefined): string {
   if (!area) return '';
   return `${Number(area).toLocaleString('ar-SA')} م²`;
 }
 
-/**
- * تنسيق مدة القراءة
- */
 export function formatDuration(months: number | null | undefined): string {
   if (!months) return '';
   if (months < 12) return `${months} شهر`;
-  const years = Math.floor(months / 12);
+  const years          = Math.floor(months / 12);
   const remainingMonths = months % 12;
-  if (remainingMonths === 0) return `${years} ${years === 1 ? 'سنة' : 'سنوات'}`;
+  if (remainingMonths === 0)
+    return `${years} ${years === 1 ? 'سنة' : 'سنوات'}`;
   return `${years} ${years === 1 ? 'سنة' : 'سنوات'} و ${remainingMonths} شهر`;
 }
 
-/**
- * هل يوجد معرض صور؟
- */
 export function hasGallery(project: Project): boolean {
   return Array.isArray(project.gallery) && project.gallery.length > 0;
 }
 
-/**
- * عدد صور المعرض
- */
 export function getGalleryCount(project: Project): number {
   return Array.isArray(project.gallery) ? project.gallery.length : 0;
 }
 
-/**
- * الحصول على صورة الخدمة
- */
 export function getServiceImage(service: Service): string | null {
   return service.image ?? service.background_image ?? service.og_image ?? null;
 }
 
-/**
- * هل يوجد فيديو؟
- */
 export function hasVideo(item: Service | Project): boolean {
   return !!item.video_url || !!('embed_video_url' in item && item.embed_video_url);
 }
 
-/**
- * تنسيق تاريخ المقال
- */
 export function formatBlogDate(date: string | undefined): string {
   if (!date) return '';
   try {
     return new Date(date).toLocaleDateString('ar-SA', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+      year: 'numeric', month: 'long', day: 'numeric',
     });
   } catch {
     return '';
   }
 }
 
-/**
- * حساب مدة القراءة
- */
 export function calculateReadingTime(content: string): number {
   if (!content) return 1;
-  const wordsPerMinute = 200;
   const wordCount = content.replace(/<[^>]*>/g, '').split(/\s+/).length;
-  return Math.max(1, Math.ceil(wordCount / wordsPerMinute));
+  return Math.max(1, Math.ceil(wordCount / 200));
 }
 
-// إعادة تصدير DesignSettings
 export type { DesignSettings };

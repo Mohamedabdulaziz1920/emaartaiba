@@ -90,15 +90,15 @@ export default function Footer({ settings = {}, navigation = [], services: propS
     siteDescription,
     copyrightText,
   } = useMemo(() => ({
-    phone: settings.phone || settingsHelpers.defaults.phone || '',
-    email: settings.email || settingsHelpers.defaults.email || '',
-    address: settingsHelpers.fullAddress(settings) || settingsHelpers.defaults.address_ar || '',
-    siteName: settingsHelpers.siteName(settings) || 'البناء المتميز',
-    workingHours: settings.working_hours || settingsHelpers.defaults.working_hours || '',
-    workingDays: settings.working_days || settingsHelpers.defaults.working_days || '',
-    siteLogo: settings.site_logo || '',
-    siteDescription: settings.site_description || '',
-    copyrightText: settings.copyright_text || '',
+    phone: settings?.phone || '',
+    email: settings?.email || '',
+    address: settingsHelpers.fullAddress(settings || {}) || '',
+    siteName: settingsHelpers.siteName(settings || {}) || '',
+    workingHours: settings?.working_hours_ar || settings?.working_hours || '',
+    workingDays: settings?.working_days_ar || settings?.working_days || '',
+    siteLogo: settings?.site_logo || '',
+    siteDescription: settings?.site_description_ar || settings?.site_description || '',
+    copyrightText: settings?.copyright_text_ar || settings?.copyright_text || '',
   }), [settings]);
 
   // ✅ تحسين: روابط التواصل الاجتماعي
@@ -219,8 +219,10 @@ export default function Footer({ settings = {}, navigation = [], services: propS
                 <div className="footer-brand-icon">ب</div>
               )}
               <div>
-                <div className="footer-brand-name">{siteName.split('للمقاولات')[0].trim()}</div>
-                <div className="footer-brand-sub">للمقاولات العامة</div>
+                <div className="footer-brand-name">{siteName || 'الموقع'}</div>
+{settings?.site_tagline_ar && (
+  <div className="footer-brand-sub">{settings.site_tagline_ar}</div>
+)}
               </div>
             </Link>
             <p className="footer-desc">
