@@ -11,8 +11,8 @@ interface Props {
   services?:     any[];
   projects?:     any[];
   tags?:         (Tag | string)[];
-  categories?:   Category[];  // ✅ أضف هذا
-  currentCategory?: string;    // ✅ أضف هذا
+  categories?:   Category[];
+  currentCategory?: string;
 }
 
 function formatDate(date: string) {
@@ -28,7 +28,7 @@ export default function BlogSidebar({
   services     = [],
   projects     = [],
   tags         = [],
-  categories   = [],      // ✅ أضف هذا
+  categories   = [],
 }: Props) {
   const normalizedTags = tags.map((t: any) =>
     typeof t === 'string' ? { name_ar: t, slug: t } : t
@@ -58,11 +58,11 @@ export default function BlogSidebar({
         </SidebarBox>
       )}
 
-      {/* التصنيفات - جديد */}
+      {/* التصنيفات - ✅ إصلاح: استخدام type_label بدلاً من type */}
       {categories && categories.length > 0 && (
         <SidebarBox title="📂 التصنيفات">
           <div className="sidebar-categories">
-            {categories.filter((cat: Category) => cat.type === 'blog').slice(0, 5).map((cat: Category) => (
+            {categories.filter((cat: Category) => cat.type_label === 'blog').slice(0, 5).map((cat: Category) => (
               <Link key={cat.id} href={`/categories/${cat.slug}`} className="sidebar-category">
                 <span>{cat.name_ar}</span>
                 <span className="category-count">{cat.stats?.posts || 0}</span>
@@ -289,7 +289,6 @@ export default function BlogSidebar({
         .related-project-item:hover h4 { color:#ed8936 !important; }
         .related-project-item:hover { background:#f8faff; }
         
-        /* التصنيفات */
         .sidebar-categories {
           display: flex;
           flex-direction: column;
@@ -327,7 +326,6 @@ export default function BlogSidebar({
           border-top: 1px solid #f1f5f9;
         }
         
-        /* الوسوم */
         .sidebar-tags {
           display: flex;
           flex-wrap: wrap;

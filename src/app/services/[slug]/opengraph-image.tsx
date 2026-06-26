@@ -8,6 +8,7 @@ import { getImageUrl } from '@/lib/image';
 export const runtime = 'edge';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
+export const alt = 'صورة الخدمة';
 
 export default async function Image({
   params,
@@ -15,19 +16,24 @@ export default async function Image({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  
-  const [service, settings] = await Promise.all([
+
+  const [serviceResponse, settings] = await Promise.all([
     api.service(slug).catch(() => null),
     getSiteSettings(),
   ]);
 
-  const title = toStr(service?.title_ar) || toStr(settings?.site_name_ar) || 'البناء المتميز';
-  const siteName = toStr(settings?.site_name_ar) || 'البناء المتميز';
+  // ✅ استخراج البيانات من الاستجابة
+  const service = serviceResponse?.data;
+
+  const title = toStr(service?.title_ar) || toStr(settings?.site_name_ar) || '';
+  const siteName = toStr(settings?.site_name_ar) || '';
   const primaryColor = toStr(settings?.primary_color) || '#1a365d';
   const secondaryColor = toStr(settings?.secondary_color) || '#D4AF37';
   const excerpt = toStr(service?.excerpt_ar) || toStr(service?.meta_description_ar) || toStr(settings?.site_description_ar) || '';
-  const category = service?.category?.name_ar || '';
-  const imageUrl = service?.image_url || service?.og_image_url || null;
+  const imageUrl = service?.image ? getImageUrl(service.image) : null;
+
+  // ✅ التحقق من وجود صورة صالحة
+  const validImageUrl = imageUrl && imageUrl.startsWith('http') ? imageUrl : null;
 
   return new ImageResponse(
     <div
@@ -45,13 +51,13 @@ export default async function Image({
         fontFamily: 'Arial, sans-serif',
       }}
     >
-      {imageUrl && (
+      {validImageUrl && (
         <div
           style={{
             position: 'absolute',
             inset: 0,
             opacity: 0.15,
-            backgroundImage: `url(${getImageUrl(imageUrl)})`,
+            backgroundImage: `url(${validImageUrl})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}
@@ -61,22 +67,6 @@ export default async function Image({
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12, fontSize: 48 }}>
         🛠️
       </div>
-
-      {category && (
-        <div
-          style={{
-            fontSize: 20,
-            opacity: 0.7,
-            marginBottom: 8,
-            color: 'rgba(255,255,255,0.7)',
-            background: 'rgba(255,255,255,0.1)',
-            padding: '4px 16px',
-            borderRadius: 20,
-          }}
-        >
-          {category}
-        </div>
-      )}
 
       <div
         style={{
@@ -117,9 +107,12 @@ export default async function Image({
           fontSize: 18,
           opacity: 0.6,
           color: 'rgba(255,255,255,0.6)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 16,
         }}
       >
-        {siteName}
+        <span>{siteName || 'لمسات جيزان'}</span>
       </div>
 
       <div
@@ -136,5 +129,3 @@ export default async function Image({
     size
   );
 }
-
-export const alt = 'صورة الخدمة';

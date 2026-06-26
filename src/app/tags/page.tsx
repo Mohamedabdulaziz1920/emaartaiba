@@ -1,99 +1,84 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { api, Tag } from '@/lib/api';
-import { getSiteSettings } from '@/lib/settings';
-// ✅ تغيير المسار إلى النظام الموحد
+
+// 🎯 SEO
 import { generateSEO, buildBreadcrumb } from '@/lib/seo/metadata';
+import { JsonLd } from '@/components/seo/JsonLd';
 import Breadcrumb from '@/components/seo/Breadcrumb';
 
-// ============================================
-// 📝 METADATA - استخدام النظام الموحد
-// ============================================
+// 🛠️ Utilities
+import { api, Tag } from '@/lib/api';
+import { getSiteSettings } from '@/lib/settings';
+import { extractArray } from '@/lib/typeSafe';
+
+export const revalidate = 3600;
+
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
-  
+
   return generateSEO({
     settings,
     type: 'website',
-    title: 'الوسوم | مدونة البناء المتميز',
-    description: 'تصفح جميع الوسوم والكلمات المفتاحية في مدونة البناء المتميز. ابحث عن المقالات حسب الموضوع.',
-    keywords: ['وسوم', 'كلمات مفتاحية', 'تصنيفات', 'مواضيع البناء', 'مقاولات'],
+    title: 'الوسوم',
+    description: 'تصفح جميع الوسوم في الموقع',
+    keywords: ['وسوم', 'تصنيفات', 'مواضيع'],
     url: '/tags',
   });
 }
 
-// ============================================
-// ⚡ إعادة التحقق كل ساعة
-// ============================================
-export const revalidate = 3600;
-
-// ============================================
-// 🖥️ الصفحة الرئيسية
-// ============================================
 export default async function TagsPage() {
-  const [tags, settings] = await Promise.all([
-    api.tags().catch(() => []),
+  const [settings, tagsRaw] = await Promise.all([
     getSiteSettings(),
+    api.tags().catch(() => []),
   ]);
-  
+
+  // ✅ استخراج المصفوفة بأمان
+  const tags = extractArray<Tag>(tagsRaw);
   const breadcrumbs = buildBreadcrumb({ name: 'الوسوم', url: '/tags' });
-
-  // ترتيب الوسوم حسب عدد المقالات
-  const sortedTags = [...tags].sort((a, b) => (b.posts_count || 0) - (a.posts_count || 0));
-
-  // حساب الإحصائيات
-  const totalPosts = sortedTags.reduce((acc, t) => acc + (t.posts_count || 0), 0);
 
   return (
     <>
+      <JsonLd
+        settings={settings}
+        pageType="blog"
+        pageTitle="الوسوم"
+        pageDescription="تصفح جميع الوسوم في الموقع"
+        pageUrl="/tags"
+        breadcrumbs={breadcrumbs}
+      />
+
       <section className="tags-hero">
         <div className="container-custom">
           <Breadcrumb items={breadcrumbs} variant="dark" />
-          
           <div className="tags-hero-content">
-            <span className="tags-hero-badge">🏷️</span>
+            <span className="tags-hero-icon">🏷️</span>
             <h1 className="tags-hero-title">جميع الوسوم</h1>
-            <p className="tags-hero-desc">
-              تصفح المقالات حسب الوسوم والكلمات المفتاحية
-            </p>
-            <div className="tags-stats">
-              <span>{tags.length} وسم</span>
-              <span>{totalPosts} مقال</span>
-            </div>
+            <p className="tags-hero-desc">تصفح المحتوى حسب الوسوم</p>
           </div>
         </div>
       </section>
 
       <section className="tags-content">
         <div className="container-custom">
-          {sortedTags.length > 0 ? (
-            <div className="tags-cloud">
-              {sortedTags.map((tag) => {
-                // حساب حجم الخط بناءً على عدد المقالات
-                const minSize = 0.875;
-                const maxSize = 2.5;
-                const minPosts = Math.min(...sortedTags.map(t => t.posts_count || 0));
-                const maxPosts = Math.max(...sortedTags.map(t => t.posts_count || 0));
-                const fontSize = minSize + ((tag.posts_count || 0) - minPosts) / (maxPosts - minPosts || 1) * (maxSize - minSize);
-                
-                return (
-                  <Link
-                    key={tag.id}
-                    href={`/tags/${tag.slug}`}
-                    className="tag-item"
-                    style={{
-                      fontSize: `${fontSize}rem`,
-                      padding: `${Math.max(0.25, fontSize * 0.3)}rem ${Math.max(0.5, fontSize * 0.5)}rem`,
-                    }}
-                  >
-                    <span className="tag-name">#{tag.name_ar}</span>
-                    <span className="tag-count">{tag.posts_count || 0}</span>
-                  </Link>
-                );
-              })}
+          {tags.length > 0 ? (
+            <div className="tags-grid">
+              {tags.map((tag: Tag) => (
+                <Link key={tag.id} href={`/tags/${tag.slug}`} className="tag-card">
+                  <div className="tag-card-icon">#</div>
+                  <div className="tag-card-content">
+                    <h3 className="tag-card-title">{tag.name_ar}</h3>
+                    {tag.description && (
+                      <p className="tag-card-desc">{tag.description}</p>
+                    )}
+                    <span className="tag-card-count">
+                      {tag.posts_count || 0} مقال
+                    </span>
+                  </div>
+                </Link>
+              ))}
             </div>
           ) : (
-            <div className="tags-empty">
+            <div className="empty-state">
               <p>لا توجد وسوم حالياً</p>
             </div>
           )}
@@ -104,116 +89,97 @@ export default async function TagsPage() {
         .tags-hero {
           background: linear-gradient(135deg, #0f1729 0%, #1a365d 50%, #2b6cb0 100%);
           color: white;
-          padding: 4rem 0;
-          position: relative;
-          overflow: hidden;
+          padding: 3rem 0 4rem;
         }
-
         .tags-hero-content {
           text-align: center;
           max-width: 800px;
           margin: 0 auto;
         }
-
-        .tags-hero-badge {
+        .tags-hero-icon {
           display: inline-block;
           font-size: 3rem;
           margin-bottom: 1rem;
         }
-
         .tags-hero-title {
           font-size: clamp(2rem, 5vw, 3rem);
           font-weight: 900;
           margin-bottom: 1rem;
         }
-
         .tags-hero-desc {
           color: #cbd5e0;
           font-size: 1.125rem;
-          margin-bottom: 1.5rem;
         }
-
-        .tags-stats {
-          display: flex;
-          justify-content: center;
-          gap: 2rem;
-          padding: 1rem;
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 9999px;
-          backdrop-filter: blur(10px);
-          width: fit-content;
-          margin: 0 auto;
-        }
-
-        .tags-stats span {
-          font-size: 0.875rem;
-          font-weight: 600;
-        }
-
         .tags-content {
           padding: 4rem 0;
           background: #f8faff;
           min-height: 60vh;
         }
-
-        .tags-cloud {
+        .tags-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 2rem;
+        }
+        .tag-card {
+          background: white;
+          border-radius: 1rem;
+          padding: 1.5rem;
+          text-decoration: none;
+          border: 1px solid #e5e7eb;
+          transition: all 0.3s;
           display: flex;
-          flex-wrap: wrap;
-          justify-content: center;
           align-items: center;
           gap: 1rem;
-          max-width: 1000px;
-          margin: 0 auto;
         }
-
-        .tag-item {
-          display: inline-flex;
+        .tag-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+        }
+        .tag-card-icon {
+          width: 48px;
+          height: 48px;
+          display: flex;
           align-items: center;
-          gap: 0.5rem;
-          background: white;
-          color: #1a365d;
-          text-decoration: none;
-          border-radius: 9999px;
-          transition: all 0.3s ease;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-          border: 1px solid #e5e7eb;
-        }
-
-        .tag-item:hover {
-          background: linear-gradient(135deg, #ed8936, #f6ad55);
+          justify-content: center;
+          background: linear-gradient(135deg, #ed8936, #f59e0b);
           color: white;
-          transform: translateY(-3px);
-          box-shadow: 0 8px 20px rgba(237, 137, 54, 0.3);
-          border-color: transparent;
+          border-radius: 50%;
+          font-size: 1.5rem;
+          font-weight: 800;
+          flex-shrink: 0;
         }
-
-        .tag-name {
+        .tag-card-content {
+          flex: 1;
+        }
+        .tag-card-title {
+          font-size: 1rem;
           font-weight: 700;
+          color: #0f172a;
+          margin: 0 0 0.25rem;
         }
-
-        .tag-count {
-          font-size: 0.7em;
-          background: rgba(0, 0, 0, 0.1);
-          padding: 0.1rem 0.4rem;
-          border-radius: 9999px;
+        .tag-card:hover .tag-card-title {
+          color: #ed8936;
+        }
+        .tag-card-desc {
+          color: #64748b;
+          font-size: 0.8rem;
+          margin: 0 0 0.5rem;
+        }
+        .tag-card-count {
+          color: #94a3b8;
+          font-size: 0.75rem;
           font-weight: 600;
         }
-
-        .tag-item:hover .tag-count {
-          background: rgba(255, 255, 255, 0.2);
-        }
-
-        .tags-empty {
+        .empty-state {
           text-align: center;
           padding: 4rem;
           background: white;
           border-radius: 1rem;
           color: #64748b;
         }
-
         @media (max-width: 640px) {
-          .tags-cloud {
-            gap: 0.75rem;
+          .tags-grid {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>

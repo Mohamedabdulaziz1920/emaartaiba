@@ -1,4 +1,4 @@
-// frontend/src/app/blog/[slug]/page.tsx
+// src/app/blog/[slug]/page.tsx
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -14,7 +14,7 @@ import Breadcrumb from '@/components/seo/Breadcrumb';
 import { api } from '@/lib/api';
 import { getImageUrl } from '@/lib/image';
 import { getSiteSettings } from '@/lib/settings';
-import { toStr, toUndefined, extractArray } from '@/lib/typeSafe'; // ✅ حذف toInt
+import { toStr, toUndefined, extractArray } from '@/lib/typeSafe';
 
 // 🧩 Components
 import BlogContent from '@/components/blog/BlogContent';
@@ -35,9 +35,9 @@ interface Props {
 function formatDate(date: string): string {
   try {
     return new Date(date).toLocaleDateString('ar-SA', {
-      year:  'numeric',
+      year: 'numeric',
       month: 'long',
-      day:   'numeric',
+      day: 'numeric',
     });
   } catch {
     return date;
@@ -46,14 +46,14 @@ function formatDate(date: string): string {
 
 function timeAgo(date: string): string {
   try {
-    const diffMs   = Date.now() - new Date(date).getTime();
+    const diffMs = Date.now() - new Date(date).getTime();
     const diffMins = Math.floor(diffMs / 60000);
-    const diffHrs  = Math.floor(diffMs / 3600000);
+    const diffHrs = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 60)  return `منذ ${diffMins} دقيقة`;
-    if (diffHrs  < 24)  return `منذ ${diffHrs} ساعة`;
-    if (diffDays < 30)  return `منذ ${diffDays} يوم`;
+    if (diffMins < 60) return `منذ ${diffMins} دقيقة`;
+    if (diffHrs < 24) return `منذ ${diffHrs} ساعة`;
+    if (diffDays < 30) return `منذ ${diffDays} يوم`;
     if (diffDays < 365) return `منذ ${Math.floor(diffDays / 30)} شهر`;
     return `منذ ${Math.floor(diffDays / 365)} سنة`;
   } catch {
@@ -67,17 +67,19 @@ function timeAgo(date: string): string {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
 
-  const [blog, settings] = await Promise.all([
-    api.blog(slug).catch(() => null),
+  const [settings, response] = await Promise.all([
     getSiteSettings(),
+    api.blog(slug).catch(() => null),
   ]);
+
+  const blog = response?.data;
 
   if (!blog) {
     return generateSEO({
       settings,
-      title:       'المقال غير موجود',
+      title: 'المقال غير موجود',
       description: 'عذراً، المقال الذي تبحث عنه غير موجود في مدونتنا',
-      noindex:     true,
+      noindex: true,
     });
   }
 
@@ -96,29 +98,28 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return generateSEO({
     settings,
-    type:        'article',
-    title:       toUndefined(toStr(blog.meta_title_ar)       || toStr(blog.title_ar)),
+    type: 'article',
+    title: toUndefined(toStr(blog.meta_title_ar) || toStr(blog.title_ar)),
     description: toUndefined(toStr(blog.meta_description_ar) || toStr(blog.excerpt_ar)),
-    keywords:    allKeywords,
-    image:       toUndefined(blog.featured_image ? getImageUrl(blog.featured_image) : ''),
-    url:         `/blog/${blog.slug}`,
+    keywords: allKeywords,
+    image: toUndefined(blog.featured_image ? getImageUrl(blog.featured_image) : ''),
+    url: `/blog/${blog.slug}`,
     publishedAt: toUndefined(blog.published_at),
-    modifiedAt:  toUndefined(blog.updated_at),
-    // ✅ لا default خاص بنشاط
+    modifiedAt: toUndefined(blog.updated_at),
     author: toUndefined(
       blog.author?.name ||
       toStr(settings?.site_name_ar) ||
       toStr(settings?.site_name)
     ),
     section: toUndefined(blog.category?.name_ar),
-    tags:    tagsKeywords,
+    tags: tagsKeywords,
   });
 }
 
 // ════════════════════════════════════════════════
 // ⚡ Config
 // ════════════════════════════════════════════════
-export const revalidate = 300; // ✅ 300 بدلاً من 60
+export const revalidate = 300;
 
 // ════════════════════════════════════════════════
 // 🎯 Page Component
@@ -126,13 +127,15 @@ export const revalidate = 300; // ✅ 300 بدلاً من 60
 export default async function BlogPage({ params }: Props) {
   const { slug } = await params;
 
-  const [blog, allBlogs, services, projects, settings] = await Promise.all([
+  const [response, allBlogs, services, projects, settings] = await Promise.all([
     api.blog(slug).catch(() => null),
     api.latestBlogs(6).catch(() => []),
     api.services().catch(() => []),
-    api.featuredProjects(4).catch(() => ({ data: [] })),
+    api.featuredProjects().catch(() => []),
     getSiteSettings(),
   ]);
+
+  const blog = response?.data;
 
   if (!blog) notFound();
 
@@ -143,10 +146,12 @@ export default async function BlogPage({ params }: Props) {
 
   if (relatedBlogs.length < 2 && blog.category?.slug) {
     try {
-      const categoryPosts = await api.blogs(1, 3, {
+      const categoryResponse = await api.blogs(1, 3, {
         category: blog.category.slug,
+        search: '',
+        tag: '', // ✅ إضافة tag مطلوب
       });
-      const extra = extractArray<any>(categoryPosts)
+      const extra = extractArray<any>(categoryResponse)
         .filter((b: any) => b.id !== blog.id);
       relatedBlogs = [...relatedBlogs, ...extra].slice(0, 4);
     } catch (error) {
@@ -155,19 +160,18 @@ export default async function BlogPage({ params }: Props) {
   }
 
   // ─── معالجة البيانات ──────────────────────────
-  const img      = blog.featured_image ? getImageUrl(blog.featured_image) : '';
-  const gallery  = Array.isArray(blog.gallery)
+  const img = blog.featured_image ? getImageUrl(blog.featured_image) : '';
+  const gallery = Array.isArray(blog.gallery)
     ? blog.gallery.map((g: string) => getImageUrl(g))
     : [];
-  const tags     = blog.tags || [];
+  const tags = blog.tags || [];
 
-  const siteUrl  = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
   const shareUrl = `${siteUrl}/blog/${blog.slug}`;
 
-  // ✅ لا default خاص بنشاط
   const siteName =
     toStr(settings?.site_name_ar) ||
-    toStr(settings?.site_name)    ||
+    toStr(settings?.site_name) ||
     '';
 
   const wasUpdated =
@@ -191,7 +195,7 @@ export default async function BlogPage({ params }: Props) {
   const blogForSchema = {
     ...blog,
     featured_image: blog.featured_image ?? undefined,
-    gallery:        blog.gallery        ?? undefined,
+    gallery: blog.gallery ?? undefined,
   };
 
   // ════════════════════════════════════════════════
@@ -213,7 +217,6 @@ export default async function BlogPage({ params }: Props) {
 
       {/* ═══ Page Content ═══ */}
       <div className={styles.page}>
-
         {/* Hero */}
         <section className={styles.hero}>
           <div className="container-custom">
@@ -250,7 +253,6 @@ export default async function BlogPage({ params }: Props) {
 
                 {(blog.views_count ?? 0) > 0 && (
                   <span className={styles.metaItem}>
-                    {/* ✅ toLocaleString بدلاً من formatNumber */}
                     👁️ {blog.views_count.toLocaleString('ar-SA')} مشاهدة
                   </span>
                 )}
@@ -275,7 +277,6 @@ export default async function BlogPage({ params }: Props) {
         <section className={styles.contentSection}>
           <div className="container-custom">
             <div className={styles.layout}>
-
               {/* Article */}
               <article
                 className={styles.main}

@@ -1,0 +1,403 @@
+/* ========================================
+   📄 Blog Detail Styles - Professional Design
+   ======================================== */
+
+/* ─── Container ─────────────────────────── */
+.page {
+  background: #f8faff;
+  min-height: 100vh;
+}
+
+/* ─── Hero Section ──────────────────────── */
+.hero {
+  position: relative;
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 50%, #1a202c 100%);
+  padding: 4rem 0 6rem;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(72, 187, 120, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 50%, rgba(72, 187, 120, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.heroContent {
+  position: relative;
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+  color: #ffffff;
+  z-index: 1;
+}
+
+.categoryTag {
+  display: inline-block;
+  background: rgba(72, 187, 120, 0.2);
+  color: #48bb78;
+  padding: 0.4rem 1.2rem;
+  border-radius: 50px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid rgba(72, 187, 120, 0.3);
+  transition: all 0.3s;
+  margin-bottom: 1.5rem;
+}
+
+.categoryTag:hover {
+  background: rgba(72, 187, 120, 0.3);
+  transform: translateY(-2px);
+}
+
+.title {
+  font-size: 3.2rem;
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 1.5rem;
+  color: #ffffff;
+  text-shadow: 0 2px 20px rgba(0,0,0,0.3);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.5rem;
+  font-size: 0.95rem;
+  color: rgba(255,255,255,0.7);
+}
+
+.metaItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.metaItem.updated {
+  color: #48bb78;
+}
+
+/* ─── Wave Divider ──────────────────────── */
+.wave {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 80px;
+  overflow: hidden;
+  z-index: 2;
+}
+
+.wave svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ─── Content Section ───────────────────── */
+.contentSection {
+  padding: 4rem 0 5rem;
+  background: #f8faff;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 3rem;
+}
+
+/* ─── Main Article ──────────────────────── */
+.main {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 2.5rem;
+  box-shadow: 0 4px 60px rgba(0,0,0,0.06);
+}
+
+/* Featured Image */
+.featuredImage {
+  margin: -2.5rem -2.5rem 2.5rem;
+  border-radius: 20px 20px 0 0;
+  overflow: hidden;
+  position: relative;
+  height: 450px;
+  background: #edf2f7;
+}
+
+.imageWrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.image {
+  object-fit: cover;
+}
+
+/* Share Top */
+.shareTop {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid #edf2f7;
+  margin-bottom: 2rem;
+}
+
+.shareLabel {
+  font-weight: 600;
+  color: #4a5568;
+  font-size: 0.95rem;
+}
+
+/* Article Body */
+.articleContainer {
+  max-width: 100%;
+}
+
+.excerpt {
+  background: #f7fafc;
+  padding: 1.5rem 2rem;
+  border-radius: 12px;
+  border-right: 4px solid #48bb78;
+  margin-bottom: 2.5rem;
+}
+
+.excerpt p {
+  font-size: 1.15rem;
+  color: #4a5568;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.noContent {
+  text-align: center;
+  padding: 3rem 0;
+  color: #a0aec0;
+  font-size: 1.1rem;
+}
+
+/* Tags Section */
+.tagsSection {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 2px solid #edf2f7;
+}
+
+.tagsTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 1rem;
+}
+
+.tagsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.tagLink {
+  display: inline-block;
+  background: #edf2f7;
+  color: #4a5568;
+  padding: 0.4rem 1.2rem;
+  border-radius: 50px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.tagLink:hover {
+  background: #48bb78;
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+
+/* Author Box */
+.authorBox {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 2.5rem;
+  padding: 1.5rem;
+  background: #f7fafc;
+  border-radius: 12px;
+}
+
+.authorAvatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #edf2f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+}
+
+.authorAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.authorInfo h4 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin: 0 0 0.25rem;
+}
+
+.authorInfo p {
+  font-size: 0.95rem;
+  color: #718096;
+  margin: 0;
+}
+
+/* Gallery Section */
+.gallerySection {
+  margin-top: 2.5rem;
+  padding-top: 2.5rem;
+  border-top: 1px solid #edf2f7;
+}
+
+/* Share Bottom */
+.shareBottom {
+  margin-top: 2.5rem;
+  padding: 2rem;
+  background: #f7fafc;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.shareBottomTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 1rem;
+}
+
+/* Back Link */
+.backLink {
+  margin-top: 2.5rem;
+  text-align: center;
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #48bb78;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.backButton:hover {
+  gap: 1rem;
+  color: #38a169;
+}
+
+/* ─── Sidebar ───────────────────────────── */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* ─── Responsive ────────────────────────── */
+@media (max-width: 1024px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero {
+    padding: 3rem 0 4rem;
+  }
+
+  .title {
+    font-size: 2rem;
+  }
+
+  .meta {
+    gap: 1rem;
+    font-size: 0.85rem;
+  }
+
+  .contentSection {
+    padding: 2rem 0 3rem;
+  }
+
+  .main {
+    padding: 1.5rem;
+  }
+
+  .featuredImage {
+    height: 250px;
+    margin: -1.5rem -1.5rem 1.5rem;
+  }
+
+  .excerpt {
+    padding: 1rem;
+  }
+
+  .excerpt p {
+    font-size: 1rem;
+  }
+
+  .sidebar {
+    grid-template-columns: 1fr;
+  }
+
+  .shareTop {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .authorBox {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .title {
+    font-size: 1.6rem;
+  }
+
+  .featuredImage {
+    height: 200px;
+  }
+
+  .shareBottom {
+    padding: 1.5rem;
+  }
+
+  .tagsList {
+    gap: 0.5rem;
+  }
+
+  .tagLink {
+    font-size: 0.75rem;
+    padding: 0.3rem 1rem;
+  }
+}

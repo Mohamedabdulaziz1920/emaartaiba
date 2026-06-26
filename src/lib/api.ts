@@ -1,82 +1,18 @@
+// src/lib/api.ts
+
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
-// ════════════════════════════════════════════
-// 🎨 استيراد DesignSettings من colors.ts
-// ════════════════════════════════════════════
-import type { DesignSettings } from './colors';
-import { getImageUrl, imageUrl, buildImageUrl } from './image';
+// ════════════════════════════════════════════════
+// 🎯 Types
+// ════════════════════════════════════════════════
 
-// ════════════════════════════════════════════
-// 📋 TYPES
-// ════════════════════════════════════════════
-export interface HeroSlideDesign {
-  title_color: string;
-  subtitle_color: string;
-  description_color: string;
-  title_size: string;
-  subtitle_size: string;
-  description_size: string;
-  title_weight: string;
-  font_family: string;
-  text_align: 'right' | 'center' | 'left';
-  content_position: 'right' | 'center' | 'left';
-  vertical_position: 'top' | 'center' | 'bottom';
-  content_max_width: number;
-  overlay_type: 'none' | 'solid' | 'gradient';
-  overlay_color: string;
-  overlay_opacity: number;
-  button_bg_color: string;
-  button_text_color: string;
-  button_hover_color: string;
-  transition_effect: 'fade' | 'slide' | 'zoom' | 'flip';
-  enable_ken_burns: boolean;
-  display_duration: number;
-  show_decoration: boolean;
-  decoration_color: string;
-}
-
-export interface ContactInfo {
+export interface NavItem {
   id: number;
-  phone_1: string;
-  phone_2: string | null;
-  whatsapp: string | null;
-  email_1: string;
-  email_2: string | null;
-  address_ar: string;
-  address_en: string | null;
-  working_days_ar: string;
-  working_days_en: string | null;
-  working_hours: string;
-  facebook: string | null;
-  twitter: string | null;
-  instagram: string | null;
-  linkedin: string | null;
-  youtube: string | null;
-  map_embed_code: string | null;
-  latitude: string | null;
-  longitude: string | null;
-}
-
-// ════════════════════════════════════════════
-// 📝 Blog Types
-// ════════════════════════════════════════════
-export interface BlogCategory {
-  id: number;
-  name_ar: string;
-  name_en?: string;
-  slug: string;
-  description?: string;
-  is_active?: boolean;
-  posts_count?: number;
-}
-
-export interface BlogTag {
-  id: number;
-  name_ar: string;
-  name_en?: string;
-  slug: string;
-  is_active?: boolean;
-  posts_count?: number;
+  label: string;
+  href: string;
+  is_active: boolean;
+  sort_order: number;
+  children: NavItem[];
 }
 
 export interface Category {
@@ -84,10 +20,7 @@ export interface Category {
   name_ar: string;
   name_en?: string;
   slug: string;
-  description_ar?: string;
-  description_en?: string;
-  image?: string | null;
-  type: 'service' | 'project' | 'blog';
+  description?: string;
   type_label: string;
   parent_id?: number | null;
   parent?: {
@@ -111,15 +44,6 @@ export interface Category {
   updated_at?: string;
 }
 
-export interface CategoryPostsResponse {
-  success: boolean;
-  data: BlogPost[];
-  current_page: number;
-  last_page: number;
-  per_page: number;
-  total: number;
-}
-
 export interface Tag {
   id: number;
   name_ar: string;
@@ -134,23 +58,115 @@ export interface Tag {
   updated_at?: string;
 }
 
-export interface TagPostsResponse {
-  success: boolean;
-  data: BlogPost[];
-  current_page: number;
-  last_page: number;
-  per_page: number;
-  total: number;
-  tag: Tag | null;
-  message?: string;
+export interface Partner {
+  id: number;
+  name_ar: string;
+  name_en?: string;
+  slug: string;
+  logo: string | null;
+  website?: string | null;
+  description_ar?: string | null;
+  description_en?: string | null;
+  is_active: boolean;
+  is_featured: boolean;
+  sort_order: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface HeroSlide {
+  id: number;
+  title_ar: string;
+  title_en?: string;
+  subtitle_ar?: string;
+  subtitle_en?: string;
+  description_ar?: string;
+  description_en?: string;
+  image: string | null;
+  image_alt_ar?: string;
+  image_alt_en?: string;
+  button_text_ar?: string;
+  button_text_en?: string;
+  button_link?: string;
+  badge?: string;
+  show_phone_button?: boolean;
+  is_active: boolean;
+  sort_order: number;
+  design?: {
+    title_color?: string;
+    subtitle_color?: string;
+    description_color?: string;
+    title_size?: string;
+    subtitle_size?: string;
+    description_size?: string;
+    title_weight?: string;
+    font_family?: string;
+    text_align?: string;
+    content_position?: string;
+    vertical_position?: string;
+    content_max_width?: number;
+    overlay_type?: string;
+    overlay_color?: string;
+    overlay_opacity?: number;
+    button_bg_color?: string;
+    button_text_color?: string;
+    button_hover_color?: string;
+    transition_effect?: string;
+    enable_ken_burns?: boolean;
+    display_duration?: number;
+    show_decoration?: boolean;
+    decoration_color?: string;
+  };
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface Testimonial {
+  id: number;
+  client_name: string;
+  client_email?: string;
+  client_photo?: string | null;
+  client_image?: string | null;
+  client_position?: string | null;
+  client_company?: string | null;
+  content_ar: string;
+  content_en?: string;
+  content?: string;
+  excerpt?: string;
+  rating: number;
+  stars_html?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  is_featured: boolean;
+  is_active: boolean;
+  project_id?: number | null;
+  project?: {
+    id: number;
+    title_ar: string;
+    slug: string;
+  };
+  approved_at?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface BlogAuthor {
-  id: number;
   name: string;
   email?: string;
   avatar?: string;
   bio?: string;
+  url?: string;
+}
+
+export interface BlogTag {
+  id: number;
+  name_ar: string;
+  slug: string;
+}
+
+export interface BlogCategory {
+  id: number;
+  name_ar: string;
+  slug: string;
 }
 
 export interface BlogPost {
@@ -174,138 +190,15 @@ export interface BlogPost {
   meta_title_ar?: string;
   meta_description_ar?: string;
   meta_keywords?: string[];
+  canonical_url?: string;
+  og_image?: string;
+  image_alt?: string;
+  image_title?: string;
   category?: BlogCategory;
   tags?: BlogTag[];
   author?: BlogAuthor;
 }
 
-export interface BlogListResponse {
-  success: boolean;
-  data: BlogPost[];
-  current_page: number;
-  last_page: number;
-  per_page: number;
-  total: number;
-  message?: string;
-}
-
-export interface BlogFilters {
-  page?: number;
-  per_page?: number;
-  category?: string;
-  tag?: string;
-  search?: string;
-  featured?: boolean;
-}
-
-// ════════════════════════════════════════════
-// 💬 Testimonial Types
-// ════════════════════════════════════════════
-export interface Testimonial {
-  id: number;
-  client_name: string;
-  client_position: string | null;
-  client_company: string | null;
-  client_image: string | null;
-  content: string;
-  excerpt: string;
-  rating: number;
-  stars_html: string;
-  is_featured: boolean;
-  approved_at: string | null;
-  created_at: string;
-}
-
-export interface TestimonialsApiResponse {
-  success: boolean;
-  data: Testimonial[];
-  total: number;
-  message?: string;
-}
-
-export interface TestimonialStats {
-  total_reviews: number;
-  average_rating: number;
-  rating_distribution: {
-    1: number;
-    2: number;
-    3: number;
-    4: number;
-    5: number;
-  };
-}
-
-export interface SubmitTestimonialData {
-  client_name: string;
-  client_email: string;
-  client_position?: string;
-  client_company?: string;
-  rating: number;
-  content: string;
-  agree_terms: boolean;
-}
-
-export interface SubmitTestimonialResponse {
-  success: boolean;
-  message: string;
-  data?: {
-    id: number;
-    status: string;
-  };
-  errors?: Record<string, string[]>;
-}
-
-// ════════════════════════════════════════════
-// 🧭 Navigation Types
-// ════════════════════════════════════════════
-export interface NavItem {
-  id: number;
-  label: string;
-  href: string;
-  icon?: string;
-  description?: string;
-  is_active: boolean;
-  sort_order: number;
-  parent_id?: number | null;
-  children?: NavItem[];
-}
-
-export interface HeroSlide {
-  id: number;
-  subtitle_ar?: string;
-  subtitle_en?: string;
-  title_ar: string;
-  title_en?: string;
-  description_ar?: string;
-  description_en?: string;
-  image: string;
-  image_alt_ar?: string;
-  image_alt_en?: string;
-  button_text_ar: string;
-  button_text_en?: string;
-  button_link: string;
-  show_phone_button: boolean;
-  order: number;
-  design?: HeroSlideDesign;
-}
-
-export interface Partner {
-  id: number;
-  name: string;
-  name_ar: string;
-  name_en: string | null;
-  slug: string;
-  logo: string;
-  cover_image: string | null;
-  website: string | null;
-  description: string | null;
-  is_featured: boolean;
-  sort_order: number;
-}
-
-// ════════════════════════════════════════════
-// 🛠️ Service Types
-// ════════════════════════════════════════════
 export interface ServiceCategory {
   id: number;
   name_ar: string;
@@ -321,19 +214,15 @@ export interface ServiceTag {
 export interface Service {
   id: number;
   title_ar: string;
-  title_en?: string | null;
+  title_en?: string;
   slug: string;
   excerpt_ar: string;
-  excerpt_en?: string | null;
-  content_ar?: string | null;
-  content_en?: string | null;
-  icon: string | null;
-  icon_html?: string;
+  excerpt_en?: string;
+  content_ar: string;
+  content_en?: string;
   image: string | null;
+  icon: string | null;
   image_url: string | null;
-  background_image: string | null;
-  background_image_url: string | null;
-  og_image: string | null;
   og_image_url: string | null;
   gallery: string[] | null;
   gallery_images?: string[] | null;
@@ -354,102 +243,35 @@ export interface Service {
   updated_at?: string;
 }
 
-export interface ServicesApiResponse {
-  success: boolean;
-  data: Service[];
-  total?: number;
-  message?: string;
-}
-
-export interface ServiceApiResponse {
-  success: boolean;
-  data: Service;
-  related?: Service[];
-  message?: string;
-}
-
-// 🖼️ Gallery Types
-export interface Gallery {
-  id: number;
-  title_ar: string;
-  title_en: string | null;
-  slug: string;
-  category_ar: string;
-  category_en: string | null;
-  description_ar: string | null;
-  description_en: string | null;
-  image: string;
-  image_url?: string;
-  image_alt_ar: string | null;
-  image_alt_en: string | null;
-  gallery_images: string[];
-  project_link: string | null;
-  is_featured: boolean;
-  sort_order: number;
-  created_at: string;
-}
-
-export interface GalleryImage {
-  id: number;
-  title_ar: string;
-  title_en: string | null;
-  description_ar: string | null;
-  description_en: string | null;
-  image: string;
-  image_url?: string;
-  thumbnail: string | null;
-  category: string;
-  tags: string[] | null;
-  location: string | null;
-  project_date: string | null;
-  client_name: string | null;
-  order: number;
-  is_active: boolean;
-  is_featured: boolean;
-  views_count: number;
-  created_at: string;
-}
-
-// ════════════════════════════════════════════
-// 🏢 Project Types (محدّثة بالكامل)
-// ════════════════════════════════════════════
-
-export interface ProjectCategory {
-  id: number;
-  name_ar: string;
-  slug: string;
-}
-
-export interface ProjectService {
-  id: number;
-  title_ar: string;
-  slug: string;
-}
-
 export interface BeforeAfterImage {
   before: string | null;
   after: string | null;
   title?: string | null;
 }
 
-export type ProjectStatus = 'planned' | 'in_progress' | 'completed';
+export interface ProjectCategory {
+  id: number;
+  name_ar: string;
+  slug?: string;
+}
+
+export interface ProjectService {
+  id: number;
+  title_ar: string;
+  slug?: string;
+}
 
 export interface Project {
-  // الأساسيات
   id: number;
   title_ar: string;
   title_en?: string | null;
   slug: string;
   excerpt_ar?: string | null;
   excerpt_en?: string | null;
-
-  // المحتوى الكامل (في صفحة التفاصيل فقط)
   content_ar?: string | null;
   content_en?: string | null;
   description_ar?: string | null;
   description_en?: string | null;
-
-  // الصور
   main_image: string | null;
   thumbnail?: string | null;
   cover_image?: string | null;
@@ -458,89 +280,48 @@ export interface Project {
   gallery?: string[] | null;
   gallery_metadata?: any;
   before_after_images?: BeforeAfterImage[] | null;
-
-  // الوسائط
   video_url?: string | null;
   virtual_tour_url?: string | null;
-
-  // معلومات المشروع
   client_name?: string | null;
   city?: string | null;
   location_ar?: string | null;
   location_en?: string | null;
-  area_sqm?: number | null;
+  area_sqm?: number | string | null;
   project_value?: string | null;
   duration?: string | null;
   duration_months?: number | null;
   start_date?: string | null;
   end_date?: string | null;
   completion_date?: string | null;
-
-  // الحالة
-  status: ProjectStatus;
+  status?: 'planned' | 'in_progress' | 'completed' | string;
   status_label?: string;
-  status_color?: string;
-
-  // الإعدادات
   is_featured: boolean;
   is_active?: boolean;
   views_count?: number;
   sort_order: number;
-
-  // العلاقات
   category: ProjectCategory | null;
   service?: ProjectService | null;
-
-  // SEO
   meta_title_ar?: string | null;
   meta_title_en?: string | null;
   meta_description_ar?: string | null;
   meta_description_en?: string | null;
   meta_keywords?: string[] | null;
   schema_data?: any;
-
-  // التواريخ
+  canonical_url?: string | null;
+  og_image?: string | null;
   created_at?: string;
   updated_at?: string;
 }
 
-export interface ProjectsApiResponse {
-  success: boolean;
-  data: Project[];
-  count?: number;
-  message?: string;
-}
+// ════════════════════════════════════════════════
+// 🛠️ API Functions
+// ════════════════════════════════════════════════
 
-export interface ProjectApiResponse {
-  success: boolean;
-  data: Project;
-  related?: Project[];
-  message?: string;
-}
-
-// خيارات فلترة المشاريع
-export interface ProjectFilters {
-  status?: ProjectStatus;
-  category_id?: number;
-  service_id?: number;
-  city?: string;
-  featured?: boolean;
-  search?: string;
-  limit?: number;
-}
-
-// ════════════════════════════════════════════
-// 🛠️ HELPER FUNCTIONS
-// ════════════════════════════════════════════
-
-/**
- * دالة عامة لجلب البيانات - تستخرج data من الرد إذا وجدت
- */
 async function get<T>(path: string, revalidate = 60): Promise<T> {
   try {
     const res = await fetch(`${API}${path}`, {
       next: { revalidate },
-      headers: { 'Accept': 'application/json' },
+      headers: { Accept: 'application/json' },
     });
 
     if (!res.ok) {
@@ -549,11 +330,6 @@ async function get<T>(path: string, revalidate = 60): Promise<T> {
     }
 
     const json = await res.json();
-
-    if (json && typeof json === 'object' && 'success' in json && 'data' in json) {
-      return json.data as T;
-    }
-
     return json as T;
   } catch (e: any) {
     console.warn(`⚠️ API Error [${path}]:`, e.message);
@@ -561,14 +337,11 @@ async function get<T>(path: string, revalidate = 60): Promise<T> {
   }
 }
 
-/**
- * دالة لجلب البيانات كاملة (مع الـ metadata)
- */
 async function getFull<T>(path: string, revalidate = 60): Promise<T> {
   try {
     const res = await fetch(`${API}${path}`, {
       next: { revalidate },
-      headers: { 'Accept': 'application/json' },
+      headers: { Accept: 'application/json' },
     });
 
     if (!res.ok) {
@@ -576,585 +349,201 @@ async function getFull<T>(path: string, revalidate = 60): Promise<T> {
       return {} as T;
     }
 
-    const json = await res.json();
-    return json as T;
+    return await res.json();
   } catch (e: any) {
     console.warn(`⚠️ API Error [${path}]:`, e.message);
     return {} as T;
   }
 }
 
-/**
- * دالة خاصة للمشاريع المتعددة
- */
-async function getProjectsResponse(path: string, revalidate = 60): Promise<ProjectsApiResponse> {
-  try {
-    const res = await fetch(`${API}${path}`, {
-      next: { revalidate },
-      headers: { 'Accept': 'application/json' },
-    });
+// ════════════════════════════════════════════════
+// 🚀 API Object
+// ════════════════════════════════════════════════
 
-    if (!res.ok) {
-      console.warn(`⚠️ API ${path} returned ${res.status}`);
-      return { success: false, data: [], message: 'فشل في جلب البيانات' };
-    }
-
-    const json = await res.json();
-
-    if (json && typeof json === 'object' && 'success' in json) {
-      return json as ProjectsApiResponse;
-    }
-
-    if (Array.isArray(json)) {
-      return { success: true, data: json };
-    }
-
-    return { success: false, data: [], message: 'صيغة غير متوقعة' };
-  } catch (e: any) {
-    console.warn(`⚠️ API Error [${path}]:`, e.message);
-    return { success: false, data: [], message: e.message };
-  }
-}
-
-/**
- * دالة خاصة لمشروع واحد - ترجع الرد الكامل مع related
- */
-async function getProjectResponse(path: string, revalidate = 60): Promise<ProjectApiResponse> {
-  try {
-    const res = await fetch(`${API}${path}`, {
-      next: { revalidate },
-      headers: { 'Accept': 'application/json' },
-    });
-
-    if (!res.ok) {
-      console.warn(`⚠️ API ${path} returned ${res.status}`);
-      return { success: false, data: {} as Project, message: 'فشل في جلب البيانات' };
-    }
-
-    const json = await res.json();
-
-    if (json && typeof json === 'object' && 'success' in json) {
-      return json as ProjectApiResponse;
-    }
-
-    return { success: true, data: json as Project };
-  } catch (e: any) {
-    console.warn(`⚠️ API Error [${path}]:`, e.message);
-    return { success: false, data: {} as Project, message: e.message };
-  }
-}
-
-async function getBlogListResponse(path: string, revalidate = 60): Promise<BlogListResponse> {
-  try {
-    const res = await fetch(`${API}${path}`, {
-      next: { revalidate },
-      headers: { 'Accept': 'application/json' },
-    });
-
-    if (!res.ok) {
-      return {
-        success: false,
-        data: [],
-        current_page: 1,
-        last_page: 1,
-        per_page: 12,
-        total: 0,
-        message: 'فشل في جلب البيانات',
-      };
-    }
-
-    const json = await res.json();
-
-    if (json && typeof json === 'object') {
-      if ('success' in json && 'data' in json) {
-        const responseData = json.data;
-        if (responseData && typeof responseData === 'object') {
-          return {
-            success: json.success,
-            data: responseData.data || responseData || [],
-            current_page: responseData.current_page || json.current_page || 1,
-            last_page: responseData.last_page || json.last_page || 1,
-            per_page: responseData.per_page || json.per_page || 12,
-            total: responseData.total || json.total || 0,
-            message: json.message,
-          };
-        }
-        return {
-          success: json.success,
-          data: Array.isArray(responseData) ? responseData : [],
-          current_page: json.current_page || 1,
-          last_page: json.last_page || 1,
-          per_page: json.per_page || 12,
-          total: json.total || 0,
-          message: json.message,
-        };
-      }
-      
-      if ('data' in json && Array.isArray(json.data)) {
-        return {
-          success: true,
-          data: json.data,
-          current_page: json.current_page || 1,
-          last_page: json.last_page || 1,
-          per_page: json.per_page || 12,
-          total: json.total || 0,
-        };
-      }
-      
-      if (Array.isArray(json)) {
-        return {
-          success: true,
-          data: json,
-          current_page: 1,
-          last_page: 1,
-          per_page: json.length,
-          total: json.length,
-        };
-      }
-    }
-
-    return {
-      success: false,
-      data: [],
-      current_page: 1,
-      last_page: 1,
-      per_page: 12,
-      total: 0,
-      message: 'صيغة غير متوقعة',
-    };
-  } catch (e: any) {
-    console.warn(`⚠️ API Error [${path}]:`, e.message);
-    return {
-      success: false,
-      data: [],
-      current_page: 1,
-      last_page: 1,
-      per_page: 12,
-      total: 0,
-      message: e.message,
-    };
-  }
-}
-
-/**
- * بناء query string من كائن الفلاتر
- */
-function buildQueryString(filters?: ProjectFilters): string {
-  if (!filters) return '';
-
-  const params = new URLSearchParams();
-
-  if (filters.status)      params.append('status', filters.status);
-  if (filters.category_id) params.append('category_id', String(filters.category_id));
-  if (filters.service_id)  params.append('service_id', String(filters.service_id));
-  if (filters.city)        params.append('city', filters.city);
-  if (filters.featured)    params.append('featured', '1');
-  if (filters.search)      params.append('search', filters.search);
-  if (filters.limit)       params.append('limit', String(filters.limit));
-
-  const query = params.toString();
-  return query ? `?${query}` : '';
-}
-
-async function post<T>(path: string, body: unknown): Promise<T> {
-  try {
-    const res = await fetch(`${API}${path}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
-
-    const json = await res.json().catch(() => ({}));
-
-    if (!res.ok) {
-      throw new Error(json.message || 'حدث خطأ في الإرسال');
-    }
-    return json as T;
-  } catch (e: any) {
-    console.error(`❌ POST Error [${path}]:`, e.message);
-    throw e;
-  }
-}
-
-// ════════════════════════════════════════════
-// 🌐 API ENDPOINTS
-// ════════════════════════════════════════════
 export const api = {
-  // ⚙️ Settings
-  settings: () => getFull<{data: Record<string,string>, grouped: Record<string, Record<string, string>>}>('/settings', 300),
-  setting: (key: string) => get<{key: string, value: string, group: string}>(`/settings/${key}`, 300),
-  
-  // 📞 Contact Info
-  contactInfo: () => get<ContactInfo[]>('/contact-info', 3600),
+  // ─── Navigation ──────────────────────────────
+  navigation: () => get<NavItem[]>('/navigation'),
 
-  // 🎬 Hero Slides
-heroSlides: () => get<HeroSlide[]>('/hero-slides', 300),  // كان 300 ✅
+  // ─── Settings ────────────────────────────────
+  settings: () => getFull<any>('/settings'),
+  designSettings: () => getFull<any>('/design-settings'),
 
+  // ─── About ────────────────────────────────────
+  about: () => getFull<any>('/about'),
 
-  // 🧭 Navigation
-// ─── Navigation ───
-navigation:       () => get<NavItem[]>('/navigation', 3600),        // ✅
-navigationFooter: () => get<NavItem[]>('/navigation/footer', 3600), // ✅
-navigationMobile: () => get<NavItem[]>('/navigation/mobile', 3600), // ✅
+  // ─── Hero ────────────────────────────────────
+  heroSlides: () => get<any[]>('/hero-slides'),
 
-  // 🛠️ Services
-  services: async () => {
-    try {
-      const res = await fetch(`${API}/services`);
-      const json = await res.json();
-      if (json && json.success && Array.isArray(json.data)) return json.data;
-      if (Array.isArray(json)) return json;
-      return [];
-    } catch (error) {
-      console.error('Error fetching services:', error);
-      return [];
-    }
-  },
-featuredServices: () => get<Service[]>('/services/featured', 300),
-service: (slug: string) => get<Service>(`/services/${slug}`, 300),
-relatedServices: (slug: string) => get<Service[]>(`/services/${slug}/related`, 300),
-servicesByCategory: (categoryId: number) => get<Service[]>(`/services?category_id=${categoryId}`, 300),
-searchServices: (query: string) => get<Service[]>(`/services?search=${encodeURIComponent(query)}`, 60),
-  // ════════════════════════════════════════════
-  // 🏢 Projects (محدّثة بالكامل)
-  // ════════════════════════════════════════════
+  // ─── Services ────────────────────────────────
+  services: () => getFull<ServicesApiResponse>('/services'),
+  featuredServices: () => get<Service[]>('/services/featured'),
+  latestServices: () => get<Service[]>('/services/latest'),
+  service: (slug: string) => getFull<{ success: boolean; data: Service }>(`/services/${slug}`),
+  relatedServices: (slug: string) => get<Service[]>(`/services/${slug}/related`),
+  serviceByTag: (tagSlug: string) => get<Service[]>(`/services/by-tag/${tagSlug}`),
 
-   // ════════════════════════════════════════════
-  // 🏢 Projects
-  // ════════════════════════════════════════════
-  projects: (filters?: ProjectFilters) =>
-    getProjectsResponse(`/projects${buildQueryString(filters)}`, 300),
+  // ─── Projects ────────────────────────────────
+  projects: () => getFull<ProjectsApiResponse>('/projects'),
+  featuredProjects: () => get<Project[]>('/projects/featured'),
+  latestProjects: () => get<Project[]>('/projects/latest'),
+  project: (slug: string) => getFull<{ success: boolean; data: Project; related?: Project[] }>(`/projects/${slug}`),
 
-  featuredProjects: (limit: number = 6) =>
-    getProjectsResponse(`/projects/featured?limit=${limit}`, 300),
+  // ─── Blogs ────────────────────────────────────
+  blogs: (page = 1, perPage = 9, filters = { category: '', search: '', tag: '' }) =>
+    getFull<BlogListResponse>(
+      `/blogs?page=${page}&perPage=${perPage}${filters.category ? `&category=${filters.category}` : ''}${filters.search ? `&search=${encodeURIComponent(filters.search)}` : ''}${filters.tag ? `&tag=${encodeURIComponent(filters.tag)}` : ''}`
+    ),
+  latestBlogs: (limit = 6) => get<BlogPost[]>(`/blogs/latest?limit=${limit}`),
+  featuredBlogs: () => get<BlogPost[]>('/blogs/featured'),
+  blog: (slug: string) => getFull<{ success: boolean; data: BlogPost }>(`/blogs/${slug}`),
+  blogByTag: (tagSlug: string) => get<BlogPost[]>(`/blogs/tag/${tagSlug}`),
 
-  latestProjects: (limit: number = 6) =>
-    getProjectsResponse(`/projects/latest?limit=${limit}`, 300),
+  // ─── Categories ───────────────────────────────
+  categories: () => get<Category[]>('/categories'),
+  blogCategories: () => get<Category[]>('/categories?type=blog'),
+  getCategoryBySlug: (slug: string) => getFull<{ success: boolean; data: Category }>(`/categories/${slug}`),
+  getCategoryPosts: (slug: string, page = 1, perPage = 9) =>
+    getFull<BlogListResponse>(`/categories/${slug}/posts?page=${page}&perPage=${perPage}`),
+  getCategoryServices: (slug: string) => get<Service[]>(`/categories/${slug}/services`),
+  getCategoryProjects: (slug: string) => get<Project[]>(`/categories/${slug}/projects`),
 
-  project: (slug: string) =>
-    getProjectResponse(`/projects/${slug}`, 300),
+  // ─── Tags ────────────────────────────────────
+  tags: () => get<Tag[]>('/tags'),
+  popularTags: () => get<Tag[]>('/tags/popular'),
+  tag: (slug: string) => getFull<{ success: boolean; data: Tag }>(`/tags/${slug}`),
 
-  searchProjects: (query: string) =>
-    getProjectsResponse(`/projects?search=${encodeURIComponent(query)}`, 60),
+  // ─── Partners ────────────────────────────────
+  partners: () => get<Partner[]>('/partners'),
+  featuredPartners: () => get<Partner[]>('/partners/featured'),
 
-  projectsByCategory: (categoryId: number, limit?: number) =>
-    getProjectsResponse(`/projects?category_id=${categoryId}${limit ? `&limit=${limit}` : ''}`, 300),
+  // ─── Testimonials ────────────────────────────
+  testimonials: () => get<Testimonial[]>('/testimonials'),
+  featuredTestimonials: () => get<Testimonial[]>('/testimonials/featured'),
+  submitTestimonial: (data: any) =>
+    fetch(`${API}/testimonials`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then((res) => res.json()),
 
-  projectsByService: (serviceId: number, limit?: number) =>
-    getProjectsResponse(`/projects?service_id=${serviceId}${limit ? `&limit=${limit}` : ''}`, 300),
+  // ─── FAQs ────────────────────────────────────
+  faqs: () => get<any[]>('/faqs'),
 
-  // ════════════════════════════════════════════
-  // 📰 Blog
-  // ════════════════════════════════════════════
-  blogs: (
-    page: number = 1,
-    perPage: number = 12,
-    filters?: { category?: string; tag?: string; search?: string; featured?: boolean }
-  ) => {
-    const params = new URLSearchParams();
-    params.append('page', String(page));
-    params.append('per_page', String(perPage));
-    if (filters?.category) params.append('category', filters.category);
-    if (filters?.tag)      params.append('tag',      filters.tag);
-    if (filters?.search)   params.append('search',   filters.search);
-    if (filters?.featured) params.append('featured', '1');
-    const query = params.toString();
-    return getBlogListResponse(`/blogs${query ? `?${query}` : ''}`, 60); // ✅ 60 بدل 30
-  },
+  // ─── Gallery ──────────────────────────────────
+  galleryImages: () => get<any[]>('/galleries'),
+  featuredGallery: () => get<any[]>('/galleries/featured'),
 
-  latestBlogs:  (limit: number = 6) => get<BlogPost[]>(`/blogs/latest?limit=${limit}`,           60), // ✅
-  featuredBlogs: (limit: number = 3) => get<BlogPost[]>(`/blogs/featured?limit=${limit}`,         60), // ✅
+  // ─── Search ──────────────────────────────────
+  search: (query: string) => get<{ data: any[] }>(`/search?q=${encodeURIComponent(query)}`),
 
-  // ✅ حذف view counter من SSR
-  blog: (slug: string) => get<BlogPost>(`/blogs/${slug}`, 60),
+  // ─── Areas ────────────────────────────────────
+  areas: () => get<any[]>('/areas'),
+  area: (slug: string) => getFull<{ data: any }>(`/areas/${slug}`),
 
-  relatedBlogs: (slug: string, limit: number = 4) =>
-    get<BlogPost[]>(`/blogs/${slug}/related?limit=${limit}`, 60), // ✅
-
-  searchBlogs: (query: string, limit: number = 20) =>
-    getBlogListResponse(`/blogs?search=${encodeURIComponent(query)}&per_page=${limit}`, 0),
-
-  blogsByCategory: (slug: string, page: number = 1, perPage: number = 12) =>
-    getBlogListResponse(`/blogs?category=${slug}&page=${page}&per_page=${perPage}`, 60), // ✅
-
-  // 📂 Categories
-  blogCategories: () => get<BlogCategory[]>('/categories', 3600),
-  blogCategory:   (slug: string) => get<BlogCategory>(`/categories/${slug}`, 3600),
-
-  // 🏷️ Tags
-  tags: async (): Promise<Tag[]> => {
-    const response = await fetch(`${API}/tags?per_page=100`, {
-      next: { revalidate: 3600 },
-      headers: { 'Accept': 'application/json' },
-    });
-    const data = await response.json();
-    if (data.success && Array.isArray(data.data)) return data.data;
-    if (Array.isArray(data)) return data;
-    return [];
-  },
-
-  tag: async (slug: string): Promise<Tag | null> => {
-    const response = await fetch(`${API}/tags/${slug}`, {
-      next: { revalidate: 3600 },
-      headers: { 'Accept': 'application/json' },
-    });
-    const data = await response.json();
-    if (data.success && data.data) return data.data;
-    return null;
-  },
-
-  tagPosts: async (slug: string, page: number = 1, perPage: number = 12): Promise<TagPostsResponse> => {
-    const response = await fetch(
-      `${API}/tags/${slug}/posts?page=${page}&per_page=${perPage}`,
-      { next: { revalidate: 300 }, headers: { 'Accept': 'application/json' } } // ✅ 300
-    );
-    const data = await response.json();
-    return {
-      success:      data.success      || false,
-      data:         data.data         || [],
-      current_page: data.current_page || page,
-      last_page:    data.last_page    || 1,
-      per_page:     data.per_page     || perPage,
-      total:        data.total        || 0,
-      tag:          data.tag          || null,
-      message:      data.message,
-    };
-  },
-
-  popularTags: async (limit: number = 20): Promise<Tag[]> => {
-    const response = await fetch(`${API}/tags/popular?limit=${limit}`, {
-      next: { revalidate: 3600 },
-      headers: { 'Accept': 'application/json' },
-    });
-    const data = await response.json();
-    if (data.success && Array.isArray(data.data)) return data.data;
-    if (Array.isArray(data)) return data;
-    return [];
-  },
-
-  // 📂 Advanced Categories
-  getCategories: async (type?: string): Promise<Category[]> => {
-    const url = type ? `/categories?type=${type}` : '/categories';
-    const response = await fetch(`${API}${url}`, {
-      next: { revalidate: 3600 },
-      headers: { 'Accept': 'application/json' },
-    });
-    const data = await response.json();
-    if (data.success && Array.isArray(data.data)) return data.data;
-    return [];
-  },
-
-  getMainCategories: async (type?: string): Promise<Category[]> => {
-    const url = type
-      ? `/categories?type=${type}&parent_only=true`
-      : '/categories?parent_only=true';
-    const response = await fetch(`${API}${url}`, {
-      next: { revalidate: 3600 },
-      headers: { 'Accept': 'application/json' },
-    });
-    const data = await response.json();
-    if (data.success && Array.isArray(data.data)) return data.data;
-    return [];
-  },
-
-  getCategoryBySlug: async (slug: string): Promise<Category | null> => {
-    const response = await fetch(`${API}/categories/${slug}`, {
-      next: { revalidate: 3600 },
-      headers: { 'Accept': 'application/json' },
-    });
-    const data = await response.json();
-    if (data.success && data.data) return data.data;
-    return null;
-  },
-
-  getCategoryWithChildren: async (slug: string): Promise<Category | null> => {
-    const response = await fetch(`${API}/categories/${slug}?with=children`, {
-      next: { revalidate: 3600 },
-      headers: { 'Accept': 'application/json' },
-    });
-    const data = await response.json();
-    if (data.success && data.data) return data.data;
-    return null;
-  },
-
-  getCategoryPosts: async (
-    slug: string,
-    page: number = 1,
-    perPage: number = 12
-  ): Promise<CategoryPostsResponse> => {
-    const response = await fetch(
-      `${API}/categories/${slug}/posts?page=${page}&per_page=${perPage}`,
-      { next: { revalidate: 300 }, headers: { 'Accept': 'application/json' } } // ✅ 300
-    );
-    const data = await response.json();
-    return {
-      success:      data.success      || false,
-      data:         data.data         || [],
-      current_page: data.current_page || page,
-      last_page:    data.last_page    || 1,
-      per_page:     data.per_page     || perPage,
-      total:        data.total        || 0,
-    };
-  },
-
-  getCategoryServices: async (slug: string): Promise<Service[]> => {
-    const response = await fetch(`${API}/categories/${slug}/services`, {
-      next: { revalidate: 3600 },
-      headers: { 'Accept': 'application/json' },
-    });
-    const data = await response.json();
-    if (data.success && Array.isArray(data.data)) return data.data;
-    return [];
-  },
-
-  getCategoryProjects: async (slug: string): Promise<Project[]> => {
-    const response = await fetch(`${API}/categories/${slug}/projects`, {
-      next: { revalidate: 3600 },
-      headers: { 'Accept': 'application/json' },
-    });
-    const data = await response.json();
-    if (data.success && Array.isArray(data.data)) return data.data;
-    return [];
-  },
-
-  // 📍 Areas ✅ محسّن
-  areas: () => get<any[]>('/areas', 3600),
-  area:  (slug: string) => get<any>(`/areas/${slug}`, 86400),
-
-  // 🖼️ Gallery ✅ محسّن (slug بدل id، 300 بدل 60)
-  galleries:              () => get<Gallery[]>('/galleries', 300),
-  galleryFeatured:        () => get<Gallery[]>('/galleries/featured', 300),
-  gallery:     (slug: string) => get<Gallery>(`/galleries/${slug}`, 300), // ✅ slug
-  galleryImages:          () => get<GalleryImage[]>('/gallery-images', 300),
-  galleryImagesFeatured:  () => get<GalleryImage[]>('/gallery-images/featured', 300),
-  galleryImagesByCategory: (category: string) =>
-    get<GalleryImage[]>(`/gallery-images/category/${category}`, 300),
-  galleryImage: (id: number) => get<GalleryImage>(`/gallery-images/${id}`, 300),
-
-  // 💬 Testimonials ✅ 300 بدل 60
-  testimonials:       () => get<Testimonial[]>('/testimonials', 300),
-  featuredTestimonials: () => get<Testimonial[]>('/testimonials/featured', 300),
-  testimonial:    (id: number) => get<Testimonial>(`/testimonials/${id}`, 300),
-  testimonialsStats:  () => get<TestimonialStats>('/testimonials/stats', 3600),
-  submitTestimonial: (data: SubmitTestimonialData) =>
-    post<SubmitTestimonialResponse>('/testimonials', data),
-
-  // 🤝 Partners
-  partners:        () => get<Partner[]>('/partners',          3600),
-  featuredPartners: () => get<Partner[]>('/partners/featured', 3600),
-  partner:  (slug: string) => get<Partner>(`/partners/${slug}`, 3600),
-
-  // ❓ FAQs
-  faqs:             () => get<any[]>('/faqs', 3600),
-  faqsByCategory: (categoryId: number) =>
-    get<any[]>(`/faqs/category/${categoryId}`, 3600),
-
-  // 📄 About ✅ مبسط
-  about: () => get<any>('/about', 3600),
-
-  // 📤 POST
-  submitContact: (data: unknown) => post('/contact',             data),
-  submitQuote:   (data: unknown) => post('/quote-request',       data),
-  subscribe:     (data: unknown) => post('/newsletter/subscribe', data),
-
-  // 🔍 Search
-  search: (query: string) => get<any>(`/search?q=${encodeURIComponent(query)}`, 0),
-
-  // 🤖 SEO ✅ محسّن بـ revalidate
-  getRobots:       () => get<any>('/robots',        86400),
-  getSitemap:      () => get<any>('/sitemap',       3600),
-  getSitemapPages: () => get<any>('/sitemap/pages', 3600),
+  // ─── Contact ──────────────────────────────────
+  contact: (data: any) =>
+    fetch(`${API}/contact`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then((res) => res.json()),
+  submitContact: (data: any) =>
+    fetch(`${API}/contact`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then((res) => res.json()),
+  contactInfo: () => getFull<any>('/contact-info'),
+  quoteRequest: (data: any) =>
+    fetch(`${API}/quote-request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then((res) => res.json()),
+  newsletter: (data: any) =>
+    fetch(`${API}/newsletter/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then((res) => res.json()),
 };
 
-// ════════════════════════════════════════════
-// 🎨 PROJECT HELPERS
-// ════════════════════════════════════════════
+// ════════════════════════════════════════════════
+// 📦 Response Types
+// ════════════════════════════════════════════════
 
-export function getProjectStatusInfo(status: ProjectStatus): {
+export interface BlogListResponse {
+  success: boolean;
+  data: BlogPost[];
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+}
+
+export interface ServicesApiResponse {
+  success: boolean;
+  data: Service[];
+  count?: number;
+}
+
+export interface ProjectsApiResponse {
+  success: boolean;
+  data: Project[];
+  count?: number;
+}
+
+export interface CategoryPostsResponse {
+  success: boolean;
+  data: BlogPost[];
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+}
+
+export interface TagPostsResponse {
+  success: boolean;
+  data: BlogPost[];
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+}
+
+// ════════════════════════════════════════════════
+// 🛠️ Project Helpers
+// ════════════════════════════════════════════════
+
+export function getProjectStatusInfo(status?: string): {
   label: string;
-  color: string;
   icon: string;
+  color: string;
 } {
-  const statusMap: Record<string, { label: string; color: string; icon: string }> = {
-    planned: {
-      label: 'مخطط',
-      color: '#64748b',
-      icon:  '📅',
-    },
-    in_progress: {
-      label: 'قيد التنفيذ',
-      color: '#ed8936',
-      icon:  '🔨',
-    },
-    completed: {
-      label: 'مكتمل',
-      color: '#10b981',
-      icon:  '✅',
-    },
-  };
-  return statusMap[status] ?? statusMap.completed;
-}
-
-export function getProjectImage(project: Project): string | null {
-  return (
-    project.main_image ??
-    project.cover_image ??
-    project.thumbnail ??
-    (Array.isArray(project.gallery) && project.gallery.length > 0
-      ? project.gallery[0]
-      : null)
-  );
-}
-
-export function formatArea(area: number | null | undefined): string {
-  if (!area) return '';
-  return `${Number(area).toLocaleString('ar-SA')} م²`;
-}
-
-export function formatDuration(months: number | null | undefined): string {
-  if (!months) return '';
-  if (months < 12) return `${months} شهر`;
-  const years          = Math.floor(months / 12);
-  const remainingMonths = months % 12;
-  if (remainingMonths === 0)
-    return `${years} ${years === 1 ? 'سنة' : 'سنوات'}`;
-  return `${years} ${years === 1 ? 'سنة' : 'سنوات'} و ${remainingMonths} شهر`;
-}
-
-export function hasGallery(project: Project): boolean {
-  return Array.isArray(project.gallery) && project.gallery.length > 0;
-}
-
-export function getGalleryCount(project: Project): number {
-  return Array.isArray(project.gallery) ? project.gallery.length : 0;
-}
-
-export function getServiceImage(service: Service): string | null {
-  return service.image ?? service.background_image ?? service.og_image ?? null;
-}
-
-export function hasVideo(item: Service | Project): boolean {
-  return !!item.video_url || !!('embed_video_url' in item && item.embed_video_url);
-}
-
-export function formatBlogDate(date: string | undefined): string {
-  if (!date) return '';
-  try {
-    return new Date(date).toLocaleDateString('ar-SA', {
-      year: 'numeric', month: 'long', day: 'numeric',
-    });
-  } catch {
-    return '';
+  switch (status) {
+    case 'completed':
+      return { label: 'مكتمل', icon: '✅', color: '#10b981' };
+    case 'in_progress':
+      return { label: 'قيد التنفيذ', icon: '🔨', color: '#ed8936' };
+    case 'planned':
+      return { label: 'مخطط', icon: '📅', color: '#64748b' };
+    case 'paused':
+      return { label: 'متوقف مؤقتاً', icon: '⏸️', color: '#f59e0b' };
+    case 'cancelled':
+      return { label: 'ملغي', icon: '❌', color: '#ef4444' };
+    default:
+      return { label: 'نشط', icon: '🟢', color: '#3b82f6' };
   }
 }
 
-export function calculateReadingTime(content: string): number {
-  if (!content) return 1;
-  const wordCount = content.replace(/<[^>]*>/g, '').split(/\s+/).length;
-  return Math.max(1, Math.ceil(wordCount / 200));
+export function formatArea(area?: number | string | null): string {
+  if (!area) return 'غير محدد';
+  const num = typeof area === 'string' ? parseFloat(area) : area;
+  if (isNaN(num)) return 'غير محدد';
+  return `${num.toLocaleString('ar-SA')} م²`;
 }
 
-export type { DesignSettings };
+export function getProjectImage(project: Project): string {
+  if (!project) return '';
+  return project.main_image || project.cover_image || project.thumbnail || '';
+}

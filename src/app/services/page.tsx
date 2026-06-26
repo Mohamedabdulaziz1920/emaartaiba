@@ -1,535 +1,234 @@
-'use client';
-
-import { api } from '@/lib/api';
+// src/app/services/page.tsx
+import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import Link from 'next/link';
+
+// 🎯 SEO
+import { generateSEO, buildBreadcrumb } from '@/lib/seo/metadata';
+import { JsonLd } from '@/components/seo/JsonLd';
+import Breadcrumb from '@/components/seo/Breadcrumb';
+
+// 🛠️ Utilities
+import { api } from '@/lib/api';
+import { getSiteSettings } from '@/lib/settings';
+import { extractArray } from '@/lib/typeSafe';
+
+// 🧩 Components
 import ServiceCard from '@/components/services/ServiceCard';
-import { useEffect, useState, useCallback } from 'react';
+import ServicesFilter from '@/components/services/ServicesFilter';
 
-// ============================================
-// 🎯 Types
-// ============================================
-interface Category {
-  id: number;
-  name_ar: string;
-  slug: string;
+// ════════════════════════════════════════════
+// ⚙️ Config
+// ════════════════════════════════════════════
+export const revalidate = 300;
+
+// ════════════════════════════════════════════
+// 📝 Metadata
+// ════════════════════════════════════════════
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+
+  return generateSEO({
+    title: 'خدماتنا | مقاولات عامة وتشطيبات',
+    description: 'نقدم مجموعة متكاملة من خدمات المقاولات العامة والتشطيبات والدهانات والديكورات بأعلى معايير الجودة',
+    keywords: ['مقاولات', 'تشطيبات', 'دهانات', 'ديكورات', 'بناء فلل', 'ترميم'],
+    url: '/services',
+    image: settings?.site_logo,
+    settings,
+  });
 }
 
-interface Service {
-  id: number;
-  title: string;
-  title_ar: string;
-  title_en?: string;
-  slug: string;
-  excerpt: string;
-  excerpt_ar: string;
-  excerpt_en?: string;
-  content?: string;
-  content_ar?: string;
-  icon: string | null;
-  icon_html?: string;
-  image_url: string | null;
-  background_image_url?: string | null;
-  is_featured: boolean;
-  sort_order: number;
-  category: Category | null;
-  url: string;
+// ════════════════════════════════════════════
+// 🎨 Skeleton
+// ════════════════════════════════════════════
+function ServicesSkeleton() {
+  return (
+    <div className="services-grid">
+      {[...Array(6)].map((_, i) => (
+        <div key={i} className="animate-pulse bg-white rounded-xl overflow-hidden shadow-sm">
+          <div className="h-48 bg-gray-200" />
+          <div className="p-4 space-y-3">
+            <div className="h-4 bg-gray-200 rounded w-1/3" />
+            <div className="h-6 bg-gray-200 rounded w-3/4" />
+            <div className="h-4 bg-gray-200 rounded w-full" />
+            <div className="h-4 bg-gray-200 rounded w-2/3" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
-interface ApiResponse {
-  success: boolean;
-  data: Service[];
-  message?: string;
-}
+// ════════════════════════════════════════════
+// 🖥️ Page Component
+// ════════════════════════════════════════════
+export default async function ServicesPage() {
+  const [settings, servicesResponse] = await Promise.all([
+    getSiteSettings(),
+    api.services().catch(() => ({ success: false, data: [] })),
+  ]);
 
-// ============================================
-// 🖥️ Main Component
-// ============================================
-export default function ServicesPageClient() {
-  const [services, setServices] = useState<Service[]>([]);
-  const [filteredServices, setFilteredServices] = useState<Service[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  // الفلاتر
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [showFeaturedOnly, setShowFeaturedOnly] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [categories, setCategories] = useState<Category[]>([]);
+  const services = extractArray(servicesResponse?.data);
+  const categories = extractArray(
+    services
+      .map((s: any) => s.category)
+      .filter(Boolean)
+      .filter((cat: any, i: number, self: any[]) => 
+        self.findIndex((c: any) => c.id === cat.id) === i
+      )
+  );
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true);
-        
-        // جلب الخدمات
-        const response: unknown = await api.services();
-        
-        let servicesData: Service[] = [];
-        
-        if (response && typeof response === 'object') {
-          if (Array.isArray(response)) {
-            servicesData = response as Service[];
-          } 
-          else if ('success' in response && (response as ApiResponse).success === true && 'data' in response) {
-            const data = (response as ApiResponse).data;
-            if (Array.isArray(data)) {
-              servicesData = data;
-            }
-          } 
-          else if ('data' in response) {
-            const data = (response as { data: Service[] }).data;
-            if (Array.isArray(data)) {
-              servicesData = data;
-            }
-          }
-        }
-        
-        setServices(servicesData);
-        setFilteredServices(servicesData);
-        
-        // استخراج التصنيفات الفريدة
-        const uniqueCategories = servicesData
-          .map(s => s.category)
-          .filter((cat): cat is Category => cat !== null && cat !== undefined)
-          .filter((cat, index, self) => 
-            self.findIndex(c => c.id === cat.id) === index
-          );
-        setCategories(uniqueCategories);
-        
-      } catch (err) {
-        console.error('Error fetching services:', err);
-        setError('حدث خطأ في تحميل الخدمات');
-      } finally {
-        setLoading(false);
-      }
-    }
-    
-    fetchData();
-  }, []);
-
-  // تطبيق الفلاتر
-  useEffect(() => {
-    let filtered = [...services];
-    
-    // فلتر حسب التصنيف
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(s => s.category?.id.toString() === selectedCategory);
-    }
-    
-    // فلتر المميز فقط
-    if (showFeaturedOnly) {
-      filtered = filtered.filter(s => s.is_featured);
-    }
-    
-    // فلتر البحث
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(s => 
-        s.title.toLowerCase().includes(term) || 
-        s.title_ar.toLowerCase().includes(term) ||
-        s.excerpt.toLowerCase().includes(term) ||
-        s.excerpt_ar.toLowerCase().includes(term)
-      );
-    }
-    
-    // ترتيب النتائج (المميزة أولاً ثم حسب الترتيب)
-    filtered.sort((a, b) => {
-      if (a.is_featured === b.is_featured) {
-        return (a.sort_order || 0) - (b.sort_order || 0);
-      }
-      return a.is_featured ? -1 : 1;
-    });
-    
-    setFilteredServices(filtered);
-  }, [services, selectedCategory, showFeaturedOnly, searchTerm]);
-
-  const handleResetFilters = useCallback(() => {
-    setSelectedCategory('all');
-    setShowFeaturedOnly(false);
-    setSearchTerm('');
-  }, []);
-
-  if (loading) {
-    return (
-      <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
-        <div className="spinner"></div>
-        <p style={{ marginTop: '1rem', color: '#64748b' }}>جاري تحميل الخدمات...</p>
-        <style>{`
-          .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid #e2e8f0;
-            border-top: 3px solid #ed8936;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-          }
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', textAlign: 'center', padding: '2rem' }}>
-        <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>⚠️</div>
-        <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ef4444', marginBottom: '0.5rem' }}>حدث خطأ</h3>
-        <p style={{ color: '#64748b', marginBottom: '1.5rem' }}>{error}</p>
-        <button 
-          onClick={() => window.location.reload()}
-          style={{
-            padding: '0.75rem 1.5rem',
-            background: '#ed8936',
-            color: 'white',
-            border: 'none',
-            borderRadius: '0.5rem',
-            cursor: 'pointer',
-            fontWeight: '600'
-          }}
-        >
-          إعادة المحاولة
-        </button>
-      </div>
-    );
-  }
+  const breadcrumbs = buildBreadcrumb({ name: 'خدماتنا', url: '/services' });
 
   return (
-    <div>
-      {/* Hero Section */}
-      <section style={{
-        background: 'linear-gradient(135deg, #0f1729 0%, #1a365d 50%, #2b6cb0 100%)',
-        color: 'white',
-        padding: '4rem 0 5rem',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
+    <div className="services-page">
+      {/* ═══ JSON-LD ═══ */}
+      <JsonLd 
+        settings={settings} 
+        pageType="services"
+        pageTitle="خدماتنا"
+        pageDescription="نقدم مجموعة متكاملة من خدمات المقاولات العامة"
+        pageUrl="/services"
+      />
+
+      {/* ═══ Hero ═══ */}
+      <section className="services-hero">
         <div className="container-custom" style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ textAlign: 'center' }}>
-            <span className="section-badge"
-                  style={{ background: 'rgba(237,137,54,0.15)', color: '#fbd38d' }}>
-              ⚡ خدماتنا
-            </span>
-            <h1 style={{
-              fontSize: 'clamp(2rem, 5vw, 3.5rem)',
-              fontWeight: '900',
-              marginBottom: '1rem',
-              color: 'white'
-            }}>
+          <Breadcrumb items={breadcrumbs} variant="dark" />
+          <div className="hero-content">
+            <span className="hero-badge">⚡ خدماتنا</span>
+            <h1 className="hero-title">
               خدمات <span className="text-gradient-orange">مقاولات شاملة</span>
             </h1>
-            <p style={{
-              color: '#cbd5e0',
-              fontSize: '1.125rem',
-              maxWidth: '40rem',
-              margin: '0 auto'
-            }}>
-              نقدم مجموعة متكاملة من خدمات المقاولات العامة بأعلى معايير الجودة
+            <p className="hero-subtitle">
+              نقدم مجموعة متكاملة من خدمات المقاولات العامة بأعلى معايير الجودة والاحترافية
             </p>
           </div>
         </div>
-        
-        {/* Wave Decoration */}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, lineHeight: 0 }}>
-          <svg viewBox="0 0 1440 80" preserveAspectRatio="none"
-               style={{ display: 'block', width: '100%', height: '60px' }}>
-            <path d="M0,80 C320,20 720,20 1440,80 L1440,80 L0,80 Z" fill="#f8faff"/>
+        <div className="wave-decoration">
+          <svg viewBox="0 0 1440 80" preserveAspectRatio="none">
+            <path d="M0,80 C320,20 720,20 1440,80 L1440,80 L0,80 Z" fill="#f8faff" />
           </svg>
         </div>
       </section>
 
-      {/* Services Section */}
-      <section className="section-padding" style={{ background: '#f8faff' }}>
+      {/* ═══ Services ═══ */}
+      <section className="services-section">
         <div className="container-custom">
-          {/* Filter Bar */}
-          <div className="filter-bar">
-            {/* Search Input */}
-            <div className="search-wrapper">
-              <input
-                type="text"
-                placeholder="ابحث عن خدمة..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="search-input"
+          <Suspense fallback={<ServicesSkeleton />}>
+            {services.length > 0 ? (
+              <ServicesFilter 
+                services={services} 
+                categories={categories}
+                initialCategory="all"
               />
-              <span className="search-icon">🔍</span>
-            </div>
-            
-            {/* Category Filter */}
-            {categories.length > 0 && (
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="category-select"
-              >
-                <option value="all">جميع التصنيفات</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id.toString()}>
-                    {cat.name_ar}
-                  </option>
-                ))}
-              </select>
+            ) : (
+              <EmptyState />
             )}
-            
-            {/* Featured Filter */}
-            <label className="featured-checkbox">
-              <input
-                type="checkbox"
-                checked={showFeaturedOnly}
-                onChange={(e) => setShowFeaturedOnly(e.target.checked)}
-              />
-              <span>المميزة فقط</span>
-            </label>
-            
-            {/* Results Count */}
-            <div className="results-count">
-              <span>{filteredServices.length}</span> خدمة
-            </div>
-          </div>
-          
-          {/* Reset Filters Button */}
-          {(selectedCategory !== 'all' || showFeaturedOnly || searchTerm) && (
-            <div className="reset-filters">
-              <button onClick={handleResetFilters} className="reset-btn">
-                ✕ إلغاء جميع الفلاتر
-              </button>
-            </div>
-          )}
-
-          {/* Services Grid */}
-          {filteredServices.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-icon">🔍</div>
-              <h3 className="empty-title">لا توجد نتائج</h3>
-              <p className="empty-desc">
-                لم نعثر على خدمات تطابق معايير البحث. حاول تغيير الفلاتر.
-              </p>
-              <button onClick={handleResetFilters} className="empty-btn">
-                إعادة ضبط الفلاتر
-              </button>
-            </div>
-          ) : (
-            <div className="services-grid">
-              {filteredServices.map((service) => (
-                <ServiceCard
-                  key={service.id}
-                  id={service.id}
-                  title={service.title}
-                  title_ar={service.title_ar}
-                  slug={service.slug}
-                  excerpt={service.excerpt}
-                  excerpt_ar={service.excerpt_ar}
-                  icon={service.icon}
-                  image_url={service.image_url}
-                  is_featured={service.is_featured}
-                  category={service.category}
-                  variant="default"
-                  showCategory={true}
-                  showFeatured={true}
-                />
-              ))}
-            </div>
-          )}
+          </Suspense>
         </div>
       </section>
 
       <style>{`
-        .filter-bar {
-          display: flex;
-          flex-wrap: wrap;
-          align-items: center;
-          justify-content: space-between;
-          gap: 1rem;
-          background: white;
-          padding: 1rem 1.5rem;
-          border-radius: 1rem;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-        }
+        .services-page { min-height: 100vh; background: #f8faff; }
         
-        .search-wrapper {
-          position: relative;
-          flex: 1;
-          min-width: 200px;
-        }
-        
-        .search-input {
-          width: 100%;
-          padding: 0.625rem 1rem;
-          padding-right: 2.5rem;
-          border: 1px solid #e2e8f0;
-          border-radius: 0.5rem;
-          font-size: 0.875rem;
-          background: white;
-          transition: all 0.3s ease;
-        }
-        
-        .search-input:focus {
-          outline: none;
-          border-color: #ed8936;
-          box-shadow: 0 0 0 2px rgba(237, 137, 54, 0.1);
-        }
-        
-        .search-icon {
-          position: absolute;
-          right: 0.75rem;
-          top: 50%;
-          transform: translateY(-50%);
-          color: #94a3b8;
-          font-size: 1rem;
-        }
-        
-        .category-select {
-          padding: 0.625rem 1rem;
-          border: 1px solid #e2e8f0;
-          border-radius: 0.5rem;
-          font-size: 0.875rem;
-          background: white;
-          cursor: pointer;
-          min-width: 160px;
-        }
-        
-        .category-select:focus {
-          outline: none;
-          border-color: #ed8936;
-        }
-        
-        .featured-checkbox {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          cursor: pointer;
-          font-size: 0.875rem;
-          color: #475569;
-        }
-        
-        .featured-checkbox input {
-          width: 1rem;
-          height: 1rem;
-          cursor: pointer;
-          accent-color: #ed8936;
-        }
-        
-        .results-count {
-          background: #f1f5f9;
-          padding: 0.375rem 0.875rem;
-          border-radius: 2rem;
-          font-size: 0.75rem;
-          font-weight: 600;
-          color: #475569;
-        }
-        
-        .results-count span {
-          color: #ed8936;
-          font-size: 0.875rem;
-        }
-        
-        .reset-filters {
-          text-align: left;
-          margin-bottom: 1.5rem;
-        }
-        
-        .reset-btn {
-          padding: 0.375rem 1rem;
-          background: #f1f5f9;
-          border: none;
-          border-radius: 2rem;
-          font-size: 0.75rem;
-          color: #64748b;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-        
-        .reset-btn:hover {
-          background: #ed8936;
+        .services-hero {
+          background: linear-gradient(135deg, #0f1729 0%, #1a365d 50%, #2b6cb0 100%);
           color: white;
+          padding: 4rem 0 6rem;
+          position: relative;
+          overflow: hidden;
         }
+        .hero-content { text-align: center; margin-top: 2rem; }
+        .hero-badge {
+          display: inline-block;
+          padding: 0.5rem 1.25rem;
+          background: rgba(237, 137, 54, 0.15);
+          color: #fbd38d;
+          border: 1px solid rgba(237, 137, 54, 0.3);
+          border-radius: 2rem;
+          font-size: 0.875rem;
+          font-weight: 700;
+          margin-bottom: 1.5rem;
+          backdrop-filter: blur(8px);
+        }
+        .hero-title {
+          font-size: clamp(2rem, 5vw, 3.5rem);
+          font-weight: 900;
+          margin: 0 0 1.5rem 0;
+          line-height: 1.2;
+        }
+        .text-gradient-orange {
+          background: linear-gradient(135deg, #f6ad55, #ed8936);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+        .hero-subtitle {
+          color: #cbd5e0;
+          font-size: 1.125rem;
+          max-width: 42rem;
+          margin: 0 auto;
+          line-height: 1.8;
+        }
+        .wave-decoration {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          line-height: 0;
+        }
+        .wave-decoration svg { display: block; width: 100%; height: 60px; }
+        
+        .services-section { padding: 4rem 0 5rem; }
         
         .services-grid {
           display: grid;
           grid-template-columns: 1fr;
           gap: 2rem;
         }
-
         @media (min-width: 768px) {
-          .services-grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
+          .services-grid { grid-template-columns: repeat(2, 1fr); }
         }
-
         @media (min-width: 1024px) {
-          .services-grid {
-            grid-template-columns: repeat(3, 1fr);
-          }
+          .services-grid { grid-template-columns: repeat(3, 1fr); }
         }
         
-        /* Empty State */
         .empty-state {
           text-align: center;
-          padding: 4rem 2rem;
+          padding: 5rem 2rem;
           background: white;
           border-radius: 1rem;
         }
-        
-        .empty-icon {
-          font-size: 4rem;
-          margin-bottom: 1rem;
-        }
-        
-        .empty-title {
-          font-size: 1.25rem;
-          font-weight: 800;
-          color: #0f172a;
-          margin-bottom: 0.5rem;
-        }
-        
-        .empty-desc {
-          color: #64748b;
-          font-size: 0.875rem;
-          margin-bottom: 1.5rem;
-        }
-        
+        .empty-icon { font-size: 5rem; margin-bottom: 1rem; }
+        .empty-title { font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem; }
+        .empty-desc { color: #64748b; margin-bottom: 1.5rem; }
         .empty-btn {
-          padding: 0.625rem 1.25rem;
-          background: #ed8936;
+          display: inline-block;
+          padding: 0.75rem 1.5rem;
+          background: linear-gradient(135deg, #1a365d, #2b6cb0);
           color: white;
-          border: none;
-          border-radius: 0.5rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
+          border-radius: 0.75rem;
+          font-weight: 700;
+          text-decoration: none;
+          transition: transform 0.2s;
         }
-        
-        .empty-btn:hover {
-          background: #dd6b20;
-          transform: translateY(-2px);
-        }
-        
-        @media (max-width: 768px) {
-          .filter-bar {
-            flex-direction: column;
-            align-items: stretch;
-          }
-          
-          .search-wrapper {
-            width: 100%;
-          }
-          
-          .category-select {
-            width: 100%;
-          }
-          
-          .featured-checkbox {
-            justify-content: flex-start;
-          }
-          
-          .results-count {
-            text-align: center;
-          }
-        }
+        .empty-btn:hover { transform: translateY(-2px); }
       `}</style>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════
+// 📭 Empty State
+// ════════════════════════════════════════════
+function EmptyState() {
+  return (
+    <div className="empty-state">
+      <div className="empty-icon">🛠️</div>
+      <h3 className="empty-title">لا توجد خدمات متاحة حالياً</h3>
+      <p className="empty-desc">نحن نعمل على إضافة خدماتنا الجديدة. تابعونا قريباً!</p>
+      <Link href="/contact" className="empty-btn">💬 تواصل معنا</Link>
     </div>
   );
 }

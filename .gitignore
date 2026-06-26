@@ -52,3 +52,13 @@ node_modules/
 *.txt
 MINI_REPORT.md
 PROJECT_REPORT.md
+
+# Environment files (حساسة - لا ترفع إلى GitHub)
+.env.local
+.env.production
+.env.development
+.env.test
+.env.*.local
+
+# لكن نرفع .env.example للتوضيح
+!.env.example

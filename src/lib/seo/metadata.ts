@@ -11,7 +11,7 @@ interface BaseMetaProps {
   keywords?: string[] | string;
   image?: string;
   url?: string;
-  type?: 'website' | 'article' | 'product';
+  type?: 'website' | 'article' | 'product' | 'profile';
   noindex?: boolean;
   nofollow?: boolean;
   canonical?: string;
@@ -40,13 +40,13 @@ export function generateSEO(props: SEOProps): Metadata {
   // ━━━ Site Info ━━━
   const siteName = toStr(settings?.site_name_ar) || 
                    toStr(settings?.site_name) || 
-                   'شركة البناء المتميز';
+                   '';
   
   const siteDescription = toStr(settings?.site_description_ar) ||
                           toStr(settings?.site_description) ||
                           toStr(settings?.meta_description_ar) ||
                           toStr(settings?.meta_description) ||
-                          'شركة مقاولات عامة رائدة في المملكة العربية السعودية';
+                          '';
   
   const siteLogo = buildImageUrl(settings?.site_logo);
   const ogImage = buildImageUrl(settings?.og_image || settings?.meta_image);
@@ -95,49 +95,41 @@ export function generateSEO(props: SEOProps): Metadata {
     ? (twitterHandle.startsWith('@') ? twitterHandle : `@${twitterHandle}`)
     : undefined;
   
-const baseOpenGraph: NonNullable<Metadata['openGraph']> = {
-  type: props.type === 'article' ? 'article' : 'website',
-  locale: 'ar_SA',
-  alternateLocale: 'en_US',
-  url,
-  siteName,
-  title,
-  description,
-  images: image
-    ? [
-        {
-          url: image,
-          width: 1200,
-          height: 630,
-          alt: title,
-          type: 'image/jpeg',
-        },
-      ]
-    : [],
-};
+  // ━━━ Open Graph ━━━
+  const baseOpenGraph: NonNullable<Metadata['openGraph']> = {
+    type: props.type === 'article' ? 'article' : 'website',
+    locale: 'ar_SA',
+    alternateLocale: 'en_US',
+    url,
+    siteName,
+    title,
+    description,
+    images: image
+      ? [
+          {
+            url: image,
+            width: 1200,
+            height: 630,
+            alt: title,
+            type: 'image/jpeg',
+          },
+        ]
+      : [],
+  };
 
-const openGraph: NonNullable<Metadata['openGraph']> =
-  props.type === 'article' && 'publishedAt' in props
-    ? {
-        ...baseOpenGraph,
-        type: 'article',
-        publishedTime: props.publishedAt,
-        modifiedTime: props.modifiedAt || props.publishedAt,
-        authors: props.author ? [props.author] : [siteName],
-        section: props.section,
-        tags: props.tags,
-      }
-    : baseOpenGraph;
-  
+  let openGraph: NonNullable<Metadata['openGraph']> = { ...baseOpenGraph };
+
   // Article-specific
   if (props.type === 'article' && 'publishedAt' in props) {
-    Object.assign(openGraph, {
+    openGraph = {
+      ...openGraph,
+      type: 'article',
       publishedTime: props.publishedAt,
       modifiedTime: props.modifiedAt || props.publishedAt,
       authors: props.author ? [props.author] : [siteName],
       section: props.section,
       tags: props.tags,
-    });
+    };
   }
   
   // ━━━ Twitter ━━━
@@ -162,8 +154,12 @@ const openGraph: NonNullable<Metadata['openGraph']> =
   const lng = toStr(settings?.longitude || settings?.google_maps_lng);
   
   if (city) other['geo.placename'] = city;
-  if (region) other['geo.region'] = `${country}-${region.charAt(0).toUpperCase()}${region.slice(1)}`;
-  else other['geo.region'] = country;
+  if (region) {
+    const regionCode = region.charAt(0).toUpperCase() + region.slice(1);
+    other['geo.region'] = `${country}-${regionCode}`;
+  } else {
+    other['geo.region'] = country;
+  }
   
   if (lat && lng) {
     other['geo.position'] = `${lat};${lng}`;
@@ -238,6 +234,6 @@ export function buildBreadcrumb(...items: Array<{ name: string; url: string }>) 
 export function buildPageTitle(pageTitle: string, settings?: SiteSettings): string {
   const siteName = toStr(settings?.site_name_ar) || 
                    toStr(settings?.site_name) || 
-                   'شركة البناء المتميز';
-  return `${pageTitle} | ${siteName}`;
+                   '';
+  return siteName ? `${pageTitle} | ${siteName}` : pageTitle;
 }

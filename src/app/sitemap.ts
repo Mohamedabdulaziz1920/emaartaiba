@@ -2,20 +2,21 @@
 import { MetadataRoute } from 'next';
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-const API = process.env.NEXT_PUBLIC_API_URL       || 'http://localhost:8000/api/v1';
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
-// حد Google الأقصى
 const MAX_URLS_PER_SITEMAP = 45000;
 const MAX_BLOG_PAGINATION_PAGES = 10;
 
+export const revalidate = 3600;
+
 // ═══════════════════════════════════════════════════
-// 🛠️ Helpers مع دعم أفضل لصيغ الاستجابة
+// 🛠️ Helpers
 // ═══════════════════════════════════════════════════
 async function fetchData(path: string): Promise<any[]> {
   try {
     const res = await fetch(`${API}${path}`, {
       next: { revalidate: 3600 },
-      headers: { 'Accept': 'application/json' },
+      headers: { Accept: 'application/json' },
     });
 
     if (!res.ok) {
@@ -25,23 +26,14 @@ async function fetchData(path: string): Promise<any[]> {
 
     const json = await res.json();
 
-    // ✅ ترتيب واضح بدون تكرار
-    if (Array.isArray(json))                              return json;
-    if (Array.isArray(json.data))                         return json.data;
-    if (Array.isArray(json.data?.data))                   return json.data.data;
-    if (Array.isArray(json.data?.items))                  return json.data.items;
-    if (Array.isArray(json.data?.results))                return json.data.results;
-    if (Array.isArray(json.items))                        return json.items;
-    if (Array.isArray(json.results))                      return json.results;
+    if (Array.isArray(json)) return json;
+    if (Array.isArray(json.data)) return json.data;
+    if (Array.isArray(json.data?.data)) return json.data.data;
+    if (Array.isArray(json.data?.items)) return json.data.items;
+    if (Array.isArray(json.data?.results)) return json.data.results;
+    if (Array.isArray(json.items)) return json.items;
+    if (Array.isArray(json.results)) return json.results;
 
-    // محاولة أخيرة إذا كان data كائن
-    if (json.data && typeof json.data === 'object' && !Array.isArray(json.data)) {
-      for (const key of ['items', 'results', 'list']) {
-        if (Array.isArray(json.data[key])) return json.data[key];
-      }
-    }
-
-    console.warn(`⚠️ Unexpected format [${path}]:`, Object.keys(json));
     return [];
   } catch (error) {
     console.error(`❌ Sitemap fetch error [${path}]:`, error);
@@ -59,10 +51,8 @@ function formatDate(date: any): Date {
   }
 }
 
-type ChangeFreq = 'always' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'never';
-
-function getPagePriority(path: string): { priority: number; frequency: ChangeFreq } {
-  const priorities: Record<string, { priority: number; frequency: ChangeFreq }> = {
+function getPagePriority(path: string): { priority: number; frequency: any } {
+  const priorities: Record<string, { priority: number; frequency: any }> = {
     '/': { priority: 1.0, frequency: 'daily' },
     '/about': { priority: 0.8, frequency: 'monthly' },
     '/services': { priority: 0.95, frequency: 'weekly' },
@@ -90,33 +80,26 @@ async function generateBlogPaginationPages(): Promise<MetadataRoute.Sitemap> {
   try {
     const res = await fetch(`${API}/blogs?per_page=1`, {
       next: { revalidate: 3600 },
-      headers: { 'Accept': 'application/json' },
+      headers: { Accept: 'application/json' },
     });
 
     if (!res.ok) return [];
 
     const json = await res.json();
-
-    // ✅ استخراج total بترتيب منطقي
-    const totalCount: number =
-      json?.meta?.total    ||
-      json?.data?.total    ||
-      json?.data?.meta?.total ||
-      json?.total          ||
-      0;
+    const totalCount: number = json?.total || json?.data?.total || 0;
 
     if (totalCount === 0) return [];
 
     const postsPerPage = 12;
-    const totalPages   = Math.ceil(totalCount / postsPerPage);
+    const totalPages = Math.ceil(totalCount / postsPerPage);
     const pages: MetadataRoute.Sitemap = [];
 
     for (let i = 2; i <= Math.min(totalPages, MAX_BLOG_PAGINATION_PAGES); i++) {
       pages.push({
-        url:             `${BASE_URL}/blog?page=${i}`,
-        lastModified:    new Date(),
+        url: `${BASE_URL}/blog?page=${i}`,
+        lastModified: new Date(),
         changeFrequency: 'weekly',
-        priority:        0.7,
+        priority: 0.7,
       });
     }
 
@@ -128,90 +111,16 @@ async function generateBlogPaginationPages(): Promise<MetadataRoute.Sitemap> {
 }
 
 // ═══════════════════════════════════════════════════
-// 📂 Categories
-// ═══════════════════════════════════════════════════
-async function generateCategoryPages(): Promise<MetadataRoute.Sitemap> {
-  const categories = await fetchData('/categories');
-  
-  return categories
-    .filter((cat: any) => cat && cat.slug && cat.is_active !== false)
-    .map((cat: any) => ({
-      url: `${BASE_URL}/categories/${cat.slug}`,
-      lastModified: formatDate(cat.updated_at || cat.created_at),
-      changeFrequency: 'weekly' as const,
-      priority: 0.8,
-    }));
-}
-
-// ═══════════════════════════════════════════════════
-// 🏷️ Tags
-// ═══════════════════════════════════════════════════
-async function generateTagPages(): Promise<MetadataRoute.Sitemap> {
-  const tags = await fetchData('/tags?per_page=100');
-  
-  return tags
-    .filter((tag: any) => tag && tag.slug && tag.is_active !== false)
-    .slice(0, 100)
-    .map((tag: any) => ({
-      url: `${BASE_URL}/tags/${tag.slug}`,
-      lastModified: formatDate(tag.updated_at || tag.created_at),
-      changeFrequency: 'monthly' as const,
-      priority: 0.7,
-    }));
-}
-
-// ═══════════════════════════════════════════════════
-// 🤝 Partners
-// ═══════════════════════════════════════════════════
-async function generatePartnerPages(): Promise<MetadataRoute.Sitemap> {
-  const partners = await fetchData('/partners');
-  
-  return partners
-    .filter((p: any) => p && p.slug)
-    .map((p: any) => ({
-      url: `${BASE_URL}/partners/${p.slug}`,
-      lastModified: formatDate(p.updated_at || p.created_at),
-      changeFrequency: 'monthly' as const,
-      priority: 0.5,
-    }));
-}
-
-// ═══════════════════════════════════════════════════
-// 📊 Get All Dynamic Data with better error handling
-// ═══════════════════════════════════════════════════
-async function getAllDynamicData() {
-  try {
-    const [services, projects, blogs, areas, galleries] = await Promise.all([
-      fetchData('/services'),
-      fetchData('/projects'),
-      fetchData('/blogs/sitemap'), 
-      fetchData('/areas'),
-      fetchData('/galleries').catch(() => []),
-    ]);
-
-    return { services, projects, blogs, areas, galleries };
-  } catch (error) {
-    console.error('❌ Error fetching dynamic data:', error);
-    return { services: [], projects: [], blogs: [], areas: [], galleries: [] };
-  }
-}
-export const revalidate = 3600;
-
-// ═══════════════════════════════════════════════════
 // 🗺️ Main Sitemap
 // ═══════════════════════════════════════════════════
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const startTime = Date.now();
   
-  // ─── جلب البيانات بالتوازي ───
-  const { services, projects, blogs, areas, galleries } = await getAllDynamicData();
-  
-  // ─── الصفحات الإضافية ───
-  const [paginationPages, categoryPages, tagPages, partnerPages] = await Promise.all([
-    generateBlogPaginationPages(),
-    generateCategoryPages(),
-    generateTagPages(),
-    generatePartnerPages(),
+  // ─── جلب البيانات ───
+  const [services, projects, blogs] = await Promise.all([
+    fetchData('/services'),
+    fetchData('/projects'),
+    fetchData('/blogs/latest?limit=1000'),
   ]);
 
   const now = new Date();
@@ -240,7 +149,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .map((s: any) => ({
       url: `${BASE_URL}/services/${s.slug}`,
       lastModified: formatDate(s.updated_at || s.created_at),
-      changeFrequency: 'monthly' as const,
+      changeFrequency: 'monthly',
       priority: s.is_featured ? 0.9 : 0.85,
     }));
 
@@ -249,7 +158,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .map((p: any) => ({
       url: `${BASE_URL}/projects/${p.slug}`,
       lastModified: formatDate(p.updated_at || p.created_at),
-      changeFrequency: 'monthly' as const,
+      changeFrequency: 'monthly',
       priority: p.is_featured ? 0.9 : 0.85,
     }));
 
@@ -258,27 +167,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .map((b: any) => ({
       url: `${BASE_URL}/blog/${b.slug}`,
       lastModified: formatDate(b.updated_at || b.published_at || b.created_at),
-      changeFrequency: 'weekly' as const,
+      changeFrequency: 'weekly',
       priority: b.is_featured ? 0.85 : 0.8,
     }));
 
-  const areaPages: MetadataRoute.Sitemap = areas
-    .filter((a: any) => a && a.slug && a.is_active !== false)
-    .map((a: any) => ({
-      url: `${BASE_URL}/areas/${a.slug}`,
-      lastModified: formatDate(a.updated_at || a.created_at),
-      changeFrequency: 'monthly' as const,
-      priority: 0.85,
-    }));
-
-  const galleryPages: MetadataRoute.Sitemap = galleries
-    .filter((g: any) => g && (g.slug || g.id) && g.is_active !== false)
-    .map((g: any) => ({
-      url: `${BASE_URL}/gallery/${g.slug || g.id}`,
-      lastModified: formatDate(g.updated_at || g.created_at),
-      changeFrequency: 'weekly' as const,
-      priority: g.is_featured ? 0.8 : 0.75,
-    }));
+  // ═══ Pagination ═══
+  const paginationPages = await generateBlogPaginationPages();
 
   // ═══ تجميع وتنظيف ═══
   const allPages = [
@@ -286,11 +180,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...servicePages,
     ...projectPages,
     ...blogPages,
-    ...areaPages,
-    ...galleryPages,
-    ...categoryPages,
-    ...tagPages,
-    ...partnerPages,
     ...paginationPages,
   ];
 
@@ -299,36 +188,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     index === self.findIndex(p => p.url === page.url)
   );
 
-  // ترتيب حسب الأولوية (الأهم أولاً)
+  // ترتيب حسب الأولوية
   uniquePages.sort((a, b) => (b.priority || 0) - (a.priority || 0));
 
-  // حد Google الأقصى
   const finalPages = uniquePages.slice(0, MAX_URLS_PER_SITEMAP);
 
   const duration = Date.now() - startTime;
-  
-  // ✅ عرض التقرير دائماً (وليس فقط في development)
-  console.log('\n═══════════════════════════════════════════');
-  console.log(`✅ Sitemap generated in ${duration}ms`);
-  console.log('═══════════════════════════════════════════');
-  console.log(`📊 Total URLs: ${finalPages.length} / ${uniquePages.length}`);
-  console.log('───────────────────────────────────────────');
-  console.log(`📄 Static:     ${staticPages.length}`);
-  console.log(`🛠️  Services:   ${servicePages.length}`);
-  console.log(`🏢 Projects:    ${projectPages.length}`);
-  console.log(`📝 Blogs:       ${blogPages.length}`);
-  console.log(`📍 Areas:       ${areaPages.length}`);
-  console.log(`🖼️  Galleries:  ${galleryPages.length}`);
-  console.log(`📂 Categories:  ${categoryPages.length}`);
-  console.log(`🏷️  Tags:       ${tagPages.length}`);
-  console.log(`🤝 Partners:    ${partnerPages.length}`);
-  console.log(`📑 Pagination:  ${paginationPages.length}`);
-  console.log('═══════════════════════════════════════════\n');
-  
-  if (uniquePages.length > MAX_URLS_PER_SITEMAP) {
-    console.warn(`⚠️ Sitemap truncated: ${uniquePages.length - MAX_URLS_PER_SITEMAP} URLs removed`);
-  }
+
+  console.log(`\n✅ Sitemap generated in ${duration}ms`);
+  console.log(`📊 Total URLs: ${finalPages.length}`);
 
   return finalPages;
 }
-

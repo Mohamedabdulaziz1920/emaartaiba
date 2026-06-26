@@ -2,330 +2,442 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { api, type Partner } from '@/lib/api';
+import Image from 'next/image';
+import { api, Partner } from '@/lib/api';
+import { getImageUrl } from '@/lib/image';
 
 export default function PartnersPageClient() {
   const [partners, setPartners] = useState<Partner[]>([]);
+  const [filteredPartners, setFilteredPartners] = useState<Partner[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'featured'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showFeaturedOnly, setShowFeaturedOnly] = useState(false);
 
   useEffect(() => {
-    const fetchPartners = async () => {
+    async function fetchPartners() {
       try {
         setLoading(true);
         const data = await api.partners();
         setPartners(data);
-      } catch (err) {
-        console.error('Error fetching partners:', err);
-        setError('حدث خطأ في تحميل الشركاء');
+        setFilteredPartners(data);
+      } catch (error) {
+        console.error('Error fetching partners:', error);
       } finally {
         setLoading(false);
       }
-    };
-
+    }
     fetchPartners();
   }, []);
 
-  // فلترة الشركاء
-  const filteredPartners = partners.filter(partner => {
-    if (filter === 'featured' && !partner.is_featured) {
-      return false;
-    }
-    
-    if (searchTerm) {
-      const name = partner.name || partner.name_ar;
-      return name.toLowerCase().includes(searchTerm.toLowerCase());
-    }
-    
-    return true;
-  });
+  useEffect(() => {
+    let filtered = [...partners];
 
-  const getPartnerName = (partner: Partner): string => {
-    return partner.name || partner.name_ar || 'شريك';
-  };
+    if (showFeaturedOnly) {
+      filtered = filtered.filter(p => p.is_featured);
+    }
+
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(p => {
+        const name = p.name_ar || p.name_en || '';
+        return name.toLowerCase().includes(term);
+      });
+    }
+
+    setFilteredPartners(filtered);
+  }, [partners, searchTerm, showFeaturedOnly]);
 
   if (loading) {
     return (
-      <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
-        <div className="spinner"></div>
-        <p style={{ marginTop: '1rem', color: '#64748b' }}>جاري تحميل الشركاء...</p>
-        <style>{`
-          .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid #e2e8f0;
-            border-top: 3px solid #f59e0b;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-          }
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '2rem' }}>
-        <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>⚠️</div>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ef4444', marginBottom: '1rem' }}>حدث خطأ</h2>
-        <p style={{ color: '#64748b', marginBottom: '1.5rem' }}>{error}</p>
-        <button 
-          onClick={() => window.location.reload()}
-          style={{
-            padding: '0.75rem 1.5rem',
-            background: '#f59e0b',
-            color: 'white',
-            border: 'none',
-            borderRadius: '0.5rem',
-            cursor: 'pointer',
-            fontWeight: '600'
-          }}
-        >
-          إعادة المحاولة
-        </button>
+      <div className="partners-loading">
+        <div className="spinner" />
+        <p>جاري تحميل الشركاء...</p>
       </div>
     );
   }
 
   return (
-    <div>
-      {/* Hero Section */}
-      <section style={{
-        background: 'linear-gradient(135deg, #0f1729 0%, #1a365d 50%, #2b6cb0 100%)',
-        color: 'white',
-        padding: '4rem 0 5rem',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
-        <div className="container-custom" style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ textAlign: 'center' }}>
-            <span className="section-badge" style={{ background: 'rgba(237,137,54,0.15)', color: '#fbd38d' }}>
-              🤝 شركاؤنا
-            </span>
-            <h1 style={{
-              fontSize: 'clamp(2rem, 5vw, 3rem)',
-              fontWeight: '900',
-              marginBottom: '1rem',
-              color: 'white'
-            }}>
-              شركاء <span style={{ color: '#f59e0b' }}>النجاح</span>
-            </h1>
-            <p style={{ color: '#cbd5e0', fontSize: '1.125rem', maxWidth: '40rem', margin: '0 auto' }}>
-              نفخر بشراكتنا مع أبرز المؤسسات والشركات في المجال
+    <div className="partners-page">
+      <section className="partners-hero">
+        <div className="container-custom">
+          <div className="partners-hero-content">
+            <h1 className="partners-hero-title">شركاؤنا</h1>
+            <p className="partners-hero-desc">
+              نفتخر بشراكتنا مع نخبة من الشركات والمؤسسات الرائدة في المجال
             </p>
           </div>
-        </div>
-        
-        {/* Wave Decoration */}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, lineHeight: 0 }}>
-          <svg viewBox="0 0 1440 80" preserveAspectRatio="none"
-               style={{ display: 'block', width: '100%', height: '60px' }}>
-            <path d="M0,80 C320,20 720,20 1440,80 L1440,80 L0,80 Z" fill="#f8faff"/>
-          </svg>
-        </div>
-      </section>
 
-      {/* Filter Bar */}
-      <section style={{ padding: '2rem 0', background: '#f8faff' }}>
-        <div className="container-custom">
-          <div style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '1rem',
-            marginBottom: '2rem'
-          }}>
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <button
-                onClick={() => setFilter('all')}
-                style={{
-                  padding: '0.5rem 1.5rem',
-                  borderRadius: '2rem',
-                  border: 'none',
-                  background: filter === 'all' ? '#f59e0b' : '#e2e8f0',
-                  color: filter === 'all' ? 'white' : '#475569',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                جميع الشركاء
-              </button>
-              <button
-                onClick={() => setFilter('featured')}
-                style={{
-                  padding: '0.5rem 1.5rem',
-                  borderRadius: '2rem',
-                  border: 'none',
-                  background: filter === 'featured' ? '#f59e0b' : '#e2e8f0',
-                  color: filter === 'featured' ? 'white' : '#475569',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                ⭐ المميزون
-              </button>
-            </div>
-            
-            <div style={{ position: 'relative' }}>
+          <div className="partners-filters">
+            <div className="search-wrapper">
               <input
                 type="text"
                 placeholder="ابحث عن شريك..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                style={{
-                  padding: '0.5rem 1rem',
-                  paddingRight: '2.5rem',
-                  borderRadius: '2rem',
-                  border: '1px solid #e2e8f0',
-                  outline: 'none',
-                  width: '250px',
-                  fontSize: '0.875rem'
-                }}
+                className="search-input"
               />
-              <span style={{
-                position: 'absolute',
-                right: '0.75rem',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: '#94a3b8'
-              }}>
-                🔍
-              </span>
+              <span className="search-icon">🔍</span>
+            </div>
+
+            <label className="featured-checkbox">
+              <input
+                type="checkbox"
+                checked={showFeaturedOnly}
+                onChange={(e) => setShowFeaturedOnly(e.target.checked)}
+              />
+              <span>المميزين فقط</span>
+            </label>
+
+            <div className="results-count">
+              <span>{filteredPartners.length}</span> شريك
             </div>
           </div>
+        </div>
+      </section>
 
-          {/* Results Count */}
-          <p style={{ marginBottom: '1.5rem', color: '#64748b', fontSize: '0.875rem' }}>
-            عرض {filteredPartners.length} من {partners.length} شريك
-          </p>
-
-          {/* Partners Grid */}
-          {filteredPartners.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '4rem' }}>
-              <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🤝</div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '0.5rem' }}>
-                لا توجد شركاء مطابقين
-              </h3>
-              <p style={{ color: '#64748b' }}>حاول تغيير الفلتر أو البحث بكلمة مختلفة</p>
+      <section className="partners-content">
+        <div className="container-custom">
+          {filteredPartners.length > 0 ? (
+            <div className="partners-grid">
+              {filteredPartners.map((partner) => (
+                <PartnerCard key={partner.id} partner={partner} />
+              ))}
             </div>
           ) : (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-              gap: '2rem'
-            }}>
-              {filteredPartners.map((partner) => (
-                <div
-                  key={partner.id}
-                  className="partner-card"
-                  style={{
-                    background: 'white',
-                    borderRadius: '1rem',
-                    padding: '2rem 1rem',
-                    textAlign: 'center',
-                    boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
-                    transition: 'all 0.3s ease',
-                    cursor: 'pointer'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-5px)';
-                    e.currentTarget.style.boxShadow = '0 10px 25px rgba(0,0,0,0.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.05)';
-                  }}
-                >
-                  {partner.logo ? (
-                    <img
-                      src={partner.logo}
-                      alt={getPartnerName(partner)}
-                      style={{
-                        height: '80px',
-                        width: 'auto',
-                        maxWidth: '100%',
-                        objectFit: 'contain',
-                        marginBottom: '1rem'
-                      }}
-                      onError={(e) => {
-                        const target = e.currentTarget;
-                        target.style.display = 'none';
-                        const parent = target.parentElement;
-                        if (parent) {
-                          const text = document.createElement('div');
-                          text.textContent = getPartnerName(partner);
-                          text.style.fontWeight = 'bold';
-                          text.style.fontSize = '1rem';
-                          text.style.color = '#0f172a';
-                          parent.insertBefore(text, target);
-                        }
-                      }}
-                    />
-                  ) : (
-                    <div style={{
-                      height: '80px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '2rem',
-                      fontWeight: 'bold',
-                      color: '#f59e0b',
-                      marginBottom: '1rem'
-                    }}>
-                      {getPartnerName(partner).charAt(0)}
-                    </div>
-                  )}
-                  
-                  <h3 style={{ fontWeight: '700', color: '#0f172a', marginBottom: '0.5rem', fontSize: '1rem' }}>
-                    {getPartnerName(partner)}
-                  </h3>
-                  
-                  {partner.is_featured && (
-                    <span style={{
-                      display: 'inline-block',
-                      background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                      color: 'white',
-                      padding: '0.25rem 0.75rem',
-                      borderRadius: '2rem',
-                      fontSize: '0.7rem',
-                      fontWeight: '600'
-                    }}>
-                      ⭐ مميز
-                    </span>
-                  )}
-                  
-                  {partner.website && (
-                    <a
-                      href={partner.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        display: 'inline-block',
-                        marginTop: '1rem',
-                        color: '#f59e0b',
-                        fontSize: '0.75rem',
-                        textDecoration: 'none'
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      زيارة الموقع →
-                    </a>
-                  )}
-                </div>
-              ))}
+            <div className="empty-state">
+              <div className="empty-icon">🤝</div>
+              <h3>لا توجد نتائج</h3>
+              <p>لم نعثر على شركاء تطابق معايير البحث</p>
             </div>
           )}
         </div>
       </section>
+
+      <style>{`
+        .partners-page {
+          min-height: 100vh;
+          background: #f8faff;
+        }
+
+        .partners-hero {
+          background: linear-gradient(135deg, #0f1729 0%, #1a365d 50%, #2b6cb0 100%);
+          color: white;
+          padding: 4rem 0 5rem;
+          position: relative;
+        }
+
+        .partners-hero-content {
+          text-align: center;
+          max-width: 700px;
+          margin: 0 auto;
+        }
+
+        .partners-hero-title {
+          font-size: clamp(2rem, 4vw, 3rem);
+          font-weight: 900;
+          margin-bottom: 0.5rem;
+        }
+
+        .partners-hero-desc {
+          color: #cbd5e0;
+          font-size: 1.125rem;
+        }
+
+        .partners-filters {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 1rem;
+          max-width: 700px;
+          margin: 2rem auto 0;
+          padding: 1rem 1.5rem;
+          background: rgba(255,255,255,0.08);
+          border-radius: 1rem;
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .search-wrapper {
+          position: relative;
+          flex: 1;
+          min-width: 180px;
+        }
+
+        .search-input {
+          width: 100%;
+          padding: 0.5rem 1rem;
+          padding-right: 2.5rem;
+          border: none;
+          border-radius: 0.5rem;
+          font-size: 0.875rem;
+          background: rgba(255,255,255,0.12);
+          color: white;
+          transition: all 0.3s;
+        }
+
+        .search-input::placeholder {
+          color: rgba(255,255,255,0.5);
+        }
+
+        .search-input:focus {
+          outline: none;
+          background: rgba(255,255,255,0.2);
+          box-shadow: 0 0 0 2px rgba(237,137,54,0.3);
+        }
+
+        .search-icon {
+          position: absolute;
+          right: 0.75rem;
+          top: 50%;
+          transform: translateY(-50%);
+          color: rgba(255,255,255,0.5);
+        }
+
+        .featured-checkbox {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          cursor: pointer;
+          font-size: 0.875rem;
+          color: rgba(255,255,255,0.8);
+        }
+
+        .featured-checkbox input {
+          width: 1rem;
+          height: 1rem;
+          cursor: pointer;
+          accent-color: #ed8936;
+        }
+
+        .results-count {
+          background: rgba(255,255,255,0.12);
+          padding: 0.25rem 0.75rem;
+          border-radius: 2rem;
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: rgba(255,255,255,0.8);
+        }
+
+        .results-count span {
+          color: #fbd38d;
+        }
+
+        .partners-content {
+          padding: 3rem 0 5rem;
+        }
+
+        .partners-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 2rem;
+        }
+
+        .empty-state {
+          text-align: center;
+          padding: 4rem 2rem;
+          background: white;
+          border-radius: 1rem;
+          color: #64748b;
+        }
+
+        .empty-icon {
+          font-size: 4rem;
+          margin-bottom: 1rem;
+          opacity: 0.5;
+        }
+
+        .empty-state h3 {
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: #0f172a;
+          margin-bottom: 0.25rem;
+        }
+
+        .partners-loading {
+          min-height: 60vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 1rem;
+        }
+
+        .spinner {
+          width: 40px;
+          height: 40px;
+          border: 3px solid #e2e8f0;
+          border-top: 3px solid #ed8936;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+          .partners-hero {
+            padding: 3rem 0 4rem;
+          }
+
+          .partners-filters {
+            flex-direction: column;
+            align-items: stretch;
+            padding: 1rem;
+          }
+
+          .search-wrapper {
+            width: 100%;
+          }
+
+          .featured-checkbox {
+            justify-content: flex-start;
+          }
+
+          .results-count {
+            text-align: center;
+          }
+
+          .partners-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .partners-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
     </div>
+  );
+}
+
+// ─── Partner Card ────────────────────────────────
+function PartnerCard({ partner }: { partner: Partner }) {
+  const logoUrl = partner.logo ? getImageUrl(partner.logo) : null;
+
+  return (
+    <Link href={partner.website || '#'} className="partner-card" target={partner.website ? '_blank' : undefined}>
+      <div className="partner-card-image">
+        {logoUrl ? (
+          <Image
+            src={logoUrl}
+            alt={partner.name_ar || partner.name_en || 'شريك'}
+            width={120}
+            height={120}
+            className="partner-logo"
+            unoptimized={logoUrl.includes('localhost')}
+          />
+        ) : (
+          <div className="partner-placeholder">🤝</div>
+        )}
+        {partner.is_featured && (
+          <span className="partner-featured">⭐ مميز</span>
+        )}
+      </div>
+
+      <div className="partner-card-content">
+        <h3 className="partner-card-title">{partner.name_ar || partner.name_en}</h3>
+        {partner.description_ar && (
+          <p className="partner-card-desc">{partner.description_ar}</p>
+        )}
+        {partner.website && (
+          <span className="partner-card-link">زيارة الموقع ←</span>
+        )}
+      </div>
+
+      <style>{`
+        .partner-card {
+          background: white;
+          border-radius: 1rem;
+          overflow: hidden;
+          text-decoration: none;
+          border: 1px solid #e5e7eb;
+          transition: all 0.3s;
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+        }
+
+        .partner-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+        }
+
+        .partner-card-image {
+          position: relative;
+          height: 140px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #f8faff;
+          padding: 1.5rem;
+          border-bottom: 1px solid #f1f5f9;
+        }
+
+        .partner-logo {
+          max-width: 100%;
+          max-height: 100%;
+          object-fit: contain;
+        }
+
+        .partner-placeholder {
+          font-size: 4rem;
+          opacity: 0.4;
+        }
+
+        .partner-featured {
+          position: absolute;
+          top: 0.75rem;
+          right: 0.75rem;
+          padding: 0.25rem 0.75rem;
+          background: linear-gradient(135deg, #ed8936, #dd6b20);
+          color: white;
+          border-radius: 9999px;
+          font-size: 0.7rem;
+          font-weight: 700;
+        }
+
+        .partner-card-content {
+          padding: 1.25rem;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .partner-card-title {
+          font-size: 1.125rem;
+          font-weight: 700;
+          color: #0f172a;
+          margin-bottom: 0.5rem;
+        }
+
+        .partner-card:hover .partner-card-title {
+          color: #ed8936;
+        }
+
+        .partner-card-desc {
+          color: #64748b;
+          font-size: 0.875rem;
+          line-height: 1.6;
+          margin-bottom: 0.75rem;
+          flex: 1;
+        }
+
+        .partner-card-link {
+          color: #1a365d;
+          font-weight: 600;
+          font-size: 0.875rem;
+          transition: all 0.2s;
+        }
+
+        .partner-card:hover .partner-card-link {
+          color: #ed8936;
+        }
+      `}</style>
+    </Link>
   );
 }

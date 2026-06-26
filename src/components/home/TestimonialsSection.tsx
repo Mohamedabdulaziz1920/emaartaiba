@@ -154,7 +154,6 @@ export default function TestimonialsSection({
   const handleDragEnd = () => {
     if (!isDragging) return;
     const threshold = 80;
-    // في RTL: السحب لليمين = next ، اليسار = prev
     if (dragOffset > threshold) goToNext();
     else if (dragOffset < -threshold) goToPrev();
     setIsDragging(false);
@@ -178,44 +177,99 @@ export default function TestimonialsSection({
   // ════════════════════════════════════════
   const getDefaultTestimonials = (): Testimonial[] => [
     {
-      id: 1, client_name: 'أحمد الغامدي', client_position: 'صاحب فيلا',
-      client_company: null, client_image: null,
+      id: 1,
+      client_name: 'أحمد الغامدي',
+      client_position: 'صاحب فيلا',
+      client_company: null,
+      client_image: null,
+      client_photo: null,
       content: 'تجربة استثنائية! الجودة عالية والالتزام بالمواعيد ممتاز. أنصح بهم بشدة لأي مشروع بناء.',
+      content_ar: 'تجربة استثنائية! الجودة عالية والالتزام بالمواعيد ممتاز. أنصح بهم بشدة لأي مشروع بناء.',
       excerpt: 'تجربة استثنائية! الجودة عالية والالتزام بالمواعيد ممتاز.',
-      rating: 5, stars_html: '★★★★★', is_featured: true,
-      approved_at: new Date().toISOString(), created_at: new Date().toISOString(),
+      rating: 5,
+      stars_html: '★★★★★',
+      is_featured: true,
+      is_active: true,
+      status: 'approved',
+      approved_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     },
     {
-      id: 2, client_name: 'سارة المحمدي', client_position: 'مديرة شركة',
-      client_company: null, client_image: null,
+      id: 2,
+      client_name: 'سارة المحمدي',
+      client_position: 'مديرة شركة',
+      client_company: null,
+      client_image: null,
+      client_photo: null,
       content: 'أفضل شركة مقاولات تعاملت معها. الفريق محترف والنتيجة فاقت التوقعات. شكراً جزيلاً!',
+      content_ar: 'أفضل شركة مقاولات تعاملت معها. الفريق محترف والنتيجة فاقت التوقعات. شكراً جزيلاً!',
       excerpt: 'أفضل شركة مقاولات تعاملت معها. الفريق محترف والنتيجة فاقت التوقعات.',
-      rating: 5, stars_html: '★★★★★', is_featured: true,
-      approved_at: new Date().toISOString(), created_at: new Date().toISOString(),
+      rating: 5,
+      stars_html: '★★★★★',
+      is_featured: true,
+      is_active: true,
+      status: 'approved',
+      approved_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     },
     {
-      id: 3, client_name: 'محمد العتيبي', client_position: 'مستثمر عقاري',
-      client_company: null, client_image: null,
+      id: 3,
+      client_name: 'محمد العتيبي',
+      client_position: 'مستثمر عقاري',
+      client_company: null,
+      client_image: null,
+      client_photo: null,
       content: 'خبرة طويلة في المجال، أسعار منافسة، وجودة لا تُضاهى. شريك حقيقي في النجاح.',
+      content_ar: 'خبرة طويلة في المجال، أسعار منافسة، وجودة لا تُضاهى. شريك حقيقي في النجاح.',
       excerpt: 'خبرة طويلة في المجال، أسعار منافسة، وجودة لا تُضاهى.',
-      rating: 5, stars_html: '★★★★★', is_featured: true,
-      approved_at: new Date().toISOString(), created_at: new Date().toISOString(),
+      rating: 5,
+      stars_html: '★★★★★',
+      is_featured: true,
+      is_active: true,
+      status: 'approved',
+      approved_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     },
     {
-      id: 4, client_name: 'فاطمة القحطاني', client_position: 'مهندسة معمارية',
-      client_company: null, client_image: null,
+      id: 4,
+      client_name: 'فاطمة القحطاني',
+      client_position: 'مهندسة معمارية',
+      client_company: null,
+      client_image: null,
+      client_photo: null,
       content: 'دقة في التنفيذ واهتمام بأدق التفاصيل. تعاون رائع من الفريق وتسليم في الوقت المحدد.',
+      content_ar: 'دقة في التنفيذ واهتمام بأدق التفاصيل. تعاون رائع من الفريق وتسليم في الوقت المحدد.',
       excerpt: 'دقة في التنفيذ واهتمام بأدق التفاصيل.',
-      rating: 5, stars_html: '★★★★★', is_featured: true,
-      approved_at: new Date().toISOString(), created_at: new Date().toISOString(),
+      rating: 5,
+      stars_html: '★★★★★',
+      is_featured: true,
+      is_active: true,
+      status: 'approved',
+      approved_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     },
     {
-      id: 5, client_name: 'خالد الزهراني', client_position: 'رجل أعمال',
-      client_company: null, client_image: null,
+      id: 5,
+      client_name: 'خالد الزهراني',
+      client_position: 'رجل أعمال',
+      client_company: null,
+      client_image: null,
+      client_photo: null,
       content: 'احترافية عالية وخدمة متميزة. النتائج تفوق التوقعات والأسعار مناسبة جداً.',
+      content_ar: 'احترافية عالية وخدمة متميزة. النتائج تفوق التوقعات والأسعار مناسبة جداً.',
       excerpt: 'احترافية عالية وخدمة متميزة.',
-      rating: 5, stars_html: '★★★★★', is_featured: true,
-      approved_at: new Date().toISOString(), created_at: new Date().toISOString(),
+      rating: 5,
+      stars_html: '★★★★★',
+      is_featured: true,
+      is_active: true,
+      status: 'approved',
+      approved_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     },
   ];
 
@@ -253,7 +307,6 @@ export default function TestimonialsSection({
     ? (dragOffset / trackRef.current.offsetWidth) * 100
     : 0;
 
-  // عدد النقاط (dots)
   const totalDots = maxIndex + 1;
 
   return (
@@ -264,7 +317,6 @@ export default function TestimonialsSection({
       onMouseEnter={() => setAutoPlay(false)}
       onMouseLeave={() => setAutoPlay(true)}
     >
-      {/* ═══ BG Effects ═══ */}
       <div className="tx-bg-grid" aria-hidden="true" />
       <div className="tx-bg-orb tx-orb-1" aria-hidden="true" />
       <div className="tx-bg-orb tx-orb-2" aria-hidden="true" />
@@ -287,7 +339,6 @@ export default function TestimonialsSection({
       </div>
 
       <div className="tx-container">
-        {/* ═══ HEADER ═══ */}
         <header className={`tx-header ${inView ? 'tx-in' : ''}`}>
           <span className="tx-pill">
             <i className="tx-pill-dot" />
@@ -308,9 +359,7 @@ export default function TestimonialsSection({
           </i>
         </header>
 
-        {/* ═══ SLIDER ═══ */}
         <div className={`tx-slider-wrap ${inView ? 'tx-in' : ''}`}>
-          {/* Arrows */}
           {testimonials.length > slidesPerView && (
             <>
               <button
@@ -334,7 +383,6 @@ export default function TestimonialsSection({
             </>
           )}
 
-          {/* Track */}
           <div
             className="tx-viewport"
             onMouseDown={(e) => handleDragStart(e.clientX)}
@@ -363,17 +411,14 @@ export default function TestimonialsSection({
                     className={`tx-card ${idx === currentIndex ? 'tx-active' : ''}`}
                     style={{ '--i': idx } as React.CSSProperties}
                   >
-                    {/* Shine */}
                     <i className="tx-shine" aria-hidden="true" />
 
-                    {/* Quote */}
                     <div className="tx-quote" aria-hidden="true">
                       <svg viewBox="0 0 24 24" fill="currentColor">
                         <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h4v10h-10z" />
                       </svg>
                     </div>
 
-                    {/* Featured Badge */}
                     {t.is_featured && (
                       <span className="tx-featured-badge">
                         <span className="tx-star-anim">⭐</span>
@@ -381,7 +426,6 @@ export default function TestimonialsSection({
                       </span>
                     )}
 
-                    {/* Stars */}
                     <div className="tx-stars">
                       {renderStars(t.rating).split('').map((star, i) => (
                         <span
@@ -394,20 +438,17 @@ export default function TestimonialsSection({
                       ))}
                     </div>
 
-                    {/* Content */}
-                    <p className="tx-content">{t.excerpt || t.content}</p>
+                    <p className="tx-content">{t.excerpt || t.content || t.content_ar}</p>
 
-                    {/* Divider */}
                     <div className="tx-divider">
                       <span></span>
                     </div>
 
-                    {/* Author */}
                     <footer className="tx-author">
                       <div className="tx-avatar-wrap">
                         <div className="tx-avatar">
-                          {t.client_image ? (
-                            <img src={imageUrl(t.client_image)} alt={t.client_name} />
+                          {(t.client_image || t.client_photo) ? (
+                            <img src={imageUrl(t.client_image || t.client_photo || '')} alt={t.client_name} />
                           ) : (
                             <span>{getInitial(t.client_name)}</span>
                           )}
@@ -430,7 +471,6 @@ export default function TestimonialsSection({
             </div>
           </div>
 
-          {/* Dots */}
           {totalDots > 1 && (
             <div className="tx-dots" role="tablist">
               {Array.from({ length: totalDots }).map((_, i) => (
@@ -448,7 +488,6 @@ export default function TestimonialsSection({
             </div>
           )}
 
-          {/* Counter */}
           <div className="tx-counter">
             <span className="tx-counter-current">{String(currentIndex + 1).padStart(2, '0')}</span>
             <span className="tx-counter-sep">/</span>
@@ -456,7 +495,6 @@ export default function TestimonialsSection({
           </div>
         </div>
 
-        {/* View All Button */}
         {testimonials.length > 0 && (
           <div className={`tx-cta ${inView ? 'tx-in' : ''}`}>
             <Link href="/testimonials" className="tx-btn">
@@ -544,7 +582,6 @@ const styles = `
     padding: 0 clamp(1rem, 3vw, 2rem);
   }
 
-  /* Background */
   .tx-bg-grid {
     position: absolute;
     inset: 0;
@@ -600,9 +637,6 @@ const styles = `
     50% { transform: scale(var(--s)) translateY(-40px); opacity: 0.9; }
   }
 
-  /* ══════════════════════════════════════
-     📌 HEADER
-  ══════════════════════════════════════ */
   .tx-header {
     text-align: center;
     max-width: 800px;
@@ -700,9 +734,6 @@ const styles = `
   }
   @keyframes tx-spin { to { transform: rotate(360deg); } }
 
-  /* ══════════════════════════════════════
-     🎠 SLIDER
-  ══════════════════════════════════════ */
   .tx-slider-wrap {
     position: relative;
     opacity: 0;
@@ -730,9 +761,6 @@ const styles = `
     box-sizing: border-box;
   }
 
-  /* ══════════════════════════════════════
-     🃏 CARD
-  ══════════════════════════════════════ */
   .tx-card {
     --i: 0;
     position: relative;
@@ -776,7 +804,6 @@ const styles = `
     border-color: rgba(237, 137, 54, 0.35);
   }
 
-  /* Shine */
   .tx-shine {
     position: absolute;
     inset: 0;
@@ -812,7 +839,6 @@ const styles = `
     100% { transform: rotate(25deg) translateX(320%); }
   }
 
-  /* Quote icon */
   .tx-quote {
     position: absolute;
     top: 1.25rem;
@@ -833,7 +859,6 @@ const styles = `
     transform: scale(1.15) rotate(-8deg);
   }
 
-  /* Featured badge */
   .tx-featured-badge {
     position: absolute;
     top: 1.1rem;
@@ -860,7 +885,6 @@ const styles = `
     animation: tx-bounce 1.5s ease-in-out infinite;
   }
 
-  /* Stars */
   .tx-stars {
     display: flex;
     gap: 0.25rem;
@@ -882,7 +906,6 @@ const styles = `
     100% { transform: scale(1) rotate(0); opacity: 1; }
   }
 
-  /* Content */
   .tx-content {
     flex: 1;
     margin: 0 0 1.5rem;
@@ -898,7 +921,6 @@ const styles = `
     overflow: hidden;
   }
 
-  /* Divider */
   .tx-divider {
     display: flex;
     justify-content: center;
@@ -910,7 +932,6 @@ const styles = `
     background: linear-gradient(90deg, transparent, rgba(237,137,54,0.3), transparent);
   }
 
-  /* Author */
   .tx-author {
     display: flex;
     align-items: center;
@@ -986,9 +1007,6 @@ const styles = `
     text-overflow: ellipsis;
   }
 
-  /* ══════════════════════════════════════
-     🎯 ARROWS
-  ══════════════════════════════════════ */
   .tx-arrow {
     position: absolute;
     top: 50%;
@@ -1038,9 +1056,6 @@ const styles = `
     transform: translateX(-3px);
   }
 
-  /* ══════════════════════════════════════
-     ● DOTS
-  ══════════════════════════════════════ */
   .tx-dots {
     display: flex;
     justify-content: center;
@@ -1091,9 +1106,6 @@ const styles = `
     50% { transform: scale(1.3); opacity: 0; }
   }
 
-  /* ══════════════════════════════════════
-     🔢 COUNTER
-  ══════════════════════════════════════ */
   .tx-counter {
     display: flex;
     justify-content: center;
@@ -1120,9 +1132,6 @@ const styles = `
     color: #94a3b8;
   }
 
-  /* ══════════════════════════════════════
-     🔘 CTA
-  ══════════════════════════════════════ */
   .tx-cta {
     text-align: center;
     margin-top: 3rem;
@@ -1208,9 +1217,6 @@ const styles = `
     transform: rotate(-360deg) scale(1.1);
   }
 
-  /* ══════════════════════════════════════
-     📱 RESPONSIVE
-  ══════════════════════════════════════ */
   @media (max-width: 767px) {
     .tx-section { padding: 3rem 0; }
     .tx-arrow {
@@ -1240,9 +1246,6 @@ const styles = `
     .tx-counter-current { font-size: 1.35rem; }
   }
 
-  /* ══════════════════════════════════════
-     ♿ REDUCED MOTION
-  ══════════════════════════════════════ */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;

@@ -10,19 +10,20 @@ import {
 
 // 🎯 SEO
 import { generateSEO, buildBreadcrumb } from '@/lib/seo/metadata';
-import { JsonLd }        from '@/components/seo/JsonLd';
-import ProjectSchema     from '@/components/seo/ProjectSchema';
-import Breadcrumb        from '@/components/seo/Breadcrumb';
+import { JsonLd } from '@/components/seo/JsonLd';
+import ProjectSchema from '@/components/seo/ProjectSchema';
+import Breadcrumb from '@/components/seo/Breadcrumb';
 
 // 🛠️ Utilities
-import { api, getProjectStatusInfo, formatArea } from '@/lib/api';
-import { getImageUrl }   from '@/lib/image';
+import { api } from '@/lib/api';
+import { getImageUrl } from '@/lib/image';
 import { getSiteSettings } from '@/lib/settings';
 import { toStr, toArray, extractArray } from '@/lib/typeSafe';
+import { getProjectStatusInfo, formatArea } from '@/lib/projectHelpers';
 
 // 🧩 Components
-import ProjectGallery      from '@/components/projects/ProjectGallery';
-import ProjectCard         from '@/components/projects/ProjectCard';
+import ProjectGallery from '@/components/projects/ProjectGallery';
+import ProjectCard from '@/components/projects/ProjectCard';
 import ProjectDetailClient from './ProjectDetailClient';
 
 // ✅ CSS منفصل
@@ -31,14 +32,14 @@ import styles from './project-detail.module.css';
 // ════════════════════════════════════════════════
 // ⚙️ Config
 // ════════════════════════════════════════════════
-export const revalidate = 300; // ✅ 300 بدلاً من 60
+export const revalidate = 300;
 
 // ════════════════════════════════════════════════
 // 🎯 Types
 // ════════════════════════════════════════════════
 interface BeforeAfterImage {
   before: string | null;
-  after:  string | null;
+  after: string | null;
   title?: string | null;
 }
 
@@ -56,7 +57,7 @@ function formatDate(dateStr?: string | null): string {
       year: 'numeric', month: 'long', day: 'numeric',
     });
   } catch {
-    return dateStr;
+    return dateStr || '';
   }
 }
 
@@ -90,20 +91,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!project?.id) {
     return generateSEO({
       settings,
-      title:       'المشروع غير موجود',
+      title: 'المشروع غير موجود',
       description: 'عذراً، المشروع الذي تبحث عنه غير متوفر',
-      noindex:     true,
+      noindex: true,
     });
   }
 
-  // ✅ لا defaults خاصة بنشاط
-  const title       = toStr(project.meta_title_ar)       || toStr(project.title_ar)   || '';
+  const title = toStr(project.meta_title_ar) || toStr(project.title_ar) || '';
   const description = toStr(project.meta_description_ar) || toStr(project.excerpt_ar) || '';
-  const image       = getImageUrl(
+  const image = getImageUrl(
     project.main_image || project.cover_image || project.thumbnail
   );
 
-  // ✅ keywords ديناميكية فقط
   const baseKeywords = [
     project.title_ar,
     project.city,
@@ -112,25 +111,24 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   ].filter(Boolean) as string[];
 
   const customKeywords = toArray<string>(project.meta_keywords);
-  const allKeywords    = [...new Set([...baseKeywords, ...customKeywords])];
+  const allKeywords = [...new Set([...baseKeywords, ...customKeywords])];
 
   return generateSEO({
     settings,
-    type:        'article',
-    title:       title       || undefined,
+    type: 'article',
+    title: title || undefined,
     description: description || undefined,
-    keywords:    allKeywords,
-    image:       image       || undefined,
-    url:         `/projects/${slug}`,
-    publishedAt: (project.created_at  || project.start_date)      || undefined,
-    modifiedAt:  (project.updated_at  || project.completion_date)  || undefined,
-    // ✅ لا default خاص بنشاط
-    author: toStr(project.client_name)       ||
-            toStr(settings?.site_name_ar)    ||
-            toStr(settings?.site_name)       ||
+    keywords: allKeywords,
+    image: image || undefined,
+    url: `/projects/${slug}`,
+    publishedAt: (project.created_at || project.start_date) || undefined,
+    modifiedAt: (project.updated_at || project.completion_date) || undefined,
+    author: toStr(project.client_name) ||
+            toStr(settings?.site_name_ar) ||
+            toStr(settings?.site_name) ||
             undefined,
-    section: project.category?.name_ar       || undefined,
-    tags:    baseKeywords,
+    section: project.category?.name_ar || undefined,
+    tags: baseKeywords,
   });
 }
 
@@ -147,9 +145,9 @@ export default async function ProjectDetailPage({ params }: PageProps) {
 
   if (!response?.success || !response?.data) notFound();
 
-  const project        = response.data;
+  const project = response.data;
   const relatedProjects = extractArray<any>(response.related);
-  const statusInfo     = getProjectStatusInfo(project.status);
+  const statusInfo = getProjectStatusInfo(project.status);
 
   // ─── الصور ────────────────────────────────────
   const allImages = [
@@ -161,11 +159,11 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     ].filter(Boolean) as string[])
   ].map(img => getImageUrl(img));
 
-  const mainImageUrl  = getImageUrl(project.main_image);
+  const mainImageUrl = getImageUrl(project.main_image);
   const coverImageUrl = getImageUrl(project.cover_image || project.main_image);
 
   // ─── URLs ──────────────────────────────────────
-  const siteUrl  = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
   const shareUrl = `${siteUrl}/projects/${slug}`;
 
   // ─── Breadcrumbs ──────────────────────────────
@@ -260,11 +258,11 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                     <Clock size={16} /> {project.duration}
                   </span>
                 )}
-             {(project.views_count ?? 0) > 0 && (
-  <span className={styles.quickItem}>
-    <Eye size={16} /> {(project.views_count ?? 0).toLocaleString('ar-SA')} مشاهدة
-  </span>
-)}
+                {(project.views_count ?? 0) > 0 && (
+                  <span className={styles.quickItem}>
+                    <Eye size={16} /> {(project.views_count ?? 0).toLocaleString('ar-SA')} مشاهدة
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -355,12 +353,11 @@ export default async function ProjectDetailPage({ params }: PageProps) {
 
                 {/* Before / After */}
                 {(project.before_after_images?.length ?? 0) > 0 && (
-
                   <div className={styles.card}>
                     <h2 className={styles.cardTitle}>🔄 قبل وبعد</h2>
                     <div className={styles.beforeAfterGrid}>
-                     {(project.before_after_images ?? []).map(
-    (pair: BeforeAfterImage, idx: number) => (
+                      {(project.before_after_images ?? []).map(
+                        (pair: BeforeAfterImage, idx: number) => (
                           <div key={idx} className={styles.baCard}>
                             {pair.title && <h4>{pair.title}</h4>}
                             <div className={styles.baImages}>

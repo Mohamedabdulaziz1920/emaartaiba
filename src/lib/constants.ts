@@ -17,6 +17,8 @@ export interface NavItem {
   label: string;
   href: string;
   children?: NavChild[];
+  description?: string; // ✅ إضافة
+  icon?: string; // ✅ إضافة
 }
 
 export interface SiteInfo {
@@ -34,23 +36,23 @@ export interface SiteInfo {
 }
 
 // ═══════════════════════════════════════════════════
-// 🌐 API Base URL (قد لا تكون مستخدمة الآن ولكن نحتفظ بها للتوافق)
+// 🌐 API Base URL
 // ═══════════════════════════════════════════════════
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
 // ═══════════════════════════════════════════════════
-// 🏠 قيم افتراضية (Fallback) - تستخدم فقط إذا فشل API
+// 🏠 قيم افتراضية (Fallback)
 // ═══════════════════════════════════════════════════
 export const SITE_FALLBACK: SiteInfo = {
-  name: 'البناء المتميز',
-  name_ar: 'شركة البناء المتميز للمقاولات العامة',
-  phone: '+966 50 000 0000',
-  whatsapp: '966500000000',
-  email: 'info@example.com',
-  address: 'جازان، المملكة العربية السعودية',
-  meta_title: 'شركة البناء المتميز | أفضل شركة مقاولات في السعودية',
-  meta_description: 'خبرة +20 سنة في الدهانات والديكورات والمقاولات',
-  meta_keywords: 'مقاولات, دهانات, ديكورات, بناء, تشطيبات',
+  name: '',
+  name_ar: '',
+  phone: '',
+  whatsapp: '',
+  email: '',
+  address: '',
+  meta_title: '',
+  meta_description: '',
+  meta_keywords: '',
 };
 
 // ✅ للتوافق مع المكونات القديمة
@@ -64,22 +66,22 @@ export const SITE = {
 } as const;
 
 // ═══════════════════════════════════════════════════
-// 🔄 دوال لجلب البيانات الديناميكية (باستخدام النظام الموحد)
+// 🔄 دوال لجلب البيانات الديناميكية
 // ═══════════════════════════════════════════════════
 
 /**
- * جلب معلومات الموقع من API (باستخدام getSiteSettings الموحد)
+ * جلب معلومات الموقع من API
  */
 export async function fetchSiteInfo(): Promise<SiteInfo> {
   try {
     const settings = await getSiteSettings();
     return {
-      name: settings.site_name || SITE_FALLBACK.name,
-      name_ar: settings.site_name_ar || SITE_FALLBACK.name_ar,
-      phone: settings.phone || SITE_FALLBACK.phone,
-      whatsapp: settings.whatsapp || settings.phone || SITE_FALLBACK.whatsapp,
-      email: settings.email || SITE_FALLBACK.email,
-      address: settings.address_ar || settings.address || SITE_FALLBACK.address,
+      name: settings.site_name || '',
+      name_ar: settings.site_name_ar || '',
+      phone: settings.phone || '',
+      whatsapp: settings.whatsapp || '',
+      email: settings.email || '',
+      address: settings.address_ar || settings.address || '',
       logo: settings.site_logo,
       favicon: settings.site_favicon,
       meta_title: settings.meta_title_ar || settings.meta_title,
@@ -93,7 +95,7 @@ export async function fetchSiteInfo(): Promise<SiteInfo> {
 }
 
 /**
- * جلب قائمة التنقل من API (باستخدام api.navigation الموحد)
+ * جلب قائمة التنقل من API
  */
 export async function fetchNavigation(): Promise<NavItem[]> {
   try {
@@ -102,15 +104,16 @@ export async function fetchNavigation(): Promise<NavItem[]> {
       return getDefaultNavigation();
     }
 
-    // تحويل البيانات إلى التنسيق المطلوب
     return navItems.map((item: ApiNavItem) => ({
       label: item.label,
       href: item.href,
+      description: (item as any).description, // قد يكون موجوداً
+      icon: (item as any).icon, // قد يكون موجوداً
       children: item.children?.map((child: ApiNavItem) => ({
         label: child.label,
         href: child.href,
-        description: child.description,
-        icon: child.icon,
+        description: (child as any).description,
+        icon: (child as any).icon,
       })),
     }));
   } catch (error) {
@@ -120,7 +123,7 @@ export async function fetchNavigation(): Promise<NavItem[]> {
 }
 
 /**
- * قائمة التنقل الافتراضية (عند فشل API)
+ * قائمة التنقل الافتراضية
  */
 export function getDefaultNavigation(): NavItem[] {
   return [
@@ -130,12 +133,12 @@ export function getDefaultNavigation(): NavItem[] {
       label: 'خدماتنا', 
       href: '/services',
       children: [
-        { label: 'مقاولات عامة', href: '/services/general-contracting', description: 'جميع أعمال المقاولات العامة', icon: '🏗️' },
-        { label: 'دهانات داخلية', href: '/services/interior-paints', description: 'أحدث تقنيات الدهانات الداخلية', icon: '🎨' },
-        { label: 'دهانات خارجية', href: '/services/exterior-paints', description: 'دهانات مقاومة للعوامل الجوية', icon: '🏠' },
-        { label: 'ديكورات داخلية', href: '/services/interior-decoration', description: 'تصاميم عصرية وفاخرة', icon: '✨' },
-        { label: 'بديل الرخام', href: '/services/marble-alternative', description: 'حلول اقتصادية وفاخرة', icon: '💎' },
-        { label: 'ديكورات الجبس', href: '/services/gypsum-decoration', description: 'أعمال الجبس بأشكال مميزة', icon: '🏛️' },
+        { label: 'مقاولات عامة', href: '/services/general-contracting' },
+        { label: 'دهانات داخلية', href: '/services/interior-paints' },
+        { label: 'دهانات خارجية', href: '/services/exterior-paints' },
+        { label: 'ديكورات داخلية', href: '/services/interior-decoration' },
+        { label: 'بديل الرخام', href: '/services/marble-alternative' },
+        { label: 'ديكورات الجبس', href: '/services/gypsum-decoration' },
       ]
     },
     { label: 'مشاريعنا', href: '/projects' },
@@ -143,12 +146,12 @@ export function getDefaultNavigation(): NavItem[] {
       label: 'مناطق خدمتنا', 
       href: '/areas',
       children: [
-        { label: 'شمال جدة', href: '/areas/north-jeddah', icon: '📍' },
-        { label: 'جنوب جدة', href: '/areas/south-jeddah', icon: '📍' },
-        { label: 'شرق جدة', href: '/areas/east-jeddah', icon: '📍' },
-        { label: 'غرب جدة', href: '/areas/west-jeddah', icon: '📍' },
-        { label: 'وسط جدة', href: '/areas/central-jeddah', icon: '📍' },
-        { label: 'جميع المناطق', href: '/areas', icon: '🗺️' },
+        { label: 'شمال جدة', href: '/areas/north-jeddah' },
+        { label: 'جنوب جدة', href: '/areas/south-jeddah' },
+        { label: 'شرق جدة', href: '/areas/east-jeddah' },
+        { label: 'غرب جدة', href: '/areas/west-jeddah' },
+        { label: 'وسط جدة', href: '/areas/central-jeddah' },
+        { label: 'جميع المناطق', href: '/areas' },
       ]
     },
     { label: 'المدونة', href: '/blog' },
@@ -157,15 +160,13 @@ export function getDefaultNavigation(): NavItem[] {
 }
 
 // ============================================
-// 🏭 مصنع لإنشاء كائن SITE ديناميكي (للتوافق)
+// 🏭 مصنع لإنشاء كائن SITE ديناميكي
 // ============================================
 
-// للاستخدام في Server Components (async)
 export async function createSiteInfo(): Promise<SiteInfo> {
   return await fetchSiteInfo();
 }
 
-// للاستخدام في Client Components
 let cachedSiteInfo: SiteInfo | null = null;
 
 export async function getCachedSiteInfo(): Promise<SiteInfo> {

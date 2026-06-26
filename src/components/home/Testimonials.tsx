@@ -3,12 +3,13 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { api, type Testimonial } from '@/lib/api';
+import { getImageUrl } from '@/lib/image';
 
 interface Props {
   featured?: boolean;
   limit?: number;
   showAddButton?: boolean;
-  autoplaySpeed?: number; // مدة العرض بالمللي ثانية
+  autoplaySpeed?: number;
 }
 
 export default function Testimonials({ 
@@ -37,7 +38,12 @@ export default function Testimonials({
           data = await api.testimonials();
         }
         
-        setTestimonials(data.slice(0, limit));
+        // ✅ تصفية المقبولة والنشطة فقط
+        const filtered = (data || [])
+          .filter((t: Testimonial) => t.status === 'approved' && t.is_active !== false)
+          .slice(0, limit);
+        
+        setTestimonials(filtered);
       } catch (err) {
         console.error('Error fetching testimonials:', err);
         setError('حدث خطأ في تحميل آراء العملاء');
@@ -69,14 +75,10 @@ export default function Testimonials({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // حساب عدد الصفحات
   const totalPages = Math.ceil(testimonials.length / itemsPerView);
   const currentPage = Math.floor(currentIndex / itemsPerView);
-
-  // العناصر المعروضة حالياً
   const visibleItems = testimonials.slice(currentIndex, currentIndex + itemsPerView);
 
-  // التالي
   const nextSlide = () => {
     if (isAnimating) return;
     setIsAnimating(true);
@@ -92,7 +94,6 @@ export default function Testimonials({
     }, 300);
   };
 
-  // السابق
   const prevSlide = () => {
     if (isAnimating) return;
     setIsAnimating(true);
@@ -108,13 +109,11 @@ export default function Testimonials({
     }, 300);
   };
 
-  // الانتقال لصفحة محددة
   const goToPage = (page: number) => {
     if (isAnimating) return;
     setCurrentIndex(page * itemsPerView);
   };
 
-  // التشغيل التلقائي
   useEffect(() => {
     if (autoplayRef.current) clearInterval(autoplayRef.current);
     
@@ -127,7 +126,6 @@ export default function Testimonials({
     };
   }, [currentIndex, itemsPerView, testimonials.length, autoplaySpeed]);
 
-  // إيقاف التشغيل التلقائي عند hover
   const pauseAutoplay = () => {
     if (autoplayRef.current) clearInterval(autoplayRef.current);
   };
@@ -138,15 +136,20 @@ export default function Testimonials({
     }, autoplaySpeed);
   };
 
-  // الحصول على الحرف الأول
+  // ✅ استخدام content_ar بدلاً من excerpt أو content
+  const getTestimonialText = (item: Testimonial): string => {
+    return item.content_ar || 'شكراً على الخدمة الممتازة';
+  };
+
+  // ✅ استخدام client_name
   const getInitial = (name: string): string => {
     return name ? name.charAt(0) : 'ع';
   };
 
-  // تنسيق النجوم
+  // ✅ استخدام rating
   const renderStars = (rating: number) => {
-    const fullStars = '★'.repeat(rating);
-    const emptyStars = '☆'.repeat(5 - rating);
+    const fullStars = '★'.repeat(Math.min(rating, 5));
+    const emptyStars = '☆'.repeat(Math.max(0, 5 - rating));
     return (
       <span style={{ color: '#f59e0b', direction: 'ltr', display: 'inline-block', letterSpacing: '2px' }}>
         {fullStars}{emptyStars}
@@ -240,7 +243,6 @@ export default function Testimonials({
 
         {/* Slider Container */}
         <div className="slider-container">
-          {/* Navigation Buttons */}
           {totalPages > 1 && (
             <>
               <button 
@@ -266,7 +268,6 @@ export default function Testimonials({
             </>
           )}
 
-          {/* Slides */}
           <div className={`slides-wrapper ${isAnimating ? `animating ${direction}` : ''}`}>
             <div className="slides-grid">
               {visibleItems.map((item, idx) => (
@@ -275,49 +276,41 @@ export default function Testimonials({
                   className={`testimonial-card ${item.is_featured ? 'featured' : ''}`}
                   style={{ animationDelay: `${idx * 0.1}s` }}
                 >
-                  {/* Quote Icon */}
                   <div className="quote-icon">
                     <svg viewBox="0 0 24 24" fill="currentColor">
                       <path d="M10 11h-4v-4h4v4zm8 0h-4v-4h4v4zm-12 6h-4v-4h4v4zm8 0h-4v-4h4v4z"/>
                     </svg>
                   </div>
 
-                  {/* Content */}
                   <p className="testimonial-text">
-                    "{item.excerpt || item.content}"
+                    "{getTestimonialText(item)}"
                   </p>
 
-                  {/* Client Info */}
                   <div className="client-info">
                     <div className="client-avatar">
-                      {item.client_image ? (
-                        <img src={item.client_image} alt={item.client_name} />
+                      {item.client_photo ? (
+                        <img src={getImageUrl(item.client_photo)} alt={item.client_name} />
                       ) : (
                         <span className="avatar-initial">{getInitial(item.client_name)}</span>
                       )}
                     </div>
                     <div className="client-details">
                       <h4 className="client-name">{item.client_name}</h4>
-                      {item.client_position && (
-                        <p className="client-position">{item.client_position}</p>
-                      )}
-                      {item.client_company && (
-                        <p className="client-company">{item.client_company}</p>
+                      {item.project && (
+                        <p className="client-position">مشروع: {item.project.title_ar}</p>
                       )}
                     </div>
                   </div>
 
-                  {/* Rating & Date */}
                   <div className="rating-row">
                     <div className="stars">{renderStars(item.rating)}</div>
-                    {item.approved_at && (
+                    {item.created_at && (
                       <span className="review-date">
-                        {new Date(item.approved_at).toLocaleDateString('ar-SA')}
+                        {new Date(item.created_at).toLocaleDateString('ar-SA')}
                       </span>
                     )}
                   </div>
 
-                  {/* Featured Badge */}
                   {item.is_featured && (
                     <div className="featured-badge">
                       <span>⭐</span> مميز
@@ -328,7 +321,6 @@ export default function Testimonials({
             </div>
           </div>
 
-          {/* Pagination Dots */}
           {totalPages > 1 && (
             <div className="pagination-dots">
               {Array.from({ length: totalPages }).map((_, idx) => (
@@ -343,7 +335,6 @@ export default function Testimonials({
           )}
         </div>
 
-        {/* Action Buttons */}
         <div className="action-buttons">
           <Link href="/testimonials" className="btn btn-primary">
             عرض جميع الآراء
@@ -363,13 +354,12 @@ export default function Testimonials({
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .testimonials-section {
           position: relative;
           overflow: hidden;
         }
 
-        /* Background Decorations */
         .bg-decoration {
           position: absolute;
           inset: 0;
@@ -417,7 +407,6 @@ export default function Testimonials({
           50% { transform: translate(-50%, -50%) scale(1.3); opacity: 0.5; }
         }
 
-        /* Section Header */
         .section-header {
           text-align: center;
           margin-bottom: 3rem;
@@ -435,9 +424,7 @@ export default function Testimonials({
           color: #f59e0b;
           margin-bottom: 1.5rem;
         }
-        .badge-icon {
-          font-size: 1rem;
-        }
+        .badge-icon { font-size: 1rem; }
         .section-title {
           font-size: clamp(1.75rem, 4vw, 2.5rem);
           font-weight: 800;
@@ -486,7 +473,6 @@ export default function Testimonials({
           to { transform: rotate(360deg); }
         }
 
-        /* Slider Container */
         .slider-container {
           position: relative;
           max-width: 1300px;
@@ -494,7 +480,6 @@ export default function Testimonials({
           padding: 0 3rem;
         }
 
-        /* Navigation Buttons */
         .nav-btn {
           position: absolute;
           top: 50%;
@@ -530,17 +515,10 @@ export default function Testimonials({
           stroke: #1e293b;
           transition: stroke 0.3s ease;
         }
-        .nav-prev {
-          left: 0;
-        }
-        .nav-next {
-          right: 0;
-        }
-        .nav-prev svg {
-          transform: rotate(180deg);
-        }
+        .nav-prev { left: 0; }
+        .nav-next { right: 0; }
+        .nav-prev svg { transform: rotate(180deg); }
 
-        /* Slides */
         .slides-wrapper {
           overflow: hidden;
           border-radius: 1rem;
@@ -551,22 +529,14 @@ export default function Testimonials({
           gap: 1.5rem;
           transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        /* Responsive grid */
         @media (max-width: 1024px) {
-          .slides-grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
+          .slides-grid { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 768px) {
-          .slides-grid {
-            grid-template-columns: 1fr;
-          }
-          .slider-container {
-            padding: 0 2rem;
-          }
+          .slides-grid { grid-template-columns: 1fr; }
+          .slider-container { padding: 0 2rem; }
         }
 
-        /* Animation classes */
         .slides-wrapper.animating.next .slides-grid {
           animation: slideInNext 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -574,27 +544,14 @@ export default function Testimonials({
           animation: slideInPrev 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
         @keyframes slideInNext {
-          from {
-            opacity: 0;
-            transform: translateX(50px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
+          from { opacity: 0; transform: translateX(50px); }
+          to { opacity: 1; transform: translateX(0); }
         }
         @keyframes slideInPrev {
-          from {
-            opacity: 0;
-            transform: translateX(-50px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
+          from { opacity: 0; transform: translateX(-50px); }
+          to { opacity: 1; transform: translateX(0); }
         }
 
-        /* Testimonial Card */
         .testimonial-card {
           background: white;
           border-radius: 1.5rem;
@@ -607,10 +564,7 @@ export default function Testimonials({
           transform: translateY(20px);
         }
         @keyframes fadeInUp {
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          to { opacity: 1; transform: translateY(0); }
         }
         .testimonial-card:hover {
           transform: translateY(-8px);
@@ -688,11 +642,6 @@ export default function Testimonials({
           color: #64748b;
           margin: 0;
         }
-        .client-company {
-          font-size: 0.65rem;
-          color: #94a3b8;
-          margin: 0.2rem 0 0;
-        }
 
         .rating-row {
           display: flex;
@@ -702,14 +651,8 @@ export default function Testimonials({
           padding-top: 1rem;
           border-top: 1px solid #e2e8f0;
         }
-        .stars {
-          font-size: 0.875rem;
-          letter-spacing: 2px;
-        }
-        .review-date {
-          font-size: 0.7rem;
-          color: #94a3b8;
-        }
+        .stars { font-size: 0.875rem; letter-spacing: 2px; }
+        .review-date { font-size: 0.7rem; color: #94a3b8; }
 
         .featured-badge {
           position: absolute;
@@ -726,7 +669,6 @@ export default function Testimonials({
           gap: 0.25rem;
         }
 
-        /* Pagination Dots */
         .pagination-dots {
           display: flex;
           justify-content: center;
@@ -742,16 +684,13 @@ export default function Testimonials({
           cursor: pointer;
           transition: all 0.3s ease;
         }
-        .dot:hover {
-          background: #f59e0b;
-        }
+        .dot:hover { background: #f59e0b; }
         .dot.active {
           width: 28px;
           background: #f59e0b;
           border-radius: 10px;
         }
 
-        /* Action Buttons */
         .action-buttons {
           display: flex;
           justify-content: center;
@@ -797,11 +736,8 @@ export default function Testimonials({
           transform: translateX(-4px);
         }
 
-        /* Responsive */
         @media (max-width: 768px) {
-          .testimonial-card {
-            padding: 1.5rem;
-          }
+          .testimonial-card { padding: 1.5rem; }
           .testimonial-text {
             font-size: 0.875rem;
             min-height: auto;

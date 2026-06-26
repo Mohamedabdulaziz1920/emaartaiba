@@ -16,6 +16,7 @@ import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { getDesignSettings } from '@/lib/colors';
 import { toStr, toNumber } from '@/lib/typeSafe';
+
 export const revalidate = 300;
 
 const geist = Geist({ 
@@ -30,7 +31,7 @@ const geist = Geist({
 // 🎨 Viewport - ديناميكي
 // ═══════════════════════════════════════════════════
 export async function generateViewport(): Promise<Viewport> {
-  let themeColor = '#1a365d'; // fallback
+  let themeColor = '#1a365d';
   
   try {
     const settings = await getSiteSettings();
@@ -194,20 +195,12 @@ async function fetchNavigationWithSections(): Promise<{
     }
     
     if (navItems.length > 0) {
-      const hasCategories = navItems.some(item => 
-        item.label === 'التصنيفات' || item.href === '/categories'
-      );
-      const hasTags = navItems.some(item => 
-        item.label === 'الوسوم' || item.href === '/tags'
-      );
-      
       let mainNav = navItems.filter(item => 
         !item.href?.includes('facebook') && 
         !item.href?.includes('twitter') && 
         !item.href?.includes('instagram') &&
         !item.href?.includes('footer')
       );
-      
       
       mainNav = mainNav.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
       
@@ -329,7 +322,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     api.featuredServices().catch(() => []),
   ]);
 
-
   const cssVariables = generateCSSVariablesFromSettings(designSettings);
   
   const favicon = settings?.site_favicon ? buildMediaUrl(settings.site_favicon) : null;
@@ -366,18 +358,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {siteName && <meta name="apple-mobile-web-app-title" content={siteName} />}
         
         {/* Geo Tags - ديناميكية */}
-       {countryCode && (
-  <meta name="geo.region" content={countryCode} />
-)}
-{regionName && (
-  <meta name="geo.placename" content={regionName} />
-)}
-{hasGeo && (
-  <>
-    <meta name="geo.position" content={`${lat};${lng}`} />
-    <meta name="ICBM"         content={`${lat}, ${lng}`} />
-  </>
-)}
+        {countryCode && (
+          <meta name="geo.region" content={countryCode} />
+        )}
+        {regionName && (
+          <meta name="geo.placename" content={regionName} />
+        )}
+        {hasGeo && (
+          <>
+            <meta name="geo.position" content={`${lat};${lng}`} />
+            <meta name="ICBM"         content={`${lat}, ${lng}`} />
+          </>
+        )}
         
         {/* Preconnect لتسريع التحميل */}
         {process.env.NEXT_PUBLIC_API_URL && (
@@ -424,7 +416,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <ThemeProvider>
             <Suspense fallback={<div className="header-loading" />}>
               <Header settings={settings} navigation={navigationSections.mainNav} />
-
             </Suspense>
             
             <main style={{ minHeight: '70vh' }}>

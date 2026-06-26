@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { ArrowLeft, FolderOpen, FileText, TrendingUp, Star } from 'lucide-react';
 import { api, Category } from '@/lib/api';
 import { buildImageUrl } from '@/lib/typeSafe';
@@ -14,10 +13,10 @@ export default function CategoriesSection() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const data = await api.getCategories();
+        const data = await api.categories();
         // تصفية التصنيفات النشطة ومن نوع blog فقط
         const filtered = (data || [])
-          .filter(cat => cat.type === 'blog' && cat.is_active === true)
+          .filter((cat: Category) => cat.type_label === 'blog' && cat.is_active === true)
           .sort((a, b) => (b.stats?.posts || 0) - (a.stats?.posts || 0));
         setCategories(filtered);
       } catch (error) {
@@ -56,7 +55,7 @@ export default function CategoriesSection() {
     return 'linear-gradient(135deg, #1a365d, #2b6cb0)';
   };
 
-  // دالة للحصول على أيقونة مميزة لكل تصنيف - ✅ تم إصلاح نوع الإرجاع
+  // دالة للحصول على أيقونة مميزة لكل تصنيف
   const getCategoryIconJSX = (name: string): React.ReactNode => {
     const icons: Record<string, React.ReactNode> = {
       'مقاولات': <span className="category-icon">🏗️</span>,
@@ -156,7 +155,8 @@ export default function CategoriesSection() {
 
         <div className="categories-grid">
           {displayCategories.map((category) => {
-            const imageUrl = category.image ? buildImageUrl(category.image) : null;
+            // ✅ استخدام description بدلاً من description_ar
+            // ✅ إزالة image لأنها غير موجودة في Category
             const postsCount = category.stats?.posts || 0;
             const isPopular = postsCount > 10;
 
@@ -166,28 +166,19 @@ export default function CategoriesSection() {
                 href={`/categories/${category.slug}`}
                 className="category-card"
               >
-                {/* صورة التصنيف (إذا وجدت) أو أيقونة */}
                 <div 
                   className="category-card-icon"
                   style={{ background: getCategoryGradient(category.name_ar) }}
                 >
-                  {imageUrl ? (
-                    <img
-                      src={imageUrl}
-                      alt={category.name_ar}
-                      className="category-image"
-                    />
-                  ) : (
-                    getCategoryIconJSX(category.name_ar)
-                  )}
+                  {getCategoryIconJSX(category.name_ar)}
                 </div>
 
                 <div className="category-card-content">
                   <h3 className="category-card-title">{category.name_ar}</h3>
                   
-                  {category.description_ar && (
+                  {category.description && (
                     <p className="category-card-desc">
-                      {category.description_ar.substring(0, 65)}...
+                      {category.description.substring(0, 65)}...
                     </p>
                   )}
 
@@ -208,7 +199,6 @@ export default function CategoriesSection() {
                   </span>
                 </div>
 
-                {/* شارة خاصة للتصنيفات المميزة */}
                 {isPopular && (
                   <div className="featured-badge">
                     <Star size={12} /> الأكثر قراءة
@@ -323,7 +313,6 @@ export default function CategoriesSection() {
           }
         }
 
-        /* بطاقة التصنيف */
         .category-card {
           background: white;
           border-radius: 1rem;
@@ -363,15 +352,6 @@ export default function CategoriesSection() {
         .category-icon-svg {
           color: #FFD700;
           stroke-width: 1.5;
-        }
-
-        .category-image {
-          width: 80px;
-          height: 80px;
-          object-fit: cover;
-          border-radius: 50%;
-          border: 3px solid rgba(255, 255, 255, 0.3);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
 
         .category-card-content {
