@@ -22,20 +22,19 @@ export default async function Image({
     getSiteSettings(),
   ]);
 
-  // ✅ استخراج البيانات من الاستجابة
-  const blog = blogResponse?.data;
+  // ✅ api.blog ترجع BlogPost مباشرة (بدون .data)
+  const blog = blogResponse;
 
-  const title = toStr(blog?.title_ar) || toStr(settings?.site_name_ar) || '';
-  const siteName = toStr(settings?.site_name_ar) || '';
-  const primaryColor = toStr(settings?.primary_color) || '#1a365d';
+  const title        = toStr(blog?.title_ar)            || toStr(settings?.site_name_ar)        || '';
+  const siteName     = toStr(settings?.site_name_ar)    || '';
+  const primaryColor = toStr(settings?.primary_color)   || '#1a365d';
   const secondaryColor = toStr(settings?.secondary_color) || '#D4AF37';
-  const excerpt = toStr(blog?.excerpt_ar) || toStr(blog?.meta_description_ar) || toStr(settings?.site_description_ar) || '';
-  const category = blog?.category?.name_ar || '';
-  const publishedAt = blog?.published_at || '';
-  const imageUrl = blog?.featured_image ? getImageUrl(blog.featured_image) : null;
-  const author = blog?.author?.name || '';
+  const excerpt      = toStr(blog?.excerpt_ar)          || toStr(blog?.meta_description_ar)     || toStr(settings?.site_description_ar) || '';
+  const category     = blog?.category?.name_ar          || '';
+  const publishedAt  = blog?.published_at               || '';
+  const imageUrl     = blog?.featured_image ? getImageUrl(blog.featured_image) : null;
+  const author       = blog?.author?.name               || '';
 
-  // ✅ التحقق من وجود صورة صالحة
   const validImageUrl = imageUrl && imageUrl.startsWith('http') ? imageUrl : null;
 
   return new ImageResponse(
@@ -136,7 +135,7 @@ export default async function Image({
           gap: 16,
         }}
       >
-        <span>{siteName || 'لمسات جيزان'}</span>
+        <span>{siteName || 'موقعنا'}</span>
         {publishedAt && <span>• {new Date(publishedAt).toLocaleDateString('ar-SA')}</span>}
         {author && <span>• ✍️ {author}</span>}
       </div>
