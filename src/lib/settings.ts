@@ -463,15 +463,35 @@ export function parseBoolField(
  */
 export function buildMediaUrl(path?: string | null): string {
   if (!path) return '';
+  
+  // إذا كان رابطاً كاملاً
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
   if (path.startsWith('data:') || path.startsWith('blob:')) return path;
 
+  // ✅ تحديد الـ Backend URL
   const backend = process.env.NEXT_PUBLIC_BACKEND_URL || 
                   process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ||
-                  'http://localhost:8000';
+                  'https://api.lamsataljarj.com';
+  
+  // ✅ تنظيف المسار
   const clean = path.replace(/^\/+/, '');
 
-  if (clean.startsWith('storage/')) return `${backend}/${clean}`;
+  // ✅ إذا كان المسار يبدأ بـ storage/ مباشرة
+  if (clean.startsWith('storage/')) {
+    return `${backend}/${clean}`;
+  }
+  
+  // ✅ إذا كان المسار يبدأ بـ settings/ (بدون storage)
+  if (clean.startsWith('settings/')) {
+    return `${backend}/storage/${clean}`;
+  }
+  
+  // ✅ إذا كان المسار يبدأ بـ uploads/
+  if (clean.startsWith('uploads/')) {
+    return `${backend}/storage/${clean}`;
+  }
+  
+  // ✅ افتراضياً
   return `${backend}/storage/${clean}`;
 }
 
