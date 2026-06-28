@@ -7,6 +7,7 @@ import { settingsHelpers, type SiteSettings } from '@/lib/settings';
 declare global {
   interface Window {
     gtag: (...args: any[]) => void;
+    gtag_report_conversion: (url?: string) => boolean;
   }
 }
 
@@ -31,27 +32,19 @@ export default function FloatingButtons({ settings = {} }: Props) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // ✅ دالة تسجيل التحويل في Google Ads
-  const trackPhoneConversion = () => {
-    if (typeof window !== 'undefined' && window.gtag) {
-      window.gtag('event', 'conversion', {
-        'send_to': 'AW-18278947108/9fk7CJSbqcccEKSyioxE'
-      });
-      console.log('✅ Google Ads Conversion tracked: Phone call');
-    }
-  };
-
   // ✅ دالة معالجة النقر على زر الاتصال
   const handlePhoneClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
     
-    // تسجيل التحويل
-    trackPhoneConversion();
+    const phoneLink = settingsHelpers.phoneLink(phone);
     
-    // فتح رقم الهاتف بعد 300ms (لضمان تسجيل التحويل)
-    setTimeout(() => {
-      window.location.href = settingsHelpers.phoneLink(phone);
-    }, 300);
+    // ✅ استدعاء دالة التحويل من Google Ads
+    if (typeof window !== 'undefined' && window.gtag_report_conversion) {
+      window.gtag_report_conversion(phoneLink);
+    } else {
+      // إذا لم تكن الدالة متاحة، انتقل مباشرة
+      window.location.href = phoneLink;
+    }
   };
 
   return (
@@ -144,12 +137,10 @@ export default function FloatingButtons({ settings = {} }: Props) {
           box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
         }
 
-        /* WhatsApp */
         .float-whatsapp {
           background: linear-gradient(135deg, #25D366, #128C7E);
         }
 
-        /* Phone */
         .float-phone {
           background: linear-gradient(135deg, #ed8936, #dd6b20);
           animation: ringRotate 3s ease-in-out infinite;
@@ -161,7 +152,6 @@ export default function FloatingButtons({ settings = {} }: Props) {
           75% { transform: rotate(15deg); }
         }
 
-        /* Scroll */
         .float-scroll {
           background: linear-gradient(135deg, var(--color-primary, #1a365d), var(--color-primary-light, #2b6cb0));
           animation: fadeInUp 0.3s ease;
@@ -178,7 +168,6 @@ export default function FloatingButtons({ settings = {} }: Props) {
           }
         }
 
-        /* Pulse effect */
         .float-pulse {
           position: absolute;
           inset: 0;
@@ -199,7 +188,6 @@ export default function FloatingButtons({ settings = {} }: Props) {
           }
         }
 
-        /* Tooltip */
         .float-tooltip {
           position: absolute;
           right: calc(100% + 12px);
