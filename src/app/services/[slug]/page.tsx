@@ -8,7 +8,7 @@ import { JsonLd } from '@/components/seo/JsonLd';
 import ServiceSchema from '@/components/seo/ServiceSchema';
 
 // 🛠️ Utilities
-import { api } from '@/lib/api';
+import { api, type Service as ApiService } from '@/lib/api';
 import { getSiteSettings } from '@/lib/settings';
 import { toStr, toArray, extractArray } from '@/lib/typeSafe'; // ✅ extractArray من typeSafe
 
@@ -48,21 +48,56 @@ interface Service {
   url?: string;
 }
 
-// ════════════════════════════════════════════════
-// 🛠️ Helper: جلب الخدمة
-// ════════════════════════════════════════════════
+function normalizeService(service: ApiService): Service {
+  return {
+    id: service.id,
+    title: service.title_en || service.title_ar || '',
+    title_ar: service.title_ar || '',
+    slug: service.slug,
+    excerpt: service.excerpt_en || service.excerpt_ar || '',
+    excerpt_ar: service.excerpt_ar || '',
+    content: service.content_en || service.content_ar || '',
+    content_ar: service.content_ar || '',
+    icon: service.icon,
+    icon_html: service.icon_html,
+    image_url: service.image_url || service.image || null,
+    background_image_url: service.background_image_url || service.background_image || null,
+    og_image_url: service.og_image_url || service.og_image || null,
+    gallery: service.gallery || service.gallery_images || [],
+    video_url: service.video_url,
+    embed_video_url: service.embed_video_url,
+    is_featured: service.is_featured,
+    sort_order: service.sort_order,
+    category: service.category
+      ? {
+          id: service.category.id,
+          name_ar: service.category.name_ar,
+          slug: service.category.slug,
+        }
+      : null,
+    tags: Array.isArray(service.tags)
+      ? service.tags.map((tag) => ({
+          id: tag.id,
+          name_ar: tag.name_ar,
+          slug: tag.slug,
+        }))
+      : [],
+    meta_title: service.meta_title_ar || '',
+    meta_description: service.meta_description_ar || '',
+    meta_keywords: service.meta_keywords || [],
+    canonical_url: service.canonical_url || null,
+    robots: service.robots,
+    views_count: service.views_count ?? 0,
+    url: `/services/${service.slug}`,
+
+  };
+}
+
 async function fetchService(slug: string): Promise<Service | null> {
   try {
-    const response: any = await api.service(slug);
+    const response = await api.service(slug);
     if (!response) return null;
-
-    // { success: true, data: {...} }
-    if (response.success === true && response.data) return response.data;
-
-    // كائن مباشر
-    if (response.id) return response as Service;
-
-    return null;
+    return normalizeService(response);
   } catch (error) {
     console.error('❌ Error fetching service:', slug, error);
     return null;
@@ -173,7 +208,8 @@ export const revalidate = 300;
 export async function generateStaticParams() {
   try {
     const raw      = await api.featuredServices();
-    const services = extractArray<Service>(raw);
+    const services = extractArray<ApiService>(raw);
+
     return services.slice(0, 20).map(s => ({ slug: s.slug }));
   } catch {
     return [];

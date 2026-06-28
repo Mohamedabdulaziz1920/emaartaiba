@@ -72,7 +72,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     api.blog(slug).catch(() => null),
   ]);
 
-  const blog = response?.data;
+  const blog = response;
 
   if (!blog) {
     return generateSEO({
@@ -135,7 +135,7 @@ export default async function BlogPage({ params }: Props) {
     getSiteSettings(),
   ]);
 
-  const blog = response?.data;
+  const blog = response;
 
   if (!blog) notFound();
 

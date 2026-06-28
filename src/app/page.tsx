@@ -1,104 +1,53 @@
 // frontend/src/app/page.tsx
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
-import dynamic from 'next/dynamic';
 
 // 🎯 SEO
 import { generateSEO } from '@/lib/seo/metadata';
 import { JsonLd }      from '@/components/seo/JsonLd';
 
 // 🛠️ Utilities
-import { api }                from '@/lib/api';
-import { getDesignSettings }  from '@/lib/colors';
-import { getSiteSettings }    from '@/lib/settings';
-import { extractArray }       from '@/lib/typeSafe'; // ✅ من typeSafe
+import { api }               from '@/lib/api';
+import { getDesignSettings } from '@/lib/colors';
+import { getSiteSettings }   from '@/lib/settings';
+
+// 🧩 Components - Static imports (أفضل للـ SSR)
+import HeroSlider        from '@/components/home/HeroSlider';
+import StatsCounter      from '@/components/home/StatsCounter';
+import ServicesGrid      from '@/components/home/ServicesGrid';
+import WhyChooseUs       from '@/components/home/WhyChooseUs';
+import FeaturedProjects  from '@/components/home/FeaturedProjects';
+import ProcessSteps      from '@/components/home/ProcessSteps';
+import GallerySection    from '@/components/home/GallerySection';
+import Testimonials      from '@/components/home/Testimonials';
+import FAQAccordion      from '@/components/home/FAQAccordion';
+import Partners          from '@/components/home/Partners';
+import LatestBlog        from '@/components/home/LatestBlog';
+import CTASection        from '@/components/home/CTASection';
+import CategoriesSection from '@/components/home/CategoriesSection';
 
 // ════════════════════════════════════════════════
 // ⚙️ Config
 // ════════════════════════════════════════════════
-export const revalidate = 300; // ✅ 300 بدلاً من 60
+export const revalidate = 300; // ✅ تحسين من 60
 
 // ════════════════════════════════════════════════
-// 🎨 Skeletons
+// 🛠️ Helpers
 // ════════════════════════════════════════════════
-function SectionSkeleton({ height = '400px' }: { height?: string }) {
-  return (
-    <div
-      className="hp-skeleton"
-      style={{ minHeight: height }}
-      aria-hidden="true"
-    />
-  );
+function extractArray<T = any>(raw: any): T[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  if (raw.data && Array.isArray(raw.data)) return raw.data;
+  if (raw.data?.data && Array.isArray(raw.data.data)) return raw.data.data;
+  if (raw.items && Array.isArray(raw.items)) return raw.items;
+  if (raw.results && Array.isArray(raw.results)) return raw.results;
+  return [];
 }
 
-function HeroSkeleton() {
-  return <div className="hp-hero-skeleton" aria-hidden="true" />;
-}
-
-// ════════════════════════════════════════════════
-// 📦 Dynamic Imports
-// ════════════════════════════════════════════════
-const HeroSlider = dynamic(
-  () => import('@/components/home/HeroSlider'),
-  { loading: () => <HeroSkeleton />, ssr: true }
-);
-const StatsCounter = dynamic(
-  () => import('@/components/home/StatsCounter'),
-  { loading: () => <SectionSkeleton height="250px" /> }
-);
-const ServicesGrid = dynamic(
-  () => import('@/components/home/ServicesGrid'),
-  { loading: () => <SectionSkeleton height="600px" /> }
-);
-const WhyChooseUs = dynamic(
-  () => import('@/components/home/WhyChooseUs'),
-  { loading: () => <SectionSkeleton height="400px" /> }
-);
-const FeaturedProjects = dynamic(
-  () => import('@/components/home/FeaturedProjects'),
-  { loading: () => <SectionSkeleton height="600px" /> }
-);
-const ProcessSteps = dynamic(
-  () => import('@/components/home/ProcessSteps'),
-  { loading: () => <SectionSkeleton height="400px" /> }
-);
-const GallerySection = dynamic(
-  () => import('@/components/home/GallerySection'),
-  { loading: () => <SectionSkeleton height="500px" /> }
-);
-const Testimonials = dynamic(
-  () => import('@/components/home/Testimonials'),
-  { loading: () => <SectionSkeleton height="400px" /> }
-);
-const FAQAccordion = dynamic(
-  () => import('@/components/home/FAQAccordion'),
-  { loading: () => <SectionSkeleton height="500px" /> }
-);
-const Partners = dynamic(
-  () => import('@/components/home/Partners'),
-  { loading: () => <SectionSkeleton height="300px" /> }
-);
-const LatestBlog = dynamic(
-  () => import('@/components/home/LatestBlog'),
-  { loading: () => <SectionSkeleton height="500px" /> }
-);
-const CTASection = dynamic(
-  () => import('@/components/home/CTASection'),
-  { loading: () => <SectionSkeleton height="300px" /> }
-);
-const CategoriesSection = dynamic(
-  () => import('@/components/home/CategoriesSection'),
-  { loading: () => <SectionSkeleton height="350px" /> }
-);
-
-// ════════════════════════════════════════════════
-// 🛠️ FAQ Helpers
-// ════════════════════════════════════════════════
-function normalizeFaqItem(item: any, index: number) {
+function normalizeFaqItem(item: any, index: number): any | null {
   if (!item) return null;
   return {
-    // ✅ استخدام index بدلاً من Math.random()
-    id:       item.id   || item._id   || `faq-${index}`,
+    id:       item.id || item._id || `faq-${index}`, // ✅ بدون Math.random()
     question: item.question || item.question_ar ||
               item.title    || item.title_ar    || '',
     answer:   item.answer   || item.answer_ar   ||
@@ -112,6 +61,71 @@ function normalizeFaqs(rawData: any): any[] {
   return items
     .map((item: any, i: number) => normalizeFaqItem(item, i))
     .filter((item): item is any => item !== null && !!item.question);
+}
+
+// ════════════════════════════════════════════════
+// 🎨 Skeletons
+// ════════════════════════════════════════════════
+function SectionSkeleton({ height = '400px' }: { height?: string }) {
+  return (
+    <div className="hp-skeleton" style={{ minHeight: height }}>
+      <div className="hp-shimmer" />
+      <style>{`
+        .hp-skeleton {
+          width: 100%;
+          background: linear-gradient(135deg, #f8faff 0%, #ffffff 50%, #f8faff 100%);
+          position: relative;
+          overflow: hidden;
+          contain: layout style paint;
+        }
+        .hp-shimmer {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(90deg, transparent 0%, rgba(237,137,54,0.05) 50%, transparent 100%);
+          background-size: 200% 100%;
+          animation: hp-skel 1.8s ease-in-out infinite;
+        }
+        @keyframes hp-skel {
+          0%   { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .hp-shimmer { animation: none; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function HeroSkeleton() {
+  return (
+    <div className="hp-hero-skeleton">
+      <div className="hp-hero-shimmer" />
+      <style>{`
+        .hp-hero-skeleton {
+          min-height: 80vh;
+          background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+          position: relative;
+          overflow: hidden;
+          contain: layout style paint;
+        }
+        .hp-hero-shimmer {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(90deg, transparent 0%, rgba(237,137,54,0.08) 50%, transparent 100%);
+          background-size: 200% 100%;
+          animation: hp-hero 2s ease-in-out infinite;
+        }
+        @keyframes hp-hero {
+          0%   { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .hp-hero-shimmer { animation: none; }
+        }
+      `}</style>
+    </div>
+  );
 }
 
 // ════════════════════════════════════════════════
@@ -151,7 +165,7 @@ export default async function HomePage() {
     api.testimonials(),
     api.partners(),
     api.latestBlogs(),
-    api.faqs?.() ?? Promise.resolve(null),
+    api.faqs?.() || Promise.resolve(null),
   ]);
 
   // ─── استخراج البيانات ─────────────────────────
@@ -165,56 +179,58 @@ export default async function HomePage() {
   const servicesData     = servicesResult.status     === 'fulfilled' ? extractArray(servicesResult.value)     : [];
   const testimonialsData = testimonialsResult.status === 'fulfilled' ? extractArray(testimonialsResult.value) : [];
   const partnersData     = partnersResult.status     === 'fulfilled' ? extractArray(partnersResult.value)     : [];
-  const blogsData        = blogsResult.status        === 'fulfilled' ? extractArray(blogsResult.value)        : [];
 
-  // ✅ projectsData - نفس منطق extractArray
-  const projectsData = projectsResult.status === 'fulfilled'
-    ? extractArray(projectsResult.value) : [];
+  // ✅ blogs - api.latestBlogs() يرجع BlogPost[] مباشرة
+  const blogsData = blogsResult.status === 'fulfilled'
+    ? extractArray(blogsResult.value)
+    : [];
+
+  // ✅ projects - api.featuredProjects() يرجع { success, data: [] }
+  let projectsData: any[] = [];
+  if (projectsResult.status === 'fulfilled') {
+    const result = projectsResult.value;
+    if (result && (result as any).data && Array.isArray((result as any).data)) {
+      projectsData = (result as any).data;
+    } else if (Array.isArray(result)) {
+      projectsData = result;
+    }
+  }
 
   const faqsData = normalizeFaqs(
     faqsResult.status === 'fulfilled' ? faqsResult.value : null
   );
 
-  // ─── إعدادات التصميم ──────────────────────────
   const sliderAutoplay      = designSettings?.slider?.autoplay      ?? true;
   const sliderAutoplayDelay = designSettings?.slider?.autoplay_delay ?? 5000;
 
-  // ─── Debug (development only) ─────────────────
+  // ─── Debug ────────────────────────────────────
   if (process.env.NODE_ENV === 'development') {
-    const counts = {
-      slides:       heroSlidesData.length,
-      services:     servicesData.length,
-      projects:     projectsData.length,
-      testimonials: testimonialsData.length,
-      partners:     partnersData.length,
-      blogs:        blogsData.length,
-      faqs:         faqsData.length,
-    };
+    console.log('\n╔═══════════════════════════════════════════╗');
+    console.log('║   🏠 HOMEPAGE DATA STATUS                 ║');
+    console.log('╠═══════════════════════════════════════════╣');
+    console.log(`║ 📊 Slides:      ${String(heroSlidesData.length).padEnd(22)} ║`);
+    console.log(`║ 🛠️  Services:    ${String(servicesData.length).padEnd(22)} ║`);
+    console.log(`║ 🏢 Projects:    ${String(projectsData.length).padEnd(22)} ║`);
+    console.log(`║ 💬 Reviews:     ${String(testimonialsData.length).padEnd(22)} ║`);
+    console.log(`║ 🤝 Partners:    ${String(partnersData.length).padEnd(22)} ║`);
+    console.log(`║ 📰 Blogs:       ${String(blogsData.length).padEnd(22)} ║`);
+    console.log(`║ ❓ FAQs:        ${String(faqsData.length).padEnd(22)} ║`);
+    console.log('╚═══════════════════════════════════════════╝\n');
 
-    // ✅ إصلاح: استخدام النتائج الأصلية للأخطاء
-    const allResults = [
-      { name: 'Settings',      result: settingsResult },
-      { name: 'Design',        result: designSettingsResult },
-      { name: 'Hero Slides',   result: heroSlidesResult },
-      { name: 'Services',      result: servicesResult },
-      { name: 'Projects',      result: projectsResult },
-      { name: 'Testimonials',  result: testimonialsResult },
-      { name: 'Partners',      result: partnersResult },
-      { name: 'Blogs',         result: blogsResult },
-      { name: 'FAQs',          result: faqsResult },
-    ];
-
-    const failed = allResults.filter(({ result }) => result.status === 'rejected');
-
-    console.log(`\n🏠 Homepage: ${Object.values(counts).reduce((a, b) => a + b, 0)} items loaded`);
-    console.table(counts);
-
-    if (failed.length > 0) {
-      failed.forEach(({ name, result }) => {
-        const reason = (result as PromiseRejectedResult).reason;
-        console.error(`❌ ${name}:`, reason?.message || reason);
-      });
-    }
+    [
+      { name: 'Settings',     r: settingsResult },
+      { name: 'Hero',         r: heroSlidesResult },
+      { name: 'Services',     r: servicesResult },
+      { name: 'Projects',     r: projectsResult },
+      { name: 'Testimonials', r: testimonialsResult },
+      { name: 'Partners',     r: partnersResult },
+      { name: 'Blogs',        r: blogsResult },
+      { name: 'FAQs',         r: faqsResult },
+    ].forEach(({ name, r }) => {
+      if (r.status === 'rejected') {
+        console.error(`❌ ${name} failed:`, (r as PromiseRejectedResult).reason?.message);
+      }
+    });
   }
 
   // ════════════════════════════════════════════════
@@ -224,7 +240,6 @@ export default async function HomePage() {
     <>
       <JsonLd settings={settings} pageType="home" />
 
-      {/* Hero */}
       <Suspense fallback={<HeroSkeleton />}>
         <HeroSlider
           slides={heroSlidesData}
@@ -234,61 +249,46 @@ export default async function HomePage() {
         />
       </Suspense>
 
-      {/* Stats */}
       <Suspense fallback={<SectionSkeleton height="250px" />}>
         <StatsCounter settings={settings} />
       </Suspense>
 
-      {/* Categories */}
       <Suspense fallback={<SectionSkeleton height="350px" />}>
         <CategoriesSection />
       </Suspense>
 
-      {/* Services */}
       {servicesData.length > 0 && (
         <Suspense fallback={<SectionSkeleton height="600px" />}>
           <ServicesGrid services={servicesData} />
         </Suspense>
       )}
 
-      {/* Why Choose Us */}
-      <Suspense fallback={<SectionSkeleton height="400px" />}>
-        <WhyChooseUs />
-      </Suspense>
+      <WhyChooseUs />
 
-      {/* Projects */}
       {projectsData.length > 0 && (
         <Suspense fallback={<SectionSkeleton height="600px" />}>
           <FeaturedProjects projects={projectsData} />
         </Suspense>
       )}
 
-      {/* Process */}
-      <Suspense fallback={<SectionSkeleton height="400px" />}>
-        <ProcessSteps />
-      </Suspense>
+      <ProcessSteps />
 
-      {/* Gallery */}
       <Suspense fallback={<SectionSkeleton height="500px" />}>
         <GallerySection />
       </Suspense>
 
-      {/* Testimonials */}
       {testimonialsData.length > 0 && (
         <Suspense fallback={<SectionSkeleton height="400px" />}>
-          {/* ✅ مرر البيانات للمكون أو دعه يجلبها بنفسه */}
           <Testimonials featured={false} limit={12} />
         </Suspense>
       )}
 
-      {/* FAQs */}
       {faqsData.length > 0 && (
         <Suspense fallback={<SectionSkeleton height="500px" />}>
           <FAQAccordion faqs={faqsData} />
         </Suspense>
       )}
 
-      {/* Partners */}
       {partnersData.length > 0 && (
         <Suspense fallback={<SectionSkeleton height="300px" />}>
           <Partners
@@ -298,17 +298,13 @@ export default async function HomePage() {
         </Suspense>
       )}
 
-      {/* Blog */}
       {blogsData.length > 0 && (
         <Suspense fallback={<SectionSkeleton height="500px" />}>
           <LatestBlog blogs={blogsData} />
         </Suspense>
       )}
 
-      {/* CTA */}
-      <Suspense fallback={<SectionSkeleton height="300px" />}>
-        <CTASection />
-      </Suspense>
+      <CTASection />
     </>
   );
 }

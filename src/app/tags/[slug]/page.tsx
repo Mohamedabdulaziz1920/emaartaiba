@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     getSiteSettings(),
   ]);
 
-  const tag = tagResponse?.data;
+  const tag = tagResponse;
 
   if (!tag) {
     return generateSEO({
@@ -78,7 +78,7 @@ export default async function TagPage({ params, searchParams }: Props) {
     getSiteSettings(),
   ]);
 
-  const tag = tagResponse?.data;
+  const tag = tagResponse;
   if (!tag) notFound();
 
   // جلب المقالات
@@ -102,7 +102,7 @@ export default async function TagPage({ params, searchParams }: Props) {
   if (activeType === 'services') {
     try {
       const servicesResult = await api.services();
-      services = extractArray(servicesResult.data)
+      services = extractArray(servicesResult)
         .filter((s: any) => s.tags?.some((t: any) => t.slug === slug));
     } catch (error) {
       console.error('Error fetching services for tag:', error);

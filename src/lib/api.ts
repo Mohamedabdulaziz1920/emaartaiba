@@ -235,13 +235,23 @@ export interface Testimonial {
   client_position: string | null;
   client_company: string | null;
   client_image: string | null;
+  client_photo?: string | null;
   content: string;
-  excerpt: string;
+  content_ar?: string | null;
+  excerpt: string | null;
   rating: number;
   stars_html: string;
   is_featured: boolean;
+  status?: string | null;
+  is_active?: boolean | null;
+  project?: {
+    id?: number;
+    title_ar?: string;
+    slug?: string;
+  } | null;
   approved_at: string | null;
   created_at: string;
+  updated_at?: string | null;
 }
 
 export interface TestimonialsApiResponse {
