@@ -74,7 +74,6 @@ export async function generateMetadata(): Promise<Metadata> {
     const bingVerification = toStr(settings?.bing_site_verification);
     const yandexVerification = toStr(settings?.yandex_verification);
 
-    // Robots
     const allowIndex = settings?.robots_index !== false;
     const allowFollow = settings?.robots_follow !== false;
 
@@ -87,12 +86,10 @@ export async function generateMetadata(): Promise<Metadata> {
       description: metaDescription,
       keywords: metaKeywords.length > 0 ? metaKeywords : undefined,
       
-      // Authors
       authors: siteName ? [{ name: siteName }] : undefined,
       creator: siteName || undefined,
       publisher: siteName || undefined,
       
-      // Robots
       robots: {
         index: allowIndex,
         follow: allowFollow,
@@ -105,7 +102,6 @@ export async function generateMetadata(): Promise<Metadata> {
         },
       },
       
-      // Open Graph
       openGraph: {
         type: 'website',
         locale: 'ar_SA',
@@ -121,7 +117,6 @@ export async function generateMetadata(): Promise<Metadata> {
         }] : [],
       },
       
-      // Twitter
       twitter: {
         card: 'summary_large_image',
         title: metaTitle,
@@ -133,7 +128,6 @@ export async function generateMetadata(): Promise<Metadata> {
         }),
       },
       
-      // Canonical & hreflang
       alternates: {
         canonical: baseUrl,
         languages: { 
@@ -142,7 +136,6 @@ export async function generateMetadata(): Promise<Metadata> {
         },
       },
       
-      // Verification
       ...(googleVerification || bingVerification || yandexVerification ? {
         verification: {
           ...(googleVerification && { google: googleVerification }),
@@ -151,10 +144,8 @@ export async function generateMetadata(): Promise<Metadata> {
         }
       } : {}),
       
-      // Category
       category: toStr(settings?.business_type) || 'business',
       
-      // Format Detection
       formatDetection: {
         telephone: true,
         email: true,
@@ -314,7 +305,6 @@ function generateCSSVariablesFromSettings(settings: any): string {
 // 🖥️ Root Layout Component
 // ═══════════════════════════════════════════════════
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // جلب البيانات بالتوازي
   const [settings, navigationSections, designSettings, services] = await Promise.all([
     getSiteSettings(),
     fetchNavigationWithSections(),
@@ -327,14 +317,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const favicon = settings?.site_favicon ? buildMediaUrl(settings.site_favicon) : null;
   const siteLogo = settings?.site_logo ? buildMediaUrl(settings.site_logo) : null;
 
-  // Geo coordinates - ديناميكي
   const latStr = toStr(settings?.google_maps_lat || settings?.latitude);
   const lngStr = toStr(settings?.google_maps_lng || settings?.longitude);
   const lat    = latStr ? parseFloat(latStr) : NaN;
   const lng    = lngStr ? parseFloat(lngStr) : NaN;
   const hasGeo = !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
   
-  // Country code - ديناميكي
   const countryCode = toStr(settings?.country_code) ||
                     toStr((settings as any)?.address_country_code) ||
                     '';
@@ -347,17 +335,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
       <head>
-        {/* Schema.org */}
         <JsonLd settings={settings} />
         
-        {/* PWA & Mobile */}
         <meta name="format-detection" content="telephone=yes" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         {siteName && <meta name="apple-mobile-web-app-title" content={siteName} />}
         
-        {/* Geo Tags - ديناميكية */}
         {countryCode && (
           <meta name="geo.region" content={countryCode} />
         )}
@@ -371,29 +356,23 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </>
         )}
         
-        {/* Preconnect لتسريع التحميل */}
         {process.env.NEXT_PUBLIC_API_URL && (
           <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_API_URL} />
         )}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         
-        {/* Preload Logo */}
         {siteLogo && (
           <link rel="preload" as="image" href={siteLogo} fetchPriority="high" />
         )}
         
-        {/* Icons */}
         <link rel="icon" href={favicon || '/favicon.ico'} sizes="any" />
         {favicon && <link rel="apple-touch-icon" href={favicon} />}
         
-        {/* Manifest */}
         <link rel="manifest" href="/manifest.json" />
         
-        {/* CSS Variables */}
         <style dangerouslySetInnerHTML={{ __html: `:root { ${cssVariables} }` }} />
         
-        {/* Loading Styles */}
         <style dangerouslySetInnerHTML={{
           __html: `
             .header-loading { height: 80px; background: #f8faff; }
@@ -410,6 +389,30 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             }
           `
         }} />
+
+        {/* ════════════════════════════════════════════════
+            ✅ Google Ads Conversion - دالة التحويل
+            ════════════════════════════════════════════════ */}
+        <Script
+          id="google-ads-conversion-function"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              function gtag_report_conversion(url) {
+                var callback = function () {
+                  if (typeof(url) != 'undefined') {
+                    window.location = url;
+                  }
+                };
+                gtag('event', 'conversion', {
+                  'send_to': 'AW-18278947108/9fk7CJSbqcccEKSyioxE',
+                  'event_callback': callback
+                });
+                return false;
+              }
+            `,
+          }}
+        />
       </head>
       <body suppressHydrationWarning>
         <SliderThemeProvider>
@@ -435,7 +438,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </ThemeProvider>
         </SliderThemeProvider>
 
-        {/* Google Tag Manager */}
         {hasGTM && (
           <Script
             id="gtm-body"
@@ -452,7 +454,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           />
         )}
 
-        {/* Google Analytics */}
         {hasAnalytics && (
           <>
             <Script
@@ -478,7 +479,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </>
         )}
 
-        {/* Facebook Pixel */}
         {toStr(settings?.facebook_pixel_id) && (
           <Script
             id="fb-pixel"
@@ -500,7 +500,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           />
         )}
 
-        {/* Hotjar */}
         {toStr(settings?.hotjar_id) && (
           <Script
             id="hotjar"
@@ -523,26 +522,3 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     </html>
   );
 }
-        {/* ════════════════════════════════════════════════
-            ✅ Google Ads Conversion - دالة التحويل
-            ════════════════════════════════════════════════ */}
-        <Script
-          id="google-ads-conversion-function"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              function gtag_report_conversion(url) {
-                var callback = function () {
-                  if (typeof(url) != 'undefined') {
-                    window.location = url;
-                  }
-                };
-                gtag('event', 'conversion', {
-                  'send_to': 'AW-18278947108/9fk7CJSbqcccEKSyioxE',
-                  'event_callback': callback
-                });
-                return false;
-              }
-            `,
-          }}
-        />
