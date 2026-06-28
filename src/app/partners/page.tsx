@@ -341,8 +341,8 @@ function PartnerCard({ partner }: { partner: Partner }) {
 
       <div className="partner-card-content">
         <h3 className="partner-card-title">{partner.name_ar || partner.name_en}</h3>
-        {partner.description_ar && (
-          <p className="partner-card-desc">{partner.description_ar}</p>
+        {partner.description && (
+          <p className="partner-card-desc">{partner.description}</p>
         )}
         {partner.website && (
           <span className="partner-card-link">زيارة الموقع ←</span>

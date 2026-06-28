@@ -68,7 +68,7 @@ export default async function ServicesPage() {
     api.services().catch(() => ({ success: false, data: [] })),
   ]);
 
-  const services = extractArray(servicesResponse?.data);
+  const services = extractArray(servicesResponse);
   const categories = extractArray(
     services
       .map((s: any) => s.category)

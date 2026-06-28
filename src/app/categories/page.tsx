@@ -209,9 +209,11 @@ function CategoryCard({ category, type }: { category: Category; type: string }) 
       </div>
       <div className="category-card-content">
         <h3 className="category-card-title">{category.name_ar}</h3>
-        {category.description && (
-          <p className="category-card-desc">{category.description.substring(0, 80)}...</p>
-        )}
+       {(category.description_ar || category.description_en) && (
+  <p className="category-card-desc">
+    {(category.description_ar || category.description_en || '').substring(0, 80)}...
+  </p>
+)}
         <span className="category-card-link">استكشف المحتوى ←</span>
       </div>
       <style>{`

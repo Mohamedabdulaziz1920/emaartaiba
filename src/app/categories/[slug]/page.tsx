@@ -40,7 +40,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     settings,
     type: 'website',
     title: toStr(category.meta_title_ar) || category.name_ar,
-    description: toStr(category.meta_description_ar) || category.description || '',
+    description:
+  toStr(category.meta_description_ar) ||
+  toStr(category.description_ar) ||
+  toStr(category.description_en) ||
+  '',
     url: `/categories/${slug}`,
   });
 }
@@ -84,7 +88,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   if (activeType === 'service') {
     try {
       const servicesData = await api.services();
-      services = extractArray(servicesData.data).filter((s: any) => s.category?.slug === slug);
+      services = extractArray(servicesData).filter((s: any) => s.category?.slug === slug);
     } catch (error) {
       console.error('Error fetching category services:', error);
     }
@@ -112,7 +116,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
         settings={settings}
         pageType="blog"
         pageTitle={category.name_ar}
-        pageDescription={category.description || ''}
+        pageDescription={category.description_ar || category.description_en || ''}
         pageUrl={`/categories/${slug}`}
         breadcrumbs={breadcrumbs}
       />
@@ -122,8 +126,12 @@ export default async function CategoryPage({ params, searchParams }: Props) {
           <Breadcrumb items={breadcrumbs} variant="dark" />
           <div className="category-hero-content">
             <h1 className="category-title">{category.name_ar}</h1>
-            {category.description && <p className="category-desc">{category.description}</p>}
-            <div className="category-tabs">
+        {(category.description_ar || category.description_en) && (
+  <p className="category-desc">
+    {category.description_ar || category.description_en}
+  </p>
+)}
+              <div className="category-tabs">
               <Link href={`/categories/${slug}?type=blog`} className={`tab ${activeType === 'blog' ? 'active' : ''}`}>
                 📝 المقالات
               </Link>

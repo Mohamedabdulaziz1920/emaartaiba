@@ -23,7 +23,7 @@ export default async function Image({
   ]);
 
   // ✅ استخراج البيانات من الاستجابة
-  const service = serviceResponse?.data;
+  const service = serviceResponse;
 
   const title = toStr(service?.title_ar) || toStr(settings?.site_name_ar) || '';
   const siteName = toStr(settings?.site_name_ar) || '';
