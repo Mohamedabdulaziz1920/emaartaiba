@@ -3,6 +3,13 @@
 import { useState, useEffect } from 'react';
 import { settingsHelpers, type SiteSettings } from '@/lib/settings';
 
+// ✅ تعريف gtag في window
+declare global {
+  interface Window {
+    gtag: (...args: any[]) => void;
+  }
+}
+
 interface Props {
   settings?: SiteSettings;
 }
@@ -22,6 +29,29 @@ export default function FloatingButtons({ settings = {} }: Props) {
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // ✅ دالة تسجيل التحويل في Google Ads
+  const trackPhoneConversion = () => {
+    if (typeof window !== 'undefined' && window.gtag) {
+      window.gtag('event', 'conversion', {
+        'send_to': 'AW-18278947108/9fk7CJSbqcccEKSyioxE'
+      });
+      console.log('✅ Google Ads Conversion tracked: Phone call');
+    }
+  };
+
+  // ✅ دالة معالجة النقر على زر الاتصال
+  const handlePhoneClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    
+    // تسجيل التحويل
+    trackPhoneConversion();
+    
+    // فتح رقم الهاتف بعد 300ms (لضمان تسجيل التحويل)
+    setTimeout(() => {
+      window.location.href = settingsHelpers.phoneLink(phone);
+    }, 300);
   };
 
   return (
@@ -46,9 +76,10 @@ export default function FloatingButtons({ settings = {} }: Props) {
           <span className="float-pulse" />
         </a>
 
-        {/* Phone */}
+        {/* Phone - مع تتبع التحويل */}
         <a
-          href={settingsHelpers.phoneLink(phone)}
+          href="#"
+          onClick={handlePhoneClick}
           className="float-btn float-phone"
           aria-label="اتصل بنا"
           onMouseEnter={() => setShowTooltip('phone')}
@@ -120,7 +151,7 @@ export default function FloatingButtons({ settings = {} }: Props) {
 
         /* Phone */
         .float-phone {
-          background: linear-gradient(135deg, var(--btn-primary-bg), var(--btn-primary-hover));
+          background: linear-gradient(135deg, #ed8936, #dd6b20);
           animation: ringRotate 3s ease-in-out infinite;
         }
 
@@ -132,7 +163,7 @@ export default function FloatingButtons({ settings = {} }: Props) {
 
         /* Scroll */
         .float-scroll {
-          background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+          background: linear-gradient(135deg, var(--color-primary, #1a365d), var(--color-primary-light, #2b6cb0));
           animation: fadeInUp 0.3s ease;
         }
 
@@ -174,7 +205,7 @@ export default function FloatingButtons({ settings = {} }: Props) {
           right: calc(100% + 12px);
           top: 50%;
           transform: translateY(-50%);
-          background: var(--color-text-dark);
+          background: #1e293b;
           color: white;
           padding: 0.5rem 0.875rem;
           border-radius: 0.5rem;
@@ -192,8 +223,7 @@ export default function FloatingButtons({ settings = {} }: Props) {
           top: 50%;
           transform: translateY(-50%);
           border: 6px solid transparent;
-          border-right-color: var(--color-text-dark);
-          border-right: 6px solid var(--color-text-dark);
+          border-right-color: #1e293b;
           border-left: 0;
         }
 
