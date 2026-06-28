@@ -344,9 +344,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const hasGTM = !!toStr(settings?.google_tag_manager);
   const siteName = toStr(settings?.site_name_ar) || toStr(settings?.site_name) || '';
 
-  // ✅ Google Ads Conversion ID
-  const googleAdsId = 'AW-18278947108';
-
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
       <head>
@@ -413,27 +410,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             }
           `
         }} />
-
-        {/* ════════════════════════════════════════════════
-            ✅ Google Ads Conversion Tracking (gtag.js)
-            ════════════════════════════════════════════════ */}
-        <Script
-          id="google-ads"
-          strategy="afterInteractive"
-          src={`https://www.googletagmanager.com/gtag/js?id=${googleAdsId}`}
-        />
-        <Script
-          id="google-ads-config"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', '${googleAdsId}');
-            `,
-          }}
-        />
       </head>
       <body suppressHydrationWarning>
         <SliderThemeProvider>
@@ -547,3 +523,26 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     </html>
   );
 }
+        {/* ════════════════════════════════════════════════
+            ✅ Google Ads Conversion - دالة التحويل
+            ════════════════════════════════════════════════ */}
+        <Script
+          id="google-ads-conversion-function"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              function gtag_report_conversion(url) {
+                var callback = function () {
+                  if (typeof(url) != 'undefined') {
+                    window.location = url;
+                  }
+                };
+                gtag('event', 'conversion', {
+                  'send_to': 'AW-18278947108/9fk7CJSbqcccEKSyioxE',
+                  'event_callback': callback
+                });
+                return false;
+              }
+            `,
+          }}
+        />
