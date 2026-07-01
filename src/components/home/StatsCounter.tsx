@@ -39,7 +39,8 @@ function Counter({ end, duration = 2000, start }: { end: number; duration?: numb
     return () => cancelAnimationFrame(animationFrame);
   }, [start, end, duration]);
 
-  return <>{count.toLocaleString('ar-SA')}</>;
+  return <span suppressHydrationWarning>{count.toLocaleString('ar-SA')}</span>;
+
 }
 
 export default function StatsCounter({ settings }: { settings: any }) {

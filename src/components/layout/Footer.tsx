@@ -373,9 +373,9 @@ export default function Footer({ settings = {}, navigation = [], services: propS
       {/* Bottom Bar */}
       <div className="footer-bottom">
         <div className="footer-container footer-bottom-inner">
-          <p className="footer-copyright">
-            {copyrightText || `© ${currentYear} ${siteName}. جميع الحقوق محفوظة.`}
-          </p>
+         <p className="footer-copyright" suppressHydrationWarning>
+  {copyrightText || `© ${currentYear} ${siteName}. جميع الحقوق محفوظة.`}
+</p>
 
           <div className="footer-credit">
             <span>تصميم وبرمجة:</span>{' '}

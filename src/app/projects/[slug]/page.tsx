@@ -260,7 +260,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                 )}
                 {(project.views_count ?? 0) > 0 && (
                   <span className={styles.quickItem}>
-                    <Eye size={16} /> {(project.views_count ?? 0).toLocaleString('ar-SA')} مشاهدة
+                    <Eye size={16} /> <span suppressHydrationWarning>{(project.views_count ?? 0).toLocaleString('ar-SA')} مشاهدة</span>
                   </span>
                 )}
               </div>

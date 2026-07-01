@@ -312,7 +312,9 @@ export default function Testimonials({
                     <div className="stars">{renderStars(item.rating)}</div>
                     {item.approved_at && (
                       <span className="review-date">
-                        {new Date(item.approved_at).toLocaleDateString('ar-SA')}
+                       <span suppressHydrationWarning>
+  <span suppressHydrationWarning>{new Date(item.approved_at).toLocaleDateString('ar-SA')}</span>
+</span>
                       </span>
                     )}
                   </div>

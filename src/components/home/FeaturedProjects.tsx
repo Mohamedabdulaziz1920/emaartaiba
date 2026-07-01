@@ -255,7 +255,9 @@ export default function FeaturedProjects({
                               <line x1="3" y1="9" x2="21" y2="9"/>
                               <line x1="9" y1="21" x2="9" y2="9"/>
                             </svg>
-                            {project.area_sqm.toLocaleString('ar-SA')} م²
+                           <span suppressHydrationWarning>
+  <span suppressHydrationWarning>{project.area_sqm.toLocaleString('ar-SA')} م²</span>
+</span>
                           </span>
                         )}
                         {project.duration && (

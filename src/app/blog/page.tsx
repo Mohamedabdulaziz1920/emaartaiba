@@ -129,7 +129,8 @@ function BlogCard({ blog, priority = false }: { blog: any; priority?: boolean })
           <span>📅 {formatDate(blog.published_at)}</span>
           {blog.reading_time && <span>⏱️ {blog.reading_time} د</span>}
           {(blog.views_count ?? 0) > 0 && (
-            <span>👁️ {blog.views_count.toLocaleString('ar-SA')}</span>
+           <span suppressHydrationWarning>👁️ {blog.views_count.toLocaleString('ar-SA')}</span>
+
           )}
         </div>
         <h2 className="blog-card-title">{blog.title_ar}</h2>

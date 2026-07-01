@@ -253,7 +253,7 @@ export default async function BlogPage({ params }: Props) {
 
                 {(blog.views_count ?? 0) > 0 && (
                   <span className={styles.metaItem}>
-                    👁️ {blog.views_count.toLocaleString('ar-SA')} مشاهدة
+                    <span suppressHydrationWarning>👁️ {blog.views_count.toLocaleString('ar-SA')} مشاهدة</span>
                   </span>
                 )}
 
