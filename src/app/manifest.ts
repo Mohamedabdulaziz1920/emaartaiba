@@ -1,8 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { getSiteSettings, buildMediaUrl } from '@/lib/settings';
 
-// ✅ إعادة توليد كل ساعة
-export const revalidate = 3600;
+// ✅ لا يوجد أي export configuration
 
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
   try {
@@ -38,25 +37,23 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     
     const icons: MetadataRoute.Manifest['icons'] = [];
     
-    // ✅ إضافة الشعار بأحجام مختلفة
     if (logoUrl) {
       icons.push(
         {
           src: logoUrl,
           sizes: '192x192',
           type: 'image/png',
-          purpose: 'any',  // ✅ قيمة واحدة فقط
+          purpose: 'any',
         },
         {
           src: logoUrl,
           sizes: '512x512',
           type: 'image/png',
-          purpose: 'maskable',  // ✅ قيمة واحدة فقط
+          purpose: 'maskable',
         }
       );
     }
     
-    // ✅ إضافة الـ favicon
     if (faviconUrl) {
       icons.push({
         src: faviconUrl,

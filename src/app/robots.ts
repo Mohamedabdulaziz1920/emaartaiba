@@ -1,8 +1,6 @@
 // src/app/robots.ts
 import { MetadataRoute } from 'next';
 
-export const revalidate = 86400;
-
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 // ═══════════════════════════════════════════════════
@@ -149,10 +147,13 @@ const SEARCH_ENGINES_FULL_ACCESS = [
   'Exabot',
 ];
 
+// ═══════════════════════════════════════════════════
+// 🤖 Main Robots Function
+// ═══════════════════════════════════════════════════
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
-      // القاعدة العامة
+      // ═══ القاعدة العامة ═══
       {
         userAgent: '*',
         allow: PUBLIC_PATHS,
@@ -160,60 +161,60 @@ export default function robots(): MetadataRoute.Robots {
         crawlDelay: 1,
       },
 
-      // محركات البحث الرئيسية
+      // ═══ محركات البحث الرئيسية ═══
       {
         userAgent: SEARCH_ENGINES_FULL_ACCESS,
         allow: '/',
         disallow: PRIVATE_PATHS,
       },
 
-      // Googlebot-Image
+      // ═══ Googlebot-Image ═══
       {
         userAgent: 'Googlebot-Image',
         allow: ['/', '/storage/', '/_next/image', '/images/', '/uploads/', '/static/'],
         disallow: ['/admin/', '/private/'],
       },
 
-      // Googlebot-News
+      // ═══ Googlebot-News ═══
       {
         userAgent: 'Googlebot-News',
         allow: ['/blog/', '/blog'],
         disallow: ['/services/', '/projects/', '/gallery/'],
       },
 
-      // Googlebot-Video
+      // ═══ Googlebot-Video ═══
       {
         userAgent: 'Googlebot-Video',
         allow: ['/gallery/', '/projects/', '/services/'],
         disallow: ['/admin/'],
       },
 
-      // أدوات الأداء
+      // ═══ أدوات الأداء ═══
       {
         userAgent: PERFORMANCE_TOOLS,
         allow: '/',
       },
 
-      // Social Bots
+      // ═══ Social Bots ═══
       {
         userAgent: SOCIAL_BOTS,
         allow: '/',
       },
 
-      // AdsBot
+      // ═══ AdsBot ═══
       {
         userAgent: ['AdsBot-Google', 'AdsBot-Google-Mobile', 'Mediapartners-Google'],
         allow: '/',
         disallow: ['/admin/', '/private/', '/auth/'],
       },
 
-      // AI Bots - محظورة
+      // ═══ AI Bots - محظورة ═══
       {
         userAgent: AI_BOTS,
         disallow: '/',
       },
 
-      // SEO Tools - إبطاء فقط
+      // ═══ SEO Tools - إبطاء فقط ═══
       {
         userAgent: ['SemrushBot', 'AhrefsBot', 'MJ12bot', 'DotBot', 'BLEXBot', 'Linguee Bot', 'spbot'],
         crawlDelay: 10,
