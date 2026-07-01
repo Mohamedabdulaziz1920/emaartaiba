@@ -5,11 +5,9 @@ const nextConfig = {
   // ✅ تحسين الصور
   // ═══════════════════════════════════════════════════════════
   images: {
-    // ✅ في التطوير: تعطيل التحسين للسرعة
     unoptimized: process.env.NODE_ENV === 'development',
     
     remotePatterns: [
-      // ✅ النطاقات الموثوقة فقط
       {
         protocol: 'http',
         hostname: 'localhost',
@@ -34,6 +32,16 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'www.lamsataljarj.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lamsataljarj.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
         hostname: 'images.unsplash.com',
       },
     ],
@@ -41,52 +49,44 @@ const nextConfig = {
     formats: ['image/avif', 'image/webp'],
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    
-    // ✅ تحسين: 24 ساعة كاش
     minimumCacheTTL: 86400,
-    
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
 
   // ═══════════════════════════════════════════════════════════
-  // ✅ التحسينات الأساسية (المدعومة في Next.js 16)
+  // ✅ التحسينات الأساسية
   // ═══════════════════════════════════════════════════════════
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,
-  
-  // ✅ تحسين: وقت التحميل الزائد للصفحات الثابتة
-  staticPageGenerationTimeout: 120,
+  staticPageGenerationTimeout: 180,
 
   // ═══════════════════════════════════════════════════════════
-  // ✅ Experimental Features (المدعومة)
+  // ✅ Experimental Features
   // ═══════════════════════════════════════════════════════════
   experimental: {
-    // ✅ تحسين CSS
     optimizeCss: true,
-    
-    // ✅ تحسين استيراد الحزم
     optimizePackageImports: [
       'lucide-react',
       'framer-motion',
       '@radix-ui/react-icons',
+      'react-icons',
     ],
-    
-    // ✅ تحسين الذاكرة
     webpackMemoryOptimizations: true,
+    optimisticClientCache: true,
   },
 
   // ═══════════════════════════════════════════════════════════
   // ✅ إستراتيجية التخزين المؤقت
   // ═══════════════════════════════════════════════════════════
   onDemandEntries: {
-    maxInactiveAge: 60 * 60 * 1000, // 1 ساعة
+    maxInactiveAge: 60 * 60 * 1000,
     pagesBufferLength: 5,
   },
 
   // ═══════════════════════════════════════════════════════════
-  // ✅ توجيهات الـ Headers
+  // ✅ Headers
   // ═══════════════════════════════════════════════════════════
   async headers() {
     return [
@@ -99,10 +99,33 @@ const nextConfig = {
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+          { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
         ],
       },
       {
         source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/_next/static/css/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+          {
+            key: 'Content-Type',
+            value: 'text/css; charset=utf-8',
+          },
+        ],
+      },
+      {
+        source: '/_next/static/chunks/:path*',
         headers: [
           {
             key: 'Cache-Control',
@@ -134,24 +157,69 @@ const nextConfig = {
             key: 'Cache-Control',
             value: 'public, max-age=31536000, immutable',
           },
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
+          },
+        ],
+      },
+      {
+        source: '/manifest.webmanifest',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'application/manifest+json',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=3600',
+          },
+        ],
+      },
+      {
+        source: '/sitemap.xml',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'application/xml; charset=utf-8',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=3600',
+          },
+        ],
+      },
+      {
+        source: '/robots.txt',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'text/plain; charset=utf-8',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400',
+          },
         ],
       },
     ];
   },
 
   // ═══════════════════════════════════════════════════════════
-  // ✅ إعادة التوجيه
+  // ✅ Redirects
   // ═══════════════════════════════════════════════════════════
   async redirects() {
     return [
       { source: '/home', destination: '/', permanent: true },
       { source: '/index', destination: '/', permanent: true },
       { source: '/category/:slug', destination: '/categories/:slug', permanent: true },
+      { source: '/service/:slug', destination: '/services/:slug', permanent: true },
+      { source: '/project/:slug', destination: '/projects/:slug', permanent: true },
     ];
   },
 
   // ═══════════════════════════════════════════════════════════
-  // ✅ إعادة كتابة المسارات (Proxy للـ API)
+  // ✅ Rewrites
   // ═══════════════════════════════════════════════════════════
   async rewrites() {
     return [
@@ -163,25 +231,35 @@ const nextConfig = {
   },
 
   // ═══════════════════════════════════════════════════════════
-  // ✅ إعدادات Turbopack (Next.js 16)
+  // ✅ Turbopack
   // ═══════════════════════════════════════════════════════════
   turbopack: {
-    // ✅ تحسينات Turbopack
-    resolveAlias: {
-      // يمكن إضافة aliases هنا إذا لزم الأمر
-    },
+    resolveAlias: {},
   },
 
   // ═══════════════════════════════════════════════════════════
-  // ✅ إعدادات الإنتاج
+  // ✅ Production
   // ═══════════════════════════════════════════════════════════
   productionBrowserSourceMaps: false,
 
   // ═══════════════════════════════════════════════════════════
-  // ✅ إعدادات TypeScript و ESLint
+  // ✅ Compiler
+  // ═══════════════════════════════════════════════════════════
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn'],
+    } : false,
+  },
+
+  // ═══════════════════════════════════════════════════════════
+  // ✅ TypeScript & ESLint
   // ═══════════════════════════════════════════════════════════
   typescript: {
     ignoreBuildErrors: false,
+  },
+  
+  eslint: {
+    ignoreDuringBuilds: false,
   },
 };
 
