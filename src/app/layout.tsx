@@ -15,7 +15,7 @@ import { Suspense } from 'react';
 import { getDesignSettings } from '@/lib/colors';
 import { toStr } from '@/lib/typeSafe';
 
-export const revalidate = 300;
+// ✅ محذوف: export const revalidate = 300;
 
 // ═══════════════════════════════════════════════════
 // 🎨 Viewport - ديناميكي
