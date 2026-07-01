@@ -15,7 +15,7 @@ const CONFIG = {
   CACHE_DURATION: 3600, // 1 ساعة
 } as const;
 
-export const revalidate = CONFIG.CACHE_DURATION;
+export const revalidate = 3600;
 
 // ═══════════════════════════════════════════════════
 // 🎯 Types
