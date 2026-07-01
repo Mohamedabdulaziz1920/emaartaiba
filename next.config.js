@@ -252,12 +252,11 @@ const nextConfig = {
   },
 
   // ═══════════════════════════════════════════════════════════
-  // ✅ TypeScript & ESLint
+  // ✅ TypeScript
   // ═══════════════════════════════════════════════════════════
   typescript: {
     ignoreBuildErrors: false,
   },
-
 };
 
 module.exports = nextConfig;
