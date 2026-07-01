@@ -1,9 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { useEffect, useState, useMemo, useCallback, memo } from 'react';
-import { settingsHelpers, type SiteSettings } from '@/lib/settings';
+import { settingsHelpers, buildMediaUrl, type SiteSettings } from '@/lib/settings';
 import NewsletterForm from '@/components/shared/NewsletterForm';
 import { api } from '@/lib/api';
 
@@ -13,13 +12,15 @@ interface Props {
   services?: any[];
 }
 
-// ✅ تحسين: استخراج أيقونات SVG كمكونات منفصلة مع memo
+// ═══════════════════════════════════════════════════
+// 🎨 Social Icon Component
+// ═══════════════════════════════════════════════════
 const SocialIcon = memo(({ 
   Icon, 
   url, 
   color, 
   label,
-  size = 14 
+  size = 16 
 }: { 
   Icon: React.ComponentType<{ size?: number }>;
   url: string;
@@ -38,82 +39,97 @@ const SocialIcon = memo(({
     <Icon size={size} />
   </a>
 ));
-
 SocialIcon.displayName = 'SocialIcon';
 
-// ✅ تحسين: استخراج مكون الفوتر لينك
+// ═══════════════════════════════════════════════════
+// 🔗 Footer Link Component
+// ═══════════════════════════════════════════════════
 const FooterLink = memo(({ href, label }: { href: string; label: string }) => (
   <li>
     <Link href={href} className="footer-link">
-      <span className="footer-arrow">›</span> {label}
+      <span className="footer-arrow">←</span>
+      <span>{label}</span>
     </Link>
   </li>
 ));
-
 FooterLink.displayName = 'FooterLink';
 
-// ✅ تحسين: استخراج مكون منطقة الخدمة
+// ═══════════════════════════════════════════════════
+// 📍 City Pill Component
+// ═══════════════════════════════════════════════════
 const CityPill = memo(({ area }: { area: any }) => (
   <Link href={`/areas/${area.slug}`} className="city-pill">
-    📍 {area.name_ar}
+    <span className="city-pill-icon">📍</span>
+    <span>{area.name_ar}</span>
   </Link>
 ));
-
 CityPill.displayName = 'CityPill';
 
-// ✅ تحسين: استخراج مكون خدمة
+// ═══════════════════════════════════════════════════
+// 🛠️ Service Link Component
+// ═══════════════════════════════════════════════════
 const ServiceLink = memo(({ service }: { service: any }) => (
   <li>
     <Link href={`/services/${service.slug}`} className="footer-link">
-      <span className="footer-arrow">›</span> {service.title_ar}
+      <span className="footer-arrow">←</span>
+      <span>{service.title_ar}</span>
     </Link>
   </li>
 ));
-
 ServiceLink.displayName = 'ServiceLink';
 
+// ═══════════════════════════════════════════════════
+// 🎯 Main Footer Component
+// ═══════════════════════════════════════════════════
 export default function Footer({ settings = {}, navigation = [], services: propServices = [] }: Props) {
   const [areas, setAreas] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>(propServices);
-  const [isLoaded, setIsLoaded] = useState(false);
   const currentYear = new Date().getFullYear();
 
-  // ✅ تحسين: استخدام useMemo للبيانات المشتقة
+  // ✅ استخراج البيانات الديناميكية
   const {
     phone,
+    whatsapp,
     email,
     address,
     siteName,
+    siteTagline,
     workingHours,
     workingDays,
     siteLogo,
     siteDescription,
     copyrightText,
+    siteIcon,
   } = useMemo(() => ({
     phone: settings?.phone || '',
+    whatsapp: settings?.whatsapp || settings?.phone || '',
     email: settings?.email || '',
     address: settingsHelpers.fullAddress(settings || {}) || '',
     siteName: settingsHelpers.siteName(settings || {}) || '',
+    siteTagline: settings?.site_tagline_ar || settings?.site_tagline || '',
     workingHours: settings?.working_hours_ar || settings?.working_hours || '',
     workingDays: settings?.working_days_ar || settings?.working_days || '',
-    siteLogo: settings?.site_logo || '',
+    siteLogo: settings?.site_logo ? buildMediaUrl(settings.site_logo) : '',
     siteDescription: settings?.site_description_ar || settings?.site_description || '',
     copyrightText: settings?.copyright_text_ar || settings?.copyright_text || '',
+    siteIcon: settings?.site_icon || '🏢',
   }), [settings]);
 
-  // ✅ تحسين: روابط التواصل الاجتماعي
+  // ✅ روابط التواصل الاجتماعي
   const socialLinks = useMemo(() => {
     const links = [
+      { name: 'facebook', Icon: FacebookIcon, url: settings.facebook, color: '#1877F2', label: 'فيسبوك' },
       { name: 'twitter', Icon: TwitterIcon, url: settings.twitter, color: '#1DA1F2', label: 'تويتر' },
       { name: 'instagram', Icon: InstagramIcon, url: settings.instagram, color: '#E4405F', label: 'انستقرام' },
-      { name: 'facebook', Icon: FacebookIcon, url: settings.facebook, color: '#1877F2', label: 'فيسبوك' },
       { name: 'linkedin', Icon: LinkedinIcon, url: settings.linkedin, color: '#0A66C2', label: 'لينكدإن' },
       { name: 'youtube', Icon: YoutubeIcon, url: settings.youtube, color: '#FF0000', label: 'يوتيوب' },
+      { name: 'tiktok', Icon: TiktokIcon, url: settings.tiktok, color: '#000000', label: 'تيك توك' },
+      { name: 'snapchat', Icon: SnapchatIcon, url: settings.snapchat, color: '#FFFC00', label: 'سناب شات' },
     ];
     return links.filter((s): s is typeof s & { url: string } => Boolean(s.url));
   }, [settings]);
 
-  // ✅ تحسين: الروابط السريعة
+  // ✅ الروابط السريعة
   const quickLinks = useMemo(() => {
     if (navigation && navigation.length > 0) {
       return navigation.slice(0, 6);
@@ -128,15 +144,7 @@ export default function Footer({ settings = {}, navigation = [], services: propS
     ];
   }, [navigation]);
 
-  // ✅ منع FOUC - مع منع Hydration mismatch
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoaded(true);
-    }, 50);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // ✅ تحسين: جلب الخدمات مع useCallback
+  // ✅ جلب الخدمات
   const fetchServices = useCallback(async () => {
     if (propServices.length > 0) {
       setServices(propServices);
@@ -148,14 +156,7 @@ export default function Footer({ settings = {}, navigation = [], services: propS
       setServices(Array.isArray(data) ? data.slice(0, 6) : []);
     } catch (error) {
       console.error('Failed to fetch services:', error);
-      setServices([
-        { id: 1, title_ar: 'ترميم وتشطيب', slug: 'trmym-otshtyb' },
-        { id: 2, title_ar: 'دهانات وديكورات', slug: 'dhanat-odykorat' },
-        { id: 3, title_ar: 'بناء ملاحق', slug: 'bnaaa-mlahk' },
-        { id: 4, title_ar: 'عزل حراري', slug: 'aazl-hrary' },
-        { id: 5, title_ar: 'أعمال الجبس', slug: 'aaamal-algbs' },
-        { id: 6, title_ar: 'تركيب سيراميك', slug: 'trkyb-syramyk' },
-      ]);
+      setServices([]);
     }
   }, [propServices]);
 
@@ -175,27 +176,26 @@ export default function Footer({ settings = {}, navigation = [], services: propS
   }, [fetchServices, fetchAreas]);
 
   return (
-    <footer 
-      className="footer"
-      style={{
-        background: 'var(--footer-bg)',
-        color: 'var(--footer-text)',
-        position: 'relative',
-        overflow: 'hidden'
-      }}
-    >
-      {/* الشريط العلوي الملون */}
+    <footer className="footer" suppressHydrationWarning>
+      {/* الشريط العلوي المتدرج */}
       <div className="footer-top-bar" aria-hidden="true" />
 
-      {/* Newsletter */}
+      {/* Newsletter Section */}
       <div className="footer-newsletter">
         <div className="container-custom">
           <div className="newsletter-grid">
-            <div>
-              <h3 id="newsletter-title" className="newsletter-title">📬 اشترك في النشرة البريدية</h3>
-              <p className="newsletter-desc">احصل على آخر المقالات والعروض الحصرية</p>
+            <div className="newsletter-content">
+              <h3 className="newsletter-title">
+                <span className="newsletter-emoji">📬</span>
+                اشترك في النشرة البريدية
+              </h3>
+              <p className="newsletter-desc">
+                احصل على آخر المقالات والعروض الحصرية مباشرة إلى بريدك
+              </p>
             </div>
-            <NewsletterForm />
+            <div className="newsletter-form-wrapper">
+              <NewsletterForm />
+            </div>
           </div>
         </div>
       </div>
@@ -203,34 +203,48 @@ export default function Footer({ settings = {}, navigation = [], services: propS
       {/* المحتوى الرئيسي */}
       <div className="container-custom footer-main">
         <div className="footer-grid">
-          {/* الشركة */}
-          <div className="footer-col">
-            <Link href="/" className="footer-brand">
+          
+          {/* ═══ العمود الأول: معلومات الشركة ═══ */}
+          <div className="footer-col footer-col--brand">
+            <Link href="/" className="footer-brand" aria-label={siteName}>
               {siteLogo ? (
-                <Image
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
                   src={siteLogo}
                   alt={siteName}
-                  width={44}
-                  height={44}
                   className="footer-logo-img"
                   loading="lazy"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    target.style.display = 'none';
+                    const fallback = target.nextElementSibling as HTMLElement;
+                    if (fallback) fallback.style.display = 'flex';
+                  }}
                 />
-              ) : (
-                <div className="footer-brand-icon">ب</div>
-              )}
-              <div>
+              ) : null}
+              
+              <div 
+                className="footer-brand-icon"
+                style={{ display: siteLogo ? 'none' : 'flex' }}
+              >
+                {siteIcon}
+              </div>
+              
+              <div className="footer-brand-info">
                 <div className="footer-brand-name">{siteName || 'الموقع'}</div>
-{settings?.site_tagline_ar && (
-  <div className="footer-brand-sub">{settings.site_tagline_ar}</div>
-)}
+                {siteTagline && (
+                  <div className="footer-brand-sub">{siteTagline}</div>
+                )}
               </div>
             </Link>
+            
             <p className="footer-desc">
-              {siteDescription || `شركة مقاولات عامة رائدة في السعودية بخبرة تزيد عن 20 عاماً.`}
+              {siteDescription || `شركة رائدة في السعودية بخبرة تزيد عن 20 عاماً في تقديم أفضل الخدمات لعملائنا الكرام.`}
             </p>
 
+            {/* أيقونات التواصل الاجتماعي */}
             {socialLinks.length > 0 && (
-              <div className="footer-social">
+              <div className="footer-social" aria-label="روابط التواصل الاجتماعي">
                 {socialLinks.map((s) => (
                   <SocialIcon
                     key={s.name}
@@ -244,9 +258,12 @@ export default function Footer({ settings = {}, navigation = [], services: propS
             )}
           </div>
 
-          {/* روابط سريعة */}
+          {/* ═══ العمود الثاني: روابط سريعة ═══ */}
           <div className="footer-col">
-            <h3 className="footer-heading">روابط سريعة</h3>
+            <h3 className="footer-heading">
+              <span className="footer-heading-line" />
+              روابط سريعة
+            </h3>
             <ul className="footer-links">
               {quickLinks.map((item: any) => (
                 <FooterLink key={item.href} href={item.href} label={item.label} />
@@ -254,9 +271,12 @@ export default function Footer({ settings = {}, navigation = [], services: propS
             </ul>
           </div>
 
-          {/* الخدمات */}
+          {/* ═══ العمود الثالث: الخدمات ═══ */}
           <div className="footer-col">
-            <h3 className="footer-heading">خدماتنا</h3>
+            <h3 className="footer-heading">
+              <span className="footer-heading-line" />
+              خدماتنا
+            </h3>
             {services.length > 0 ? (
               <ul className="footer-links">
                 {services.map((s: any) => (
@@ -264,55 +284,87 @@ export default function Footer({ settings = {}, navigation = [], services: propS
                 ))}
               </ul>
             ) : (
-              <p className="footer-empty">لا توجد خدمات حالياً</p>
+              <p className="footer-empty">📋 لا توجد خدمات حالياً</p>
             )}
           </div>
 
-          {/* التواصل */}
+          {/* ═══ العمود الرابع: التواصل ═══ */}
           <div className="footer-col">
-            <h3 className="footer-heading">تواصل معنا</h3>
+            <h3 className="footer-heading">
+              <span className="footer-heading-line" />
+              تواصل معنا
+            </h3>
             <ul className="footer-contact">
               {phone && (
                 <li>
-                  <a href={settingsHelpers.phoneLink(phone)} className="footer-contact-item">
-                    <span className="footer-icon">📞</span>
-                    <div>
-                      <div className="footer-contact-label">الهاتف</div>
-                      <div className="footer-contact-value">{phone}</div>
+                  <a 
+                    href={settingsHelpers.phoneLink(phone)} 
+                    className="footer-contact-item"
+                    aria-label={`اتصل على ${phone}`}
+                  >
+                    <span className="footer-icon" aria-hidden="true">📞</span>
+                    <div className="footer-contact-text">
+                      <span className="footer-contact-label">الهاتف</span>
+                      <span className="footer-contact-value" dir="ltr">{phone}</span>
                     </div>
                   </a>
                 </li>
               )}
+              
+              {whatsapp && whatsapp !== phone && (
+                <li>
+                  <a 
+                    href={settingsHelpers.whatsappLink(whatsapp)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="footer-contact-item"
+                    aria-label={`واتساب ${whatsapp}`}
+                  >
+                    <span className="footer-icon" aria-hidden="true">💬</span>
+                    <div className="footer-contact-text">
+                      <span className="footer-contact-label">واتساب</span>
+                      <span className="footer-contact-value" dir="ltr">{whatsapp}</span>
+                    </div>
+                  </a>
+                </li>
+              )}
+              
               {email && (
                 <li>
-                  <a href={settingsHelpers.emailLink(email)} className="footer-contact-item">
-                    <span className="footer-icon">✉️</span>
-                    <div>
-                      <div className="footer-contact-label">البريد</div>
-                      <div className="footer-contact-value">{email}</div>
+                  <a 
+                    href={settingsHelpers.emailLink(email)} 
+                    className="footer-contact-item"
+                    aria-label={`راسلنا على ${email}`}
+                  >
+                    <span className="footer-icon" aria-hidden="true">✉️</span>
+                    <div className="footer-contact-text">
+                      <span className="footer-contact-label">البريد الإلكتروني</span>
+                      <span className="footer-contact-value">{email}</span>
                     </div>
                   </a>
                 </li>
               )}
+              
               {address && (
                 <li className="footer-contact-item">
-                  <span className="footer-icon">📍</span>
-                  <div>
-                    <div className="footer-contact-label">العنوان</div>
-                    <div className="footer-contact-value">{address}</div>
+                  <span className="footer-icon" aria-hidden="true">📍</span>
+                  <div className="footer-contact-text">
+                    <span className="footer-contact-label">العنوان</span>
+                    <span className="footer-contact-value">{address}</span>
                   </div>
                 </li>
               )}
+              
               {(workingDays || workingHours) && (
                 <li className="footer-contact-item">
-                  <span className="footer-icon">🕐</span>
-                  <div>
-                    <div className="footer-contact-label">ساعات العمل</div>
-                    <div className="footer-contact-value">
+                  <span className="footer-icon" aria-hidden="true">🕐</span>
+                  <div className="footer-contact-text">
+                    <span className="footer-contact-label">ساعات العمل</span>
+                    <span className="footer-contact-value">
                       {workingDays}
                       {workingDays && workingHours && <br />}
                       {workingHours}
-                    </div>
+                    </span>
                   </div>
                 </li>
               )}
@@ -323,7 +375,10 @@ export default function Footer({ settings = {}, navigation = [], services: propS
         {/* مناطق الخدمة */}
         {areas.length > 0 && (
           <div className="footer-areas">
-            <h4 className="footer-areas-title">🌍 نخدم جميع مناطق المملكة</h4>
+            <h4 className="footer-areas-title">
+              <span aria-hidden="true">🌍</span>
+              نخدم جميع مناطق المملكة
+            </h4>
             <div className="footer-areas-list">
               {areas.map((area: any) => (
                 <CityPill key={area.id} area={area} />
@@ -341,7 +396,7 @@ export default function Footer({ settings = {}, navigation = [], services: propS
           </p>
 
           <div className="footer-credit">
-            تصميم وبرمجة :{' '}
+            <span>تصميم وبرمجة:</span>{' '}
             <a
               href="https://mohammed-almalgami.com"
               target="_blank"
@@ -353,337 +408,628 @@ export default function Footer({ settings = {}, navigation = [], services: propS
           </div>
 
           <div className="footer-bottom-links">
-            <Link href="/privacy" className="bottom-link">سياسة الخصوصية</Link>
-            <Link href="/terms" className="bottom-link">الشروط والأحكام</Link>
+            <Link href="/privacy" className="bottom-link">
+              سياسة الخصوصية
+            </Link>
+            <span className="bottom-divider" aria-hidden="true">•</span>
+            <Link href="/terms" className="bottom-link">
+              الشروط والأحكام
+            </Link>
           </div>
         </div>
       </div>
 
-      {/* ═══════ Styles - بدون jsx لتجنب Hydration mismatch ═══════ */}
+      {/* ═══════════════════ Styles ═══════════════════ */}
       <style>{`
-        /* ───────── منع FOUC ───────── */
+        /* ═══════════════════════════════════════════
+           🎨 Footer Base
+           ═══════════════════════════════════════════ */
         .footer {
-          opacity: 1;
-          transition: opacity 0.3s ease;
+          background: var(--footer-bg, #0f1729);
+          color: var(--footer-text, #cbd5e0);
+          position: relative;
+          overflow: hidden;
+          font-family: var(--font-family, 'Cairo', sans-serif);
         }
 
-        /* ───────── Top Bar ───────── */
+        /* ═══════════════════════════════════════════
+           📊 Top Bar
+           ═══════════════════════════════════════════ */
         .footer-top-bar {
           position: absolute;
           top: 0;
           left: 0;
           right: 0;
-          height: 3px;
+          height: 4px;
           background: linear-gradient(
             90deg,
-            var(--color-secondary, #D4AF37),
-            var(--color-secondary-light, #F3E5AB),
-            var(--color-secondary, #D4AF37)
+            var(--color-secondary, #D4AF37) 0%,
+            var(--color-accent, #FFD700) 25%,
+            var(--color-secondary-light, #F3E5AB) 50%,
+            var(--color-accent, #FFD700) 75%,
+            var(--color-secondary, #D4AF37) 100%
           );
           background-size: 200% 100%;
-          animation: footer-gradient-shift 3s ease infinite;
+          animation: shimmer 3s ease infinite;
         }
-        @keyframes footer-gradient-shift {
+        
+        @keyframes shimmer {
           0% { background-position: 0% 50%; }
           50% { background-position: 100% 50%; }
           100% { background-position: 0% 50%; }
         }
 
-        /* ───────── Newsletter ───────── */
+        /* ═══════════════════════════════════════════
+           📬 Newsletter Section
+           ═══════════════════════════════════════════ */
         .footer-newsletter {
-          background: linear-gradient(135deg, rgba(237,137,54,0.1), rgba(43,108,176,0.1));
-          border-bottom: 1px solid rgba(255,255,255,0.05);
-          padding: 2rem 0;
+          background: linear-gradient(
+            135deg,
+            rgba(212, 175, 55, 0.08) 0%,
+            rgba(26, 54, 93, 0.15) 100%
+          );
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          padding: 2.5rem 0;
           position: relative;
           z-index: 1;
         }
+        
         .newsletter-grid {
           display: grid;
           grid-template-columns: 1fr;
-          gap: 1.25rem;
+          gap: 1.5rem;
           align-items: center;
         }
-        @media (min-width: 768px) {
-          .newsletter-grid { grid-template-columns: 1fr 1fr; gap: 2rem; }
-        }
+        
         .newsletter-title {
-          font-size: clamp(1.125rem, 3vw, 1.5rem);
+          font-size: clamp(1.125rem, 2.5vw, 1.5rem);
           font-weight: 800;
-          color: var(--footer-text, #cbd5e0);
-          margin-bottom: 0.375rem;
+          color: var(--footer-text, #ffffff);
+          margin: 0 0 0.5rem 0;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
         }
+        
+        .newsletter-emoji {
+          font-size: 1.5rem;
+        }
+        
         .newsletter-desc {
           color: var(--footer-text, #cbd5e0);
-          opacity: 0.7;
-          font-size: 0.875rem;
+          opacity: 0.8;
+          font-size: 0.9rem;
+          line-height: 1.6;
+          margin: 0;
         }
 
-        /* ───────── Main ───────── */
+        /* ═══════════════════════════════════════════
+           📦 Main Footer Content
+           ═══════════════════════════════════════════ */
         .footer-main {
-          padding: 3rem 0 1.5rem;
+          padding: 3.5rem 0 2rem;
           position: relative;
           z-index: 1;
         }
+        
         .footer-grid {
           display: grid;
           grid-template-columns: 1fr;
-          gap: 2rem;
-        }
-        @media (min-width: 640px) {
-          .footer-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-        @media (min-width: 1024px) {
-          .footer-grid { grid-template-columns: 2fr 1fr 1fr 1.5fr; gap: 2.5rem; }
+          gap: 2.5rem;
         }
 
-        /* ───────── Brand ───────── */
+        /* ═══════════════════════════════════════════
+           🏢 Brand Column
+           ═══════════════════════════════════════════ */
         .footer-brand {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
+          gap: 0.875rem;
           text-decoration: none;
-          margin-bottom: 1rem;
+          margin-bottom: 1.25rem;
+          transition: opacity 0.3s ease;
         }
+        
+        .footer-brand:hover {
+          opacity: 0.9;
+        }
+        
         .footer-logo-img {
-          height: 2.75rem;
+          height: 3rem;
           width: auto;
+          max-width: 180px;
           border-radius: 0.5rem;
-          background: rgba(255,255,255,0.95);
-          padding: 4px;
+          background: rgba(255, 255, 255, 0.95);
+          padding: 6px 8px;
+          object-fit: contain;
         }
+        
         .footer-brand-icon {
-          width: 2.75rem;
-          height: 2.75rem;
-          background: linear-gradient(135deg, var(--color-secondary, #D4AF37), var(--color-secondary-dark, #B8960F));
-          border-radius: 0.625rem;
+          width: 3rem;
+          height: 3rem;
+          background: linear-gradient(
+            135deg,
+            var(--color-secondary, #D4AF37),
+            var(--color-secondary-dark, #B8960F)
+          );
+          border-radius: 0.75rem;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: var(--btn-primary-text, #0f172a);
+          font-size: 1.5rem;
+          color: #0f172a;
           font-weight: 900;
-          font-size: 1.25rem;
-          box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+          box-shadow: 0 8px 20px rgba(212, 175, 55, 0.3);
           flex-shrink: 0;
         }
+        
+        .footer-brand-info {
+          display: flex;
+          flex-direction: column;
+          gap: 0.15rem;
+        }
+        
         .footer-brand-name {
           font-weight: 800;
-          font-size: 1.0625rem;
-          color: var(--footer-text, #cbd5e0);
+          font-size: 1.125rem;
+          color: #ffffff;
+          line-height: 1.2;
         }
+        
         .footer-brand-sub {
-          color: var(--footer-text, #cbd5e0);
-          opacity: 0.6;
-          font-size: 0.6875rem;
+          color: var(--color-secondary, #D4AF37);
+          font-size: 0.75rem;
+          font-weight: 600;
+          line-height: 1.2;
         }
+        
         .footer-desc {
           color: var(--footer-text, #cbd5e0);
-          opacity: 0.7;
-          font-size: 0.8125rem;
-          line-height: 1.7;
-          margin-bottom: 1.25rem;
+          opacity: 0.75;
+          font-size: 0.875rem;
+          line-height: 1.75;
+          margin: 0 0 1.5rem 0;
         }
 
-        /* ───────── Social ───────── */
+        /* ═══════════════════════════════════════════
+           🌐 Social Icons
+           ═══════════════════════════════════════════ */
         .footer-social {
           display: flex;
-          gap: 0.5rem;
+          flex-wrap: wrap;
+          gap: 0.625rem;
         }
+        
         .social-icon {
-          width: 2.25rem;
-          height: 2.25rem;
-          border-radius: 0.5rem;
+          width: 2.5rem;
+          height: 2.5rem;
+          border-radius: 0.625rem;
           background: var(--social-color);
           display: flex;
           align-items: center;
           justify-content: center;
           color: white;
           text-decoration: none;
-          transition: transform 0.3s ease, box-shadow 0.3s ease;
-          will-change: transform;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
+        
         .social-icon:hover {
-          transform: scale(1.1);
-          box-shadow: 0 4px 12px var(--social-color)40;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .social-icon { transition: none; }
-          .social-icon:hover { transform: none; }
+          transform: translateY(-3px) scale(1.05);
+          box-shadow: 0 6px 20px var(--social-color);
         }
 
-        /* ───────── Headings ───────── */
+        /* ═══════════════════════════════════════════
+           📝 Headings
+           ═══════════════════════════════════════════ */
         .footer-heading {
-          font-size: 0.9375rem;
+          font-size: 1rem;
           font-weight: 800;
-          color: var(--footer-text, #cbd5e0);
-          margin-bottom: 1rem;
-          padding-bottom: 0.5rem;
-          border-bottom: 2px solid var(--color-secondary, #D4AF37);
+          color: #ffffff;
+          margin: 0 0 1.25rem 0;
+          padding-bottom: 0.75rem;
+          position: relative;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        
+        .footer-heading::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          right: 0;
+          width: 3rem;
+          height: 3px;
+          background: linear-gradient(
+            90deg,
+            var(--color-secondary, #D4AF37),
+            transparent
+          );
+          border-radius: 2px;
+        }
+        
+        .footer-heading-line {
           display: inline-block;
+          width: 4px;
+          height: 20px;
+          background: var(--color-secondary, #D4AF37);
+          border-radius: 2px;
         }
 
-        /* ───────── Links ───────── */
+        /* ═══════════════════════════════════════════
+           🔗 Footer Links
+           ═══════════════════════════════════════════ */
         .footer-links {
           list-style: none;
           display: flex;
           flex-direction: column;
-          gap: 0.5rem;
+          gap: 0.625rem;
           padding: 0;
           margin: 0;
         }
+        
         .footer-link {
           color: var(--footer-text, #cbd5e0);
           opacity: 0.8;
           text-decoration: none;
-          font-size: 0.8125rem;
+          font-size: 0.875rem;
           display: inline-flex;
           align-items: center;
-          gap: 0.375rem;
+          gap: 0.5rem;
           transition: all 0.3s ease;
+          padding: 0.25rem 0;
         }
+        
         .footer-link:hover {
           color: var(--color-secondary, #D4AF37);
           opacity: 1;
-          transform: translateX(-3px);
+          transform: translateX(-4px);
+          padding-right: 0.25rem;
         }
+        
         .footer-arrow {
           color: var(--color-secondary, #D4AF37);
+          font-weight: bold;
+          transition: transform 0.3s ease;
         }
+        
+        .footer-link:hover .footer-arrow {
+          transform: translateX(-3px);
+        }
+        
         .footer-empty {
           color: var(--footer-text, #cbd5e0);
           opacity: 0.6;
-          font-size: 0.75rem;
+          font-size: 0.8125rem;
+          font-style: italic;
         }
 
-        /* ───────── Contact ───────── */
+        /* ═══════════════════════════════════════════
+           📞 Contact Section
+           ═══════════════════════════════════════════ */
         .footer-contact {
           list-style: none;
           display: flex;
           flex-direction: column;
-          gap: 0.875rem;
+          gap: 1rem;
           padding: 0;
           margin: 0;
         }
+        
         .footer-contact-item {
           display: flex;
-          align-items: center;
-          gap: 0.625rem;
+          align-items: flex-start;
+          gap: 0.75rem;
           text-decoration: none;
           color: inherit;
+          transition: transform 0.3s ease;
         }
+        
+        a.footer-contact-item:hover {
+          transform: translateX(-3px);
+        }
+        
+        .footer-icon {
+          flex-shrink: 0;
+          width: 2.25rem;
+          height: 2.25rem;
+          background: linear-gradient(
+            135deg,
+            rgba(212, 175, 55, 0.15),
+            rgba(212, 175, 55, 0.05)
+          );
+          border: 1px solid rgba(212, 175, 55, 0.2);
+          border-radius: 0.625rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1rem;
+          transition: all 0.3s ease;
+        }
+        
+        a.footer-contact-item:hover .footer-icon {
+          background: var(--color-secondary, #D4AF37);
+          border-color: var(--color-secondary, #D4AF37);
+          transform: scale(1.1);
+        }
+        
+        .footer-contact-text {
+          display: flex;
+          flex-direction: column;
+          gap: 0.15rem;
+          min-width: 0;
+          flex: 1;
+        }
+        
         .footer-contact-label {
           color: var(--footer-text, #cbd5e0);
           opacity: 0.6;
           font-size: 0.6875rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
+        
         .footer-contact-value {
-          color: var(--footer-text, #cbd5e0);
-          font-size: 0.8125rem;
+          color: #ffffff;
+          font-size: 0.875rem;
+          font-weight: 500;
+          line-height: 1.4;
+          word-break: break-word;
         }
-        .footer-icon {
-          flex-shrink: 0;
-          width: 2rem;
-          height: 2rem;
-          background: rgba(237, 137, 54, 0.15);
-          border-radius: 0.5rem;
+
+        /* ═══════════════════════════════════════════
+           🌍 Service Areas
+           ═══════════════════════════════════════════ */
+        .footer-areas {
+          margin-top: 2.5rem;
+          padding-top: 2rem;
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .footer-areas-title {
+          font-size: 0.9375rem;
+          font-weight: 700;
+          color: #ffffff;
+          margin: 0 0 1.25rem 0;
+          text-align: center;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 0.9375rem;
+          gap: 0.5rem;
         }
-
-        /* ───────── Areas ───────── */
-        .footer-areas {
-          margin-top: 2rem;
-          padding-top: 1.5rem;
-          border-top: 1px solid rgba(255,255,255,0.05);
-        }
-        .footer-areas-title {
-          font-size: 0.8125rem;
-          font-weight: 700;
-          color: var(--footer-text, #cbd5e0);
-          margin-bottom: 0.875rem;
-          text-align: center;
-        }
+        
         .footer-areas-list {
           display: flex;
           flex-wrap: wrap;
           justify-content: center;
           gap: 0.5rem;
         }
+        
         .city-pill {
-          padding: 0.4rem 0.875rem;
-          background: rgba(237, 137, 54, 0.1);
-          border: 1px solid rgba(237, 137, 54, 0.2);
+          display: inline-flex;
+          align-items: center;
+          gap: 0.375rem;
+          padding: 0.5rem 1rem;
+          background: rgba(212, 175, 55, 0.1);
+          border: 1px solid rgba(212, 175, 55, 0.25);
           border-radius: 9999px;
           color: var(--color-secondary-light, #F3E5AB);
           text-decoration: none;
-          font-size: 0.75rem;
+          font-size: 0.8125rem;
           font-weight: 600;
-          transition: all 0.3s ease;
-          will-change: transform;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
+        
         .city-pill:hover {
           background: var(--color-secondary, #D4AF37);
-          color: var(--btn-primary-text, #0f172a);
+          color: #0f172a;
           transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(212, 175, 55, 0.35);
+          border-color: var(--color-secondary, #D4AF37);
         }
-        @media (prefers-reduced-motion: reduce) {
-          .city-pill { transition: none; }
-          .city-pill:hover { transform: none; }
+        
+        .city-pill-icon {
+          font-size: 0.875rem;
         }
 
-        /* ───────── Bottom ───────── */
+        /* ═══════════════════════════════════════════
+           ⬇️ Footer Bottom
+           ═══════════════════════════════════════════ */
         .footer-bottom {
-          border-top: 1px solid rgba(255,255,255,0.05);
-          background: rgba(0,0,0,0.3);
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
+          background: rgba(0, 0, 0, 0.3);
           position: relative;
           z-index: 1;
         }
+        
         .footer-bottom-inner {
-          padding: 1rem 0;
+          padding: 1.25rem 0;
           display: flex;
           flex-wrap: wrap;
           justify-content: space-between;
           align-items: center;
-          gap: 0.75rem;
+          gap: 1rem;
         }
+        
         .footer-copyright {
           color: var(--footer-text, #cbd5e0);
           opacity: 0.7;
           font-size: 0.8125rem;
           text-align: center;
           margin: 0;
+          line-height: 1.5;
         }
+        
         .footer-credit {
           text-align: center;
-          font-size: 0.7rem;
-          opacity: 0.6;
-        }
-        .footer-credit-link {
+          font-size: 0.75rem;
+          opacity: 0.7;
           color: var(--footer-text, #cbd5e0);
+        }
+        
+        .footer-credit-link {
+          color: var(--color-secondary, #D4AF37);
           text-decoration: none;
-          font-weight: 500;
+          font-weight: 700;
           transition: opacity 0.3s ease;
         }
+        
         .footer-credit-link:hover {
-          opacity: 1;
+          opacity: 0.8;
+          text-decoration: underline;
         }
+        
         .footer-bottom-links {
           display: flex;
-          gap: 1.25rem;
+          gap: 0.75rem;
+          align-items: center;
           flex-wrap: wrap;
           justify-content: center;
         }
+        
         .bottom-link {
           color: var(--footer-text, #cbd5e0);
           opacity: 0.7;
           font-size: 0.8125rem;
           text-decoration: none;
-          transition: opacity 0.3s ease;
+          transition: all 0.3s ease;
         }
+        
         .bottom-link:hover {
           opacity: 1;
           color: var(--color-secondary, #D4AF37);
+        }
+        
+        .bottom-divider {
+          color: var(--footer-text, #cbd5e0);
+          opacity: 0.4;
+        }
+
+        /* ═══════════════════════════════════════════
+           📱 Responsive - Mobile First
+           ═══════════════════════════════════════════ */
+        
+        /* Small phones */
+        @media (max-width: 480px) {
+          .footer-main {
+            padding: 2.5rem 0 1.5rem;
+          }
+          
+          .footer-newsletter {
+            padding: 2rem 0;
+          }
+          
+          .footer-brand {
+            justify-content: center;
+            text-align: center;
+            flex-direction: column;
+          }
+          
+          .footer-desc {
+            text-align: center;
+          }
+          
+          .footer-social {
+            justify-content: center;
+          }
+          
+          .footer-heading {
+            justify-content: center;
+            text-align: center;
+          }
+          
+          .footer-heading::after {
+            right: 50%;
+            transform: translateX(50%);
+          }
+          
+          .footer-links,
+          .footer-contact {
+            align-items: center;
+          }
+          
+          .footer-link {
+            justify-content: center;
+          }
+          
+          .footer-contact-item {
+            justify-content: center;
+            text-align: center;
+            flex-direction: column;
+            align-items: center;
+          }
+          
+          .footer-contact-text {
+            align-items: center;
+          }
+          
+          .footer-bottom-inner {
+            flex-direction: column;
+            text-align: center;
+          }
+        }
+
+        /* Tablets */
+        @media (min-width: 481px) and (max-width: 767px) {
+          .footer-grid {
+            grid-template-columns: 1fr;
+            gap: 2rem;
+          }
+        }
+
+        @media (min-width: 640px) {
+          .footer-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+          }
+          
+          .footer-col--brand {
+            grid-column: 1 / -1;
+            text-align: center;
+          }
+          
+          .footer-col--brand .footer-brand {
+            justify-content: center;
+          }
+          
+          .footer-col--brand .footer-social {
+            justify-content: center;
+          }
+        }
+
+        /* Small Desktops */
+        @media (min-width: 1024px) {
+          .footer-grid {
+            grid-template-columns: 2fr 1fr 1fr 1.5fr;
+            gap: 3rem;
+          }
+          
+          .footer-col--brand {
+            grid-column: auto;
+            text-align: right;
+          }
+          
+          .footer-col--brand .footer-brand {
+            justify-content: flex-start;
+          }
+          
+          .footer-col--brand .footer-social {
+            justify-content: flex-start;
+          }
+          
+          .newsletter-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+          }
+        }
+
+        /* Large Desktops */
+        @media (min-width: 1280px) {
+          .footer-main {
+            padding: 4rem 0 2.5rem;
+          }
         }
 
         @media (min-width: 768px) {
@@ -692,60 +1038,107 @@ export default function Footer({ settings = {}, navigation = [], services: propS
           }
         }
 
+        /* Print */
+        @media print {
+          .footer-newsletter,
+          .footer-social,
+          .footer-areas,
+          .footer-top-bar {
+            display: none;
+          }
+          
+          .footer {
+            background: white;
+            color: black;
+          }
+        }
+
+        /* Reduced Motion */
         @media (prefers-reduced-motion: reduce) {
-          .footer { transition: none; }
-          .footer * { animation-duration: 0.01ms !important; }
+          .footer-top-bar,
+          .social-icon,
+          .city-pill,
+          .footer-link,
+          .footer-contact-item,
+          .footer-icon {
+            animation: none !important;
+            transition: none !important;
+          }
+          
+          .social-icon:hover,
+          .city-pill:hover,
+          .footer-link:hover,
+          .footer-contact-item:hover,
+          .footer-icon:hover {
+            transform: none !important;
+          }
+        }
+
+        /* Dark mode enhancement */
+        @media (prefers-color-scheme: dark) {
+          .footer {
+            background: var(--footer-bg, #0a0f1c);
+          }
         }
       `}</style>
     </footer>
   );
 }
 
-// ═══════════════════════════════════════════════════════════
-// أيقونات SVG
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+// 🎨 أيقونات SVG - Social Media
+// ═══════════════════════════════════════════════════
 
 const FacebookIcon = memo(({ size = 16 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
   </svg>
 ));
-
 FacebookIcon.displayName = 'FacebookIcon';
 
 const TwitterIcon = memo(({ size = 16 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
   </svg>
 ));
-
 TwitterIcon.displayName = 'TwitterIcon';
 
 const InstagramIcon = memo(({ size = 16 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
     <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
     <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
   </svg>
 ));
-
 InstagramIcon.displayName = 'InstagramIcon';
 
 const LinkedinIcon = memo(({ size = 16 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
     <rect x="2" y="9" width="4" height="12"/>
     <circle cx="4" cy="4" r="2"/>
   </svg>
 ));
-
 LinkedinIcon.displayName = 'LinkedinIcon';
 
 const YoutubeIcon = memo(({ size = 16 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/>
     <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/>
   </svg>
 ));
-
 YoutubeIcon.displayName = 'YoutubeIcon';
+
+const TiktokIcon = memo(({ size = 16 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5.8 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1.84 0z"/>
+  </svg>
+));
+TiktokIcon.displayName = 'TiktokIcon';
+
+const SnapchatIcon = memo(({ size = 16 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M12.166.007A5.44 5.44 0 0 1 17.6 5.437l-.017 1.51c-.001.152.023.301.07.446l.11.245.03.077c.086.19.286.325.535.325h.014c.34-.023.7-.15 1.075-.335l.243-.128c.316-.16.577-.246.786-.246.212 0 .422.077.616.222.199.149.32.36.32.598 0 .258-.14.5-.386.7l-.207.16c-.343.264-.798.605-1.35.87l-.223.099c-.213.089-.336.313-.279.535.055.222.116.442.216.647l.075.147c.407.775 1.146 1.634 2.437 1.947l.183.041c.213.045.32.174.32.35 0 .277-.276.548-.804.717l-.24.07c-.297.081-.702.157-.928.29-.155.093-.221.276-.221.428 0 .143.045.284.129.404l.126.164c.117.147.234.284.234.483 0 .275-.276.522-.771.522l-.336-.021c-.213-.028-.404-.062-.586-.062-.24 0-.462.032-.688.147l-.13.075c-.148.093-.298.19-.457.286l-.174.099c-.297.16-.617.263-.958.263-.278 0-.532-.062-.784-.199l-.147-.086c-.298-.184-.606-.365-.929-.532l-.145-.072c-.36-.165-.744-.267-1.147-.267-.68 0-1.244.288-1.822.629l-.132.079c-.298.181-.634.365-.994.512l-.147.058c-.361.135-.732.222-1.108.222l-.212-.007c-.573-.033-.947-.238-.947-.522 0-.146.088-.276.19-.404l.135-.164c.086-.108.148-.239.148-.404 0-.183-.09-.4-.276-.507-.222-.128-.61-.211-.906-.29l-.24-.07c-.529-.169-.804-.44-.804-.717 0-.176.106-.305.319-.35l.183-.041c1.291-.313 2.03-1.172 2.437-1.947l.075-.147c.1-.205.161-.425.216-.647.057-.222-.066-.446-.28-.535l-.222-.099c-.552-.265-1.007-.606-1.35-.87l-.208-.16c-.246-.2-.386-.442-.386-.7 0-.238.12-.449.32-.598.194-.145.404-.222.616-.222.21 0 .47.086.786.246l.243.128c.375.185.734.312 1.075.335h.014c.249 0 .449-.135.535-.325l.031-.077.108-.245c.048-.145.072-.294.07-.446l-.017-1.51A5.44 5.44 0 0 1 12.166.007z"/>
+  </svg>
+));
+SnapchatIcon.displayName = 'SnapchatIcon';

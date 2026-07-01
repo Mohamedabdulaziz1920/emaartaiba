@@ -12,20 +12,10 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 import { SliderThemeProvider } from '@/components/providers/SliderThemeProvider';
 import { api, type NavItem } from '@/lib/api';
 import { Suspense } from 'react';
-import { Geist } from "next/font/google";
-import { cn } from "@/lib/utils";
 import { getDesignSettings } from '@/lib/colors';
-import { toStr, toNumber } from '@/lib/typeSafe';
+import { toStr } from '@/lib/typeSafe';
 
 export const revalidate = 300;
-
-const geist = Geist({ 
-  subsets: ['latin'], 
-  variable: '--font-sans',
-  display: 'swap',
-  preload: true,
-  weight: ['400', '500', '600', '700', '800'],
-});
 
 // ═══════════════════════════════════════════════════
 // 🎨 Viewport - ديناميكي
@@ -37,7 +27,7 @@ export async function generateViewport(): Promise<Viewport> {
     const settings = await getSiteSettings();
     themeColor = toStr(settings?.primary_color) || themeColor;
   } catch {
-    // استخدم fallback
+    // fallback
   }
 
   return {
@@ -151,6 +141,13 @@ export async function generateMetadata(): Promise<Metadata> {
         email: true,
         address: true,
       },
+
+      // ✅ Icons ديناميكية
+      icons: settings?.site_favicon ? {
+        icon: buildMediaUrl(settings.site_favicon),
+        shortcut: buildMediaUrl(settings.site_favicon),
+        apple: buildMediaUrl(settings.site_favicon),
+      } : undefined,
     };
   } catch (error) {
     console.error('❌ Error generating metadata:', error);
@@ -250,7 +247,7 @@ function getDefaultNavigationWithSections() {
 }
 
 // ═══════════════════════════════════════════════════
-// 🎨 توليد CSS Variables
+// 🎨 توليد CSS Variables كاملة
 // ═══════════════════════════════════════════════════
 function generateCSSVariablesFromSettings(settings: any): string {
   if (!settings) return '';
@@ -265,12 +262,13 @@ function generateCSSVariablesFromSettings(settings: any): string {
   const secondaryRgb = getRgbFromHex(settings.secondary_color || '#D4AF37');
   const accentRgb = getRgbFromHex(settings.accent_color || '#FFD700');
   
-  const fontFamily = settings.typography?.font_family || settings.font_family || 'Cairo';
-  const fontFamilyHeadings = settings.typography?.font_family_headings || settings.font_family_headings || 'Cairo';
-  const fontSizeBase = settings.typography?.font_size_base || settings.font_size_base || 16;
-  const fontSizeH1 = settings.typography?.font_size_h1 || settings.font_size_h1 || 48;
-  const fontSizeH2 = settings.typography?.font_size_h2 || settings.font_size_h2 || 36;
-  const fontSizeH3 = settings.typography?.font_size_h3 || settings.font_size_h3 || 24;
+  // ✅ استخراج الخطوط من الإعدادات
+  const fontFamily = settings.typography?.font_family || 'Cairo';
+  const fontFamilyHeadings = settings.typography?.font_family_headings || fontFamily;
+  const fontSizeBase = settings.typography?.font_size_base || 16;
+  const fontSizeH1 = settings.typography?.font_size_h1 || 48;
+  const fontSizeH2 = settings.typography?.font_size_h2 || 36;
+  const fontSizeH3 = settings.typography?.font_size_h3 || 24;
   
   return `
     --color-primary: ${settings.primary_color || '#1a365d'};
@@ -302,6 +300,25 @@ function generateCSSVariablesFromSettings(settings: any): string {
 }
 
 // ═══════════════════════════════════════════════════
+// 🔤 بناء رابط Google Fonts ديناميكياً
+// ═══════════════════════════════════════════════════
+function buildGoogleFontsUrl(fontFamily: string, fontHeadings?: string): string {
+  const fonts = new Set<string>();
+  
+  if (fontFamily) fonts.add(fontFamily);
+  if (fontHeadings && fontHeadings !== fontFamily) fonts.add(fontHeadings);
+  
+  if (fonts.size === 0) fonts.add('Cairo');
+  
+  const fontQueries = Array.from(fonts).map(font => {
+    const cleanName = font.replace(/\s+/g, '+');
+    return `family=${cleanName}:wght@400;500;600;700;800;900`;
+  });
+  
+  return `https://fonts.googleapis.com/css2?${fontQueries.join('&')}&display=swap`;
+}
+
+// ═══════════════════════════════════════════════════
 // 🖥️ Root Layout Component
 // ═══════════════════════════════════════════════════
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -314,8 +331,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   const cssVariables = generateCSSVariablesFromSettings(designSettings);
   
+  // ✅ الشعار والأيقونة ديناميكية
   const favicon = settings?.site_favicon ? buildMediaUrl(settings.site_favicon) : null;
   const siteLogo = settings?.site_logo ? buildMediaUrl(settings.site_logo) : null;
+
+  // ✅ الخطوط ديناميكية
+  const fontFamily = designSettings?.typography?.font_family || 'Cairo';
+  const fontFamilyHeadings = designSettings?.typography?.font_family_headings || fontFamily;
+  const googleFontsUrl = buildGoogleFontsUrl(fontFamily, fontFamilyHeadings);
 
   const latStr = toStr(settings?.google_maps_lat || settings?.latitude);
   const lngStr = toStr(settings?.google_maps_lng || settings?.longitude);
@@ -333,7 +356,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const siteName = toStr(settings?.site_name_ar) || toStr(settings?.site_name) || '';
 
   return (
-    <html lang="ar" dir="rtl" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
         <JsonLd settings={settings} />
         
@@ -356,33 +379,86 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </>
         )}
         
+        {/* ═══════════════════════════════════════════
+            🌐 DNS Prefetch & Preconnect
+            ═══════════════════════════════════════════ */}
         {process.env.NEXT_PUBLIC_API_URL && (
           <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_API_URL} />
         )}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         
+        {/* ═══════════════════════════════════════════
+            🔤 تحميل الخطوط ديناميكياً من Google Fonts
+            ═══════════════════════════════════════════ */}
+        <link 
+          rel="stylesheet" 
+          href={googleFontsUrl}
+          key="google-fonts-dynamic"
+        />
+        
+        {/* ═══════════════════════════════════════════
+            🖼️ Preload الشعار الديناميكي
+            ═══════════════════════════════════════════ */}
         {siteLogo && (
           <link rel="preload" as="image" href={siteLogo} fetchPriority="high" />
         )}
         
+        {/* ═══════════════════════════════════════════
+            🎯 Favicon الديناميكي
+            ═══════════════════════════════════════════ */}
         <link rel="icon" href={favicon || '/favicon.ico'} sizes="any" />
-        {favicon && <link rel="apple-touch-icon" href={favicon} />}
+        {favicon && (
+          <>
+            <link rel="apple-touch-icon" href={favicon} />
+            <link rel="shortcut icon" href={favicon} />
+          </>
+        )}
         
         <link rel="manifest" href="/manifest.json" />
         
+        {/* ═══════════════════════════════════════════
+            🎨 CSS Variables الديناميكية
+            ═══════════════════════════════════════════ */}
         <style dangerouslySetInnerHTML={{ __html: `:root { ${cssVariables} }` }} />
         
+        {/* ═══════════════════════════════════════════
+            🖌️ تطبيق الخط على كل العناصر
+            ═══════════════════════════════════════════ */}
         <style dangerouslySetInnerHTML={{
           __html: `
-            .header-loading { height: 80px; background: #f8faff; }
+            * {
+              font-family: var(--font-family, '${fontFamily}', sans-serif);
+            }
+            body {
+              font-family: var(--font-family, '${fontFamily}', sans-serif) !important;
+              font-size: var(--font-size-base, 16px);
+            }
+            h1, h2, h3, h4, h5, h6 {
+              font-family: var(--font-family-headings, '${fontFamilyHeadings}', sans-serif) !important;
+            }
+            h1 { font-size: var(--font-size-h1, 48px); }
+            h2 { font-size: var(--font-size-h2, 36px); }
+            h3 { font-size: var(--font-size-h3, 24px); }
+            
+            /* استثناء الأيقونات */
+            svg, [class*="heroicon"], [class*="icon"] {
+              font-family: inherit;
+            }
+            
+            /* Loading States */
+            .header-loading { 
+              height: 80px; 
+              background: var(--color-bg-light, #f8faff); 
+            }
             .content-loading { 
               display: flex; 
               align-items: center; 
               justify-content: center; 
               min-height: 70vh;
-              color: #64748b;
+              color: var(--color-text-muted, #64748b);
               font-size: 1.2rem;
+              font-family: var(--font-family, '${fontFamily}', sans-serif);
             }
             @media (max-width: 640px) {
               .header-loading { height: 68px; }
@@ -390,9 +466,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           `
         }} />
 
-        {/* ════════════════════════════════════════════════
-            ✅ Google Ads Conversion - دالة التحويل
-            ════════════════════════════════════════════════ */}
+        {/* ═══════════════════════════════════════════
+            ✅ Google Ads Conversion
+            ═══════════════════════════════════════════ */}
         <Script
           id="google-ads-conversion-function"
           strategy="afterInteractive"
@@ -404,17 +480,25 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     window.location = url;
                   }
                 };
-                gtag('event', 'conversion', {
-                  'send_to': 'AW-18278947108/9fk7CJSbqcccEKSyioxE',
-                  'event_callback': callback
-                });
+                if (typeof gtag !== 'undefined') {
+                  gtag('event', 'conversion', {
+                    'send_to': 'AW-18278947108/9fk7CJSbqcccEKSyioxE',
+                    'event_callback': callback
+                  });
+                }
                 return false;
               }
             `,
           }}
         />
       </head>
-      <body suppressHydrationWarning>
+      
+      <body 
+        suppressHydrationWarning
+        style={{
+          fontFamily: `'${fontFamily}', sans-serif`,
+        }}
+      >
         <SliderThemeProvider>
           <ThemeProvider>
             <Suspense fallback={<div className="header-loading" />}>
@@ -438,6 +522,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </ThemeProvider>
         </SliderThemeProvider>
 
+        {/* ═══════════════════════════════════════════
+            📊 Google Tag Manager
+            ═══════════════════════════════════════════ */}
         {hasGTM && (
           <Script
             id="gtm-body"
@@ -454,6 +541,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           />
         )}
 
+        {/* ═══════════════════════════════════════════
+            📊 Google Analytics
+            ═══════════════════════════════════════════ */}
         {hasAnalytics && (
           <>
             <Script
@@ -479,6 +569,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </>
         )}
 
+        {/* ═══════════════════════════════════════════
+            📊 Facebook Pixel
+            ═══════════════════════════════════════════ */}
         {toStr(settings?.facebook_pixel_id) && (
           <Script
             id="fb-pixel"
@@ -500,6 +593,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           />
         )}
 
+        {/* ═══════════════════════════════════════════
+            🔥 Hotjar
+            ═══════════════════════════════════════════ */}
         {toStr(settings?.hotjar_id) && (
           <Script
             id="hotjar"

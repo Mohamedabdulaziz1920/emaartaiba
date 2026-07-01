@@ -1,19 +1,36 @@
-import Image from 'next/image';
+// src/app/loading.tsx
+import { getSiteSettings, buildMediaUrl } from '@/lib/settings';
 
-export default function Loading() {
+export default async function Loading() {
+  // ✅ جلب الإعدادات ديناميكياً
+  const settings = await getSiteSettings().catch(() => null);
+  
+  const siteLogo = settings?.site_logo ? buildMediaUrl(settings.site_logo) : null;
+  const siteName = settings?.site_name_ar || settings?.site_name || 'جاري التحميل';
+  const siteIcon = (settings?.site_icon as string) || '🏢';
+  const primaryColor = (settings?.primary_color as string) || '#1a365d';
+  const primaryLight = (settings?.primary_light as string) || '#2b6cb0';
+
   return (
     <div className="loading-container">
       <div className="loading-content">
-        {/* شعار الشركة (اختياري) */}
+        {/* ═══════════════════════════════════════
+            🖼️ شعار الشركة - ديناميكي 100%
+            ═══════════════════════════════════════ */}
         <div className="loading-logo">
-          <Image
-            src="/logo.png"
-            alt="جاري التحميل"
-            width={80}
-            height={80}
-            priority
-            className="loading-logo-image"
-          />
+          {siteLogo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={siteLogo}
+              alt={siteName}
+              className="loading-logo-image"
+              loading="eager"
+            />
+          ) : (
+            <div className="loading-logo-fallback">
+              <span>{siteIcon}</span>
+            </div>
+          )}
         </div>
 
         {/* Spinner */}
@@ -22,7 +39,7 @@ export default function Loading() {
         {/* نص التحميل */}
         <p className="loading-text">جاري التحميل...</p>
         
-        {/* نقاط متحركة إضافية */}
+        {/* نقاط متحركة */}
         <div className="loading-dots">
           <span>•</span>
           <span>•</span>
@@ -55,6 +72,10 @@ export default function Loading() {
           border-radius: 1rem;
           overflow: hidden;
           box-shadow: 0 4px 20px rgba(26, 54, 93, 0.1);
+          background: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .loading-logo-image {
@@ -63,12 +84,23 @@ export default function Loading() {
           object-fit: contain;
         }
 
+        .loading-logo-fallback {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: ${primaryColor};
+          color: white;
+          font-size: 2.5rem;
+        }
+
         .loading-spinner {
           width: 3.5rem;
           height: 3.5rem;
           border: 4px solid #e2e8f0;
-          border-top: 4px solid #1a365d;
-          border-right: 4px solid #2b6cb0;
+          border-top: 4px solid ${primaryColor};
+          border-right: 4px solid ${primaryLight};
           border-radius: 50%;
           animation: spin 1s cubic-bezier(0.65, 0, 0.35, 1) infinite;
           box-shadow: 0 4px 20px rgba(26, 54, 93, 0.1);
@@ -87,7 +119,7 @@ export default function Loading() {
           display: flex;
           gap: 0.5rem;
           font-size: 1.5rem;
-          color: #1a365d;
+          color: ${primaryColor};
         }
 
         .loading-dots span {
@@ -155,6 +187,9 @@ export default function Loading() {
           .loading-logo {
             width: 4rem;
             height: 4rem;
+          }
+          .loading-logo-fallback {
+            font-size: 2rem;
           }
         }
       `}</style>

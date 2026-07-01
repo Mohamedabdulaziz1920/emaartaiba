@@ -4,76 +4,173 @@ import { Suspense } from 'react';
 
 // 🎯 SEO
 import { generateSEO } from '@/lib/seo/metadata';
-import { JsonLd }      from '@/components/seo/JsonLd';
+import { JsonLd } from '@/components/seo/JsonLd';
 
 // 🛠️ Utilities
-import { api }               from '@/lib/api';
+import { api } from '@/lib/api';
 import { getDesignSettings } from '@/lib/colors';
-import { getSiteSettings }   from '@/lib/settings';
+import { getSiteSettings } from '@/lib/settings';
 
-// 🧩 Components - Static imports (أفضل للـ SSR)
-import HeroSlider        from '@/components/home/HeroSlider';
-import StatsCounter      from '@/components/home/StatsCounter';
-import ServicesGrid      from '@/components/home/ServicesGrid';
-import WhyChooseUs       from '@/components/home/WhyChooseUs';
-import FeaturedProjects  from '@/components/home/FeaturedProjects';
-import ProcessSteps      from '@/components/home/ProcessSteps';
-import GallerySection    from '@/components/home/GallerySection';
-import Testimonials      from '@/components/home/Testimonials';
-import FAQAccordion      from '@/components/home/FAQAccordion';
-import Partners          from '@/components/home/Partners';
-import LatestBlog        from '@/components/home/LatestBlog';
-import CTASection        from '@/components/home/CTASection';
+// 🧩 Components
+import HeroSlider from '@/components/home/HeroSlider';
+import StatsCounter from '@/components/home/StatsCounter';
+import ServicesGrid from '@/components/home/ServicesGrid';
+import WhyChooseUs from '@/components/home/WhyChooseUs';
+import FeaturedProjects from '@/components/home/FeaturedProjects';
+import ProcessSteps from '@/components/home/ProcessSteps';
+import GallerySection from '@/components/home/GallerySection';
+import Testimonials from '@/components/home/Testimonials';
+import FAQAccordion from '@/components/home/FAQAccordion';
+import Partners from '@/components/home/Partners';
+import LatestBlog from '@/components/home/LatestBlog';
+import CTASection from '@/components/home/CTASection';
 import CategoriesSection from '@/components/home/CategoriesSection';
 
 // ════════════════════════════════════════════════
 // ⚙️ Config
 // ════════════════════════════════════════════════
-export const revalidate = 300; // ✅ تحسين من 60
+export const revalidate = 300; // 5 دقائق
 
 // ════════════════════════════════════════════════
-// 🛠️ Helpers
+// 🎯 Types
 // ════════════════════════════════════════════════
+interface FAQItem {
+  id: number;
+  question: string;
+  answer: string;
+}
+
+interface HomePageData {
+  settings: any;
+  designSettings: any;
+  heroSlides: any[];
+  services: any[];
+  projects: any[];
+  testimonials: any[];
+  partners: any[];
+  blogs: any[];
+  faqs: FAQItem[];
+}
+
+// ════════════════════════════════════════════════
+// 🛠️ Helpers - محسّنة
+// ════════════════════════════════════════════════
+
+/**
+ * ✅ استخراج المصفوفة من أي شكل response
+ */
 function extractArray<T = any>(raw: any): T[] {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw;
-  if (raw.data && Array.isArray(raw.data)) return raw.data;
-  if (raw.data?.data && Array.isArray(raw.data.data)) return raw.data.data;
+  
+  // Nested data structures
+  if (raw.data) {
+    if (Array.isArray(raw.data)) return raw.data;
+    if (raw.data.data && Array.isArray(raw.data.data)) return raw.data.data;
+  }
+  
   if (raw.items && Array.isArray(raw.items)) return raw.items;
   if (raw.results && Array.isArray(raw.results)) return raw.results;
+  
   return [];
 }
 
-function normalizeFaqItem(item: any, index: number): any | null {
-  if (!item) return null;
+/**
+ * ✅ تطبيع عنصر FAQ - id رقم دائماً
+ */
+function normalizeFaqItem(item: any, index: number): FAQItem | null {
+  if (!item || typeof item !== 'object') return null;
+  
+  const question = 
+    item.question || 
+    item.question_ar || 
+    item.title || 
+    item.title_ar || 
+    '';
+  
+  const answer = 
+    item.answer || 
+    item.answer_ar || 
+    item.content || 
+    item.content_ar || 
+    item.description || 
+    item.description_ar ||
+    '';
+  
+  // ✅ لا نُرجع عنصر بدون سؤال
+  if (!question.trim()) return null;
+  
+  // ✅ تحويل ID لرقم دائماً
+  const rawId = item.id ?? item._id ?? (index + 1);
+  const numericId = typeof rawId === 'number' 
+    ? rawId 
+    : parseInt(String(rawId), 10) || (index + 1);
+  
   return {
-    id:       item.id || item._id || `faq-${index}`, // ✅ بدون Math.random()
-    question: item.question || item.question_ar ||
-              item.title    || item.title_ar    || '',
-    answer:   item.answer   || item.answer_ar   ||
-              item.content  || item.content_ar  ||
-              item.description || '',
+    id: numericId,
+    question: question.trim(),
+    answer: answer.trim(),
   };
 }
 
-function normalizeFaqs(rawData: any): any[] {
+/**
+ * ✅ تطبيع قائمة FAQs
+ */
+function normalizeFaqs(rawData: any): FAQItem[] {
   const items = extractArray(rawData);
   return items
-    .map((item: any, i: number) => normalizeFaqItem(item, i))
-    .filter((item): item is any => item !== null && !!item.question);
+    .map((item, i) => normalizeFaqItem(item, i))
+    .filter((item): item is FAQItem => item !== null);
+}
+
+/**
+ * ✅ استخراج بيانات المشاريع (تدعم أشكال متعددة)
+ */
+function extractProjects(result: PromiseSettledResult<any>): any[] {
+  if (result.status !== 'fulfilled') return [];
+  
+  const value = result.value;
+  if (!value) return [];
+  
+  // { success: true, data: [] }
+  if (value.data && Array.isArray(value.data)) return value.data;
+  
+  // Direct array
+  if (Array.isArray(value)) return value;
+  
+  // Nested
+  return extractArray(value);
 }
 
 // ════════════════════════════════════════════════
-// 🎨 Skeletons
+// 🎨 Skeletons - محسّنة
 // ════════════════════════════════════════════════
-function SectionSkeleton({ height = '400px' }: { height?: string }) {
+
+/**
+ * Skeleton عام للأقسام
+ */
+function SectionSkeleton({ 
+  height = '400px',
+  variant = 'light'
+}: { 
+  height?: string;
+  variant?: 'light' | 'dark';
+}) {
+  const bgGradient = variant === 'dark' 
+    ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)'
+    : 'linear-gradient(135deg, #f8faff 0%, #ffffff 50%, #f8faff 100%)';
+  
+  const shimmerColor = variant === 'dark'
+    ? 'rgba(212, 175, 55, 0.08)'
+    : 'rgba(212, 175, 55, 0.05)';
+
   return (
     <div className="hp-skeleton" style={{ minHeight: height }}>
       <div className="hp-shimmer" />
       <style>{`
         .hp-skeleton {
           width: 100%;
-          background: linear-gradient(135deg, #f8faff 0%, #ffffff 50%, #f8faff 100%);
+          background: ${bgGradient};
           position: relative;
           overflow: hidden;
           contain: layout style paint;
@@ -81,11 +178,16 @@ function SectionSkeleton({ height = '400px' }: { height?: string }) {
         .hp-shimmer {
           position: absolute;
           inset: 0;
-          background: linear-gradient(90deg, transparent 0%, rgba(237,137,54,0.05) 50%, transparent 100%);
+          background: linear-gradient(
+            90deg, 
+            transparent 0%, 
+            ${shimmerColor} 50%, 
+            transparent 100%
+          );
           background-size: 200% 100%;
-          animation: hp-skel 1.8s ease-in-out infinite;
+          animation: hp-skeleton-shimmer 1.8s ease-in-out infinite;
         }
-        @keyframes hp-skel {
+        @keyframes hp-skeleton-shimmer {
           0%   { background-position: 200% 0; }
           100% { background-position: -200% 0; }
         }
@@ -97,35 +199,11 @@ function SectionSkeleton({ height = '400px' }: { height?: string }) {
   );
 }
 
+/**
+ * Skeleton خاص بالـ Hero
+ */
 function HeroSkeleton() {
-  return (
-    <div className="hp-hero-skeleton">
-      <div className="hp-hero-shimmer" />
-      <style>{`
-        .hp-hero-skeleton {
-          min-height: 80vh;
-          background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
-          position: relative;
-          overflow: hidden;
-          contain: layout style paint;
-        }
-        .hp-hero-shimmer {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(90deg, transparent 0%, rgba(237,137,54,0.08) 50%, transparent 100%);
-          background-size: 200% 100%;
-          animation: hp-hero 2s ease-in-out infinite;
-        }
-        @keyframes hp-hero {
-          0%   { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .hp-hero-shimmer { animation: none; }
-        }
-      `}</style>
-    </div>
-  );
+  return <SectionSkeleton height="80vh" variant="dark" />;
 }
 
 // ════════════════════════════════════════════════
@@ -134,18 +212,24 @@ function HeroSkeleton() {
 export async function generateMetadata(): Promise<Metadata> {
   try {
     const settings = await getSiteSettings();
-    return generateSEO({ settings, type: 'website', url: '/' });
+    return generateSEO({ 
+      settings, 
+      type: 'website', 
+      url: '/' 
+    });
   } catch (error) {
     console.error('❌ Homepage metadata error:', error);
-    // ✅ لا defaults خاصة بنشاط
-    return generateSEO({ type: 'website', url: '/' });
+    return generateSEO({ 
+      type: 'website', 
+      url: '/' 
+    });
   }
 }
 
 // ════════════════════════════════════════════════
-// 🖥️ Page Component
+// 🚀 Data Fetching
 // ════════════════════════════════════════════════
-export default async function HomePage() {
+async function fetchHomePageData(): Promise<HomePageData> {
   const [
     settingsResult,
     designSettingsResult,
@@ -165,145 +249,257 @@ export default async function HomePage() {
     api.testimonials(),
     api.partners(),
     api.latestBlogs(),
-    api.faqs?.() || Promise.resolve(null),
+    api.faqs?.() ?? Promise.resolve(null),
   ]);
 
-  // ─── استخراج البيانات ─────────────────────────
-  const settings = settingsResult.status === 'fulfilled'
-    ? settingsResult.value : {};
+  // ─── استخراج البيانات بأمان ─────────────────────
+  const settings = settingsResult.status === 'fulfilled' 
+    ? settingsResult.value 
+    : {};
 
-  const designSettings = designSettingsResult.status === 'fulfilled'
-    ? designSettingsResult.value : null;
+  const designSettings = designSettingsResult.status === 'fulfilled' 
+    ? designSettingsResult.value 
+    : null;
 
-  const heroSlidesData   = heroSlidesResult.status   === 'fulfilled' ? extractArray(heroSlidesResult.value)   : [];
-  const servicesData     = servicesResult.status     === 'fulfilled' ? extractArray(servicesResult.value)     : [];
-  const testimonialsData = testimonialsResult.status === 'fulfilled' ? extractArray(testimonialsResult.value) : [];
-  const partnersData     = partnersResult.status     === 'fulfilled' ? extractArray(partnersResult.value)     : [];
-
-  // ✅ blogs - api.latestBlogs() يرجع BlogPost[] مباشرة
-  const blogsData = blogsResult.status === 'fulfilled'
-    ? extractArray(blogsResult.value)
+  const heroSlides = heroSlidesResult.status === 'fulfilled' 
+    ? extractArray(heroSlidesResult.value) 
+    : [];
+  
+  const services = servicesResult.status === 'fulfilled' 
+    ? extractArray(servicesResult.value) 
+    : [];
+  
+  const testimonials = testimonialsResult.status === 'fulfilled' 
+    ? extractArray(testimonialsResult.value) 
+    : [];
+  
+  const partners = partnersResult.status === 'fulfilled' 
+    ? extractArray(partnersResult.value) 
+    : [];
+  
+  const blogs = blogsResult.status === 'fulfilled' 
+    ? extractArray(blogsResult.value) 
     : [];
 
-  // ✅ projects - api.featuredProjects() يرجع { success, data: [] }
-  let projectsData: any[] = [];
-  if (projectsResult.status === 'fulfilled') {
-    const result = projectsResult.value;
-    if (result && (result as any).data && Array.isArray((result as any).data)) {
-      projectsData = (result as any).data;
-    } else if (Array.isArray(result)) {
-      projectsData = result;
-    }
-  }
+  const projects = extractProjects(projectsResult);
 
-  const faqsData = normalizeFaqs(
+  const faqs = normalizeFaqs(
     faqsResult.status === 'fulfilled' ? faqsResult.value : null
   );
 
-  const sliderAutoplay      = designSettings?.slider?.autoplay      ?? true;
-  const sliderAutoplayDelay = designSettings?.slider?.autoplay_delay ?? 5000;
-
-  // ─── Debug ────────────────────────────────────
+  // ─── Debug في التطوير فقط ─────────────────────
   if (process.env.NODE_ENV === 'development') {
-    console.log('\n╔═══════════════════════════════════════════╗');
-    console.log('║   🏠 HOMEPAGE DATA STATUS                 ║');
-    console.log('╠═══════════════════════════════════════════╣');
-    console.log(`║ 📊 Slides:      ${String(heroSlidesData.length).padEnd(22)} ║`);
-    console.log(`║ 🛠️  Services:    ${String(servicesData.length).padEnd(22)} ║`);
-    console.log(`║ 🏢 Projects:    ${String(projectsData.length).padEnd(22)} ║`);
-    console.log(`║ 💬 Reviews:     ${String(testimonialsData.length).padEnd(22)} ║`);
-    console.log(`║ 🤝 Partners:    ${String(partnersData.length).padEnd(22)} ║`);
-    console.log(`║ 📰 Blogs:       ${String(blogsData.length).padEnd(22)} ║`);
-    console.log(`║ ❓ FAQs:        ${String(faqsData.length).padEnd(22)} ║`);
-    console.log('╚═══════════════════════════════════════════╝\n');
-
-    [
-      { name: 'Settings',     r: settingsResult },
-      { name: 'Hero',         r: heroSlidesResult },
-      { name: 'Services',     r: servicesResult },
-      { name: 'Projects',     r: projectsResult },
-      { name: 'Testimonials', r: testimonialsResult },
-      { name: 'Partners',     r: partnersResult },
-      { name: 'Blogs',        r: blogsResult },
-      { name: 'FAQs',         r: faqsResult },
-    ].forEach(({ name, r }) => {
-      if (r.status === 'rejected') {
-        console.error(`❌ ${name} failed:`, (r as PromiseRejectedResult).reason?.message);
-      }
+    logDataStatus({
+      settings: settingsResult,
+      heroSlides: heroSlidesResult,
+      services: servicesResult,
+      projects: projectsResult,
+      testimonials: testimonialsResult,
+      partners: partnersResult,
+      blogs: blogsResult,
+      faqs: faqsResult,
+    }, {
+      slides: heroSlides.length,
+      services: services.length,
+      projects: projects.length,
+      testimonials: testimonials.length,
+      partners: partners.length,
+      blogs: blogs.length,
+      faqs: faqs.length,
     });
   }
 
-  // ════════════════════════════════════════════════
-  // 🎨 Render
-  // ════════════════════════════════════════════════
+  return {
+    settings,
+    designSettings,
+    heroSlides,
+    services,
+    projects,
+    testimonials,
+    partners,
+    blogs,
+    faqs,
+  };
+}
+
+// ════════════════════════════════════════════════
+// 🐛 Debug Logger (Development Only)
+// ════════════════════════════════════════════════
+function logDataStatus(
+  results: Record<string, PromiseSettledResult<any>>,
+  counts: Record<string, number>
+) {
+  console.log('\n╔═══════════════════════════════════════════╗');
+  console.log('║   🏠 HOMEPAGE DATA STATUS                 ║');
+  console.log('╠═══════════════════════════════════════════╣');
+  
+  Object.entries(counts).forEach(([key, value]) => {
+    const icon = getIconForKey(key);
+    const label = `${icon} ${key.charAt(0).toUpperCase() + key.slice(1)}:`;
+    console.log(`║ ${label.padEnd(20)} ${String(value).padEnd(18)} ║`);
+  });
+  
+  console.log('╚═══════════════════════════════════════════╝\n');
+
+  // ✅ اعرض الأخطاء فقط
+  Object.entries(results).forEach(([name, result]) => {
+    if (result.status === 'rejected') {
+      const reason = (result as PromiseRejectedResult).reason;
+      console.error(`❌ ${name} failed:`, reason?.message || reason);
+    }
+  });
+}
+
+function getIconForKey(key: string): string {
+  const icons: Record<string, string> = {
+    slides: '📊',
+    services: '🛠️',
+    projects: '🏢',
+    testimonials: '💬',
+    partners: '🤝',
+    blogs: '📰',
+    faqs: '❓',
+    settings: '⚙️',
+    heroSlides: '🎬',
+  };
+  return icons[key] || '📌';
+}
+
+// ════════════════════════════════════════════════
+// 🖥️ Main Page Component
+// ════════════════════════════════════════════════
+export default async function HomePage() {
+  const data = await fetchHomePageData();
+  
+  const {
+    settings,
+    designSettings,
+    heroSlides,
+    services,
+    projects,
+    testimonials,
+    partners,
+    blogs,
+    faqs,
+  } = data;
+
+  // ─── إعدادات السلايدر ─────────────────────────
+  const sliderAutoplay = designSettings?.slider?.autoplay ?? true;
+  const sliderAutoplayDelay = designSettings?.slider?.autoplay_delay ?? 5000;
+
   return (
     <>
+      {/* ═══════════════════════════════════
+          🔍 SEO & Structured Data
+          ═══════════════════════════════════ */}
       <JsonLd settings={settings} pageType="home" />
 
+      {/* ═══════════════════════════════════
+          🎬 Hero Slider - دائماً يعرض
+          ═══════════════════════════════════ */}
       <Suspense fallback={<HeroSkeleton />}>
         <HeroSlider
-          slides={heroSlidesData}
+          slides={heroSlides}
           settings={settings}
           autoplay={sliderAutoplay}
           autoplayDelay={sliderAutoplayDelay}
         />
       </Suspense>
 
+      {/* ═══════════════════════════════════
+          📊 Stats Counter - دائماً يعرض
+          ═══════════════════════════════════ */}
       <Suspense fallback={<SectionSkeleton height="250px" />}>
         <StatsCounter settings={settings} />
       </Suspense>
 
+      {/* ═══════════════════════════════════
+          📂 Categories - دائماً يعرض
+          ═══════════════════════════════════ */}
       <Suspense fallback={<SectionSkeleton height="350px" />}>
         <CategoriesSection />
       </Suspense>
 
-      {servicesData.length > 0 && (
+      {/* ═══════════════════════════════════
+          🛠️ Services - يعرض عند وجود بيانات
+          ═══════════════════════════════════ */}
+      {services.length > 0 && (
         <Suspense fallback={<SectionSkeleton height="600px" />}>
-          <ServicesGrid services={servicesData} />
+          <ServicesGrid services={services} />
         </Suspense>
       )}
 
+      {/* ═══════════════════════════════════
+          ⭐ Why Choose Us - دائماً يعرض
+          ═══════════════════════════════════ */}
       <WhyChooseUs />
 
-      {projectsData.length > 0 && (
+      {/* ═══════════════════════════════════
+          🏢 Featured Projects - يعرض عند وجود بيانات
+          ═══════════════════════════════════ */}
+      {projects.length > 0 && (
         <Suspense fallback={<SectionSkeleton height="600px" />}>
-          <FeaturedProjects projects={projectsData} />
+          <FeaturedProjects projects={projects} />
         </Suspense>
       )}
 
+      {/* ═══════════════════════════════════
+          📋 Process Steps - دائماً يعرض
+          ═══════════════════════════════════ */}
       <ProcessSteps />
 
+      {/* ═══════════════════════════════════
+          🖼️ Gallery - دائماً يعرض
+          ═══════════════════════════════════ */}
       <Suspense fallback={<SectionSkeleton height="500px" />}>
         <GallerySection />
       </Suspense>
 
-      {testimonialsData.length > 0 && (
+      {/* ═══════════════════════════════════
+          💬 Testimonials - يعرض عند وجود بيانات
+          ═══════════════════════════════════ */}
+      {testimonials.length > 0 && (
         <Suspense fallback={<SectionSkeleton height="400px" />}>
-          <Testimonials featured={false} limit={12} />
+          <Testimonials 
+            featured={false} 
+            limit={12}
+          />
         </Suspense>
       )}
 
-      {faqsData.length > 0 && (
+      {/* ═══════════════════════════════════
+          ❓ FAQ - يعرض عند وجود بيانات
+          ═══════════════════════════════════ */}
+      {faqs.length > 0 && (
         <Suspense fallback={<SectionSkeleton height="500px" />}>
-          <FAQAccordion faqs={faqsData} />
+          <FAQAccordion faqs={faqs} />
         </Suspense>
       )}
 
-      {partnersData.length > 0 && (
+      {/* ═══════════════════════════════════
+          🤝 Partners - يعرض عند وجود بيانات
+          ═══════════════════════════════════ */}
+      {partners.length > 0 && (
         <Suspense fallback={<SectionSkeleton height="300px" />}>
           <Partners
-            partners={partnersData}
+            partners={partners}
             autoplayInterval={sliderAutoplayDelay}
           />
         </Suspense>
       )}
 
-      {blogsData.length > 0 && (
+      {/* ═══════════════════════════════════
+          📰 Latest Blog - يعرض عند وجود بيانات
+          ═══════════════════════════════════ */}
+      {blogs.length > 0 && (
         <Suspense fallback={<SectionSkeleton height="500px" />}>
-          <LatestBlog blogs={blogsData} />
+          <LatestBlog blogs={blogs} />
         </Suspense>
       )}
 
+      {/* ═══════════════════════════════════
+          📢 CTA Section - دائماً يعرض
+          ═══════════════════════════════════ */}
       <CTASection />
     </>
   );

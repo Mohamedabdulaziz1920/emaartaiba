@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Phone, Search, X, ChevronDown, MessageCircle } from 'lucide-react';
 import {
@@ -19,7 +18,9 @@ interface Props {
   navigation?: NavItem[];
 }
 
-// ✅ تحسين: استخراج مكونات فرعية للتقليل من إعادة الرسم
+// ═══════════════════════════════════════════════════
+// 🔗 NavLink Component
+// ═══════════════════════════════════════════════════
 const NavLink = memo(({ 
   item, 
   isActive, 
@@ -39,10 +40,11 @@ const NavLink = memo(({
     )}
   </Link>
 ));
-
 NavLink.displayName = 'NavLink';
 
-// ✅ تحسين: استخراج Dropdown
+// ═══════════════════════════════════════════════════
+// 📂 Dropdown Component
+// ═══════════════════════════════════════════════════
 const Dropdown = memo(({ children }: { children: NavItem[] }) => {
   if (!children || children.length === 0) return null;
   
@@ -67,9 +69,11 @@ const Dropdown = memo(({ children }: { children: NavItem[] }) => {
     </div>
   );
 });
-
 Dropdown.displayName = 'Dropdown';
 
+// ═══════════════════════════════════════════════════
+// 🎯 Main Header Component
+// ═══════════════════════════════════════════════════
 export default function Header({ settings = {}, navigation = [] }: Props) {
   const safeSettings = settings || {};
 
@@ -78,13 +82,12 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [openDropdowns, setOpenDropdowns] = useState<string[]>([]);
-  const [logoError, setLogoError] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [imageFailed, setImageFailed] = useState(false); // ✅ state واحد فقط للـ fallback
   const pathname = usePathname();
   const searchRef = useRef<HTMLInputElement>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
 
-  /* ═══ بيانات الهيدر الديناميكية من قاعدة البيانات ═══ */
+  /* ═══ بيانات الهيدر الديناميكية ═══ */
   const {
     siteName,
     siteTagline,
@@ -103,17 +106,18 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
   } = getHeaderData(safeSettings);
 
   const siteLogo = useMemo(() => buildMediaUrl(siteLogoRaw), [siteLogoRaw]);
+  
+  // ✅ منطق واضح: هل نعرض الشعار أم النص؟
+  const showLogo = siteLogo && !imageFailed;
 
-  /* ═══ معالجة عناصر القائمة - محسّن ═══ */
+  /* ═══ معالجة عناصر القائمة ═══ */
   const navItems = useMemo(() => {
     if (!navigation || navigation.length === 0) return [];
-    
     return navigation
       .filter((item) => item.is_active !== false)
       .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   }, [navigation]);
 
-  // ✅ تحسين: تخزين القوائم الفرعية في useMemo
   const navItemsWithChildren = useMemo(() => {
     return navItems.map(item => ({
       ...item,
@@ -126,68 +130,48 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
     }));
   }, [navItems]);
 
-  /* ═══ Effects - محسّنة ═══ */
+  /* ═══ Effects ═══ */
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout | null = null;
+    let ticking = false;
     
     const onScroll = () => {
-      const shouldScrolled = window.scrollY > 80;
-      // ✅ تحسين: فقط تحديث إذا تغيرت القيمة
-      if (shouldScrolled !== scrolled) {
-        // ✅ استخدام requestAnimationFrame لتحسين الأداء
+      if (!ticking) {
         requestAnimationFrame(() => {
-          setScrolled(shouldScrolled);
+          setScrolled(window.scrollY > 80);
+          ticking = false;
         });
+        ticking = true;
       }
     };
 
-    // ✅ استخدام passive: true للتحسين
     window.addEventListener('scroll', onScroll, { passive: true });
-    
-    // ✅ إضافة كلاس loaded لمنع FOUC
-    timeoutId = setTimeout(() => {
-      setIsLoaded(true);
-    }, 50);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [scrolled]);
-
-  // ✅ تحسين: منع overflow منفصل
   useEffect(() => {
     if (open) {
       document.body.style.overflow = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.width = '100%';
     } else {
       document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.width = '';
     }
     return () => {
       document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.width = '';
     };
   }, [open]);
 
-  // ✅ تحسين: إغلاق القوائم عند تغيير المسار
   useEffect(() => {
     setOpen(false);
     setSearchOpen(false);
     setOpenDropdowns([]);
   }, [pathname]);
 
-  // ✅ تحسين: تركيز البحث
   useEffect(() => {
     if (searchOpen && searchRef.current) {
       searchRef.current.focus();
     }
   }, [searchOpen]);
 
-  /* ═══ Handlers - محسّنة ═══ */
+  /* ═══ Handlers ═══ */
   const toggleDropdown = useCallback((href: string) => {
     setOpenDropdowns((prev) =>
       prev.includes(href) 
@@ -213,12 +197,10 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
     }
   }, [searchQuery]);
 
-  // ✅ تحسين: منع التمرير عند البحث
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
   }, []);
 
-  // ✅ تحسين: إغلاق القائمة
   const closeMenu = useCallback(() => setOpen(false), []);
   const toggleMenu = useCallback(() => setOpen(prev => !prev), []);
   const toggleSearch = useCallback(() => setSearchOpen(prev => !prev), []);
@@ -228,26 +210,28 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
       <TopBar settings={safeSettings} />
 
       <header 
-        className={`site-hdr ${scrolled ? 'site-hdr--scrolled' : ''} ${isLoaded ? 'loaded' : ''}`}
+        className={`site-hdr ${scrolled ? 'site-hdr--scrolled' : ''}`}
         suppressHydrationWarning
       >
         <div className="site-hdr__wrap">
           <div className="site-hdr__card">
-            {/* ═══ Logo ديناميكي ═══ */}
+            
+            {/* ═══════════════════════════════════════════
+                🖼️ Logo - إما شعار أو اسم الموقع (وليس كلاهما)
+                ═══════════════════════════════════════════ */}
             <Link href="/" className="site-hdr__logo" aria-label={siteName}>
-              {!logoError && siteLogo ? (
-                <Image
+              {showLogo ? (
+                /* ✅ الشعار فقط - بدون نص */
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
                   src={siteLogo}
                   alt={siteName}
-                  width={170}
-                  height={48}
                   className="site-hdr__logo-img"
-                  priority
                   loading="eager"
-                  onError={() => setLogoError(true)}
-                  sizes="(max-width: 640px) 130px, 170px"
+                  onError={() => setImageFailed(true)}
                 />
               ) : (
+                /* ✅ اسم الموقع + الأيقونة (فقط عند عدم وجود شعار) */
                 <div className="site-hdr__logo-fb">
                   <span className="site-hdr__logo-icon">{siteIcon}</span>
                   <div className="site-hdr__logo-text">
@@ -258,7 +242,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
               )}
             </Link>
 
-            {/* ═══ Desktop Nav - محسّن ═══ */}
+            {/* ═══ Desktop Nav ═══ */}
             <nav className="site-hdr__nav" role="navigation" aria-label={siteName}>
               <ul className="site-hdr__nav-list">
                 {navItemsWithChildren.map((item) => {
@@ -335,31 +319,39 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
         </div>
       </header>
 
-      {/* ═══ Mobile drawer ═══ */}
+      {/* ═══════════════════════════════════════════
+          📱 Mobile Drawer
+          ═══════════════════════════════════════════ */}
       <div className={`site-mob ${open ? 'is-open' : ''}`}>
         <div className="site-mob__overlay" onClick={closeMenu} />
 
         <aside className="site-mob__panel" role="dialog" aria-label="القائمة">
           <div className="site-mob__head">
             <div className="site-mob__brand">
-              {!logoError && siteLogo ? (
-                <Image
+              {showLogo ? (
+                /* ✅ الشعار فقط في mobile */
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
                   src={siteLogo}
                   alt={siteName}
-                  width={120}
-                  height={40}
                   className="site-mob__brand-img"
                   loading="eager"
-                  sizes="120px"
+                  onError={() => setImageFailed(true)}
                 />
               ) : (
-                <span className="site-mob__brand-icon">{siteIcon}</span>
+                /* ✅ الأيقونة فقط */
+                <span className="site-mob__brand-icon">
+                  {siteIcon}
+                </span>
               )}
-              <div>
+              
+              {/* ✅ اسم الموقع دائماً يظهر في mobile drawer (بجانب الشعار أو الأيقونة) */}
+              <div className="site-mob__brand-text">
                 <strong>{mobileMenuTitle}</strong>
                 {mobileMenuSubtitle && <small>{mobileMenuSubtitle}</small>}
               </div>
             </div>
+            
             <button
               onClick={closeMenu}
               className="site-mob__close"
@@ -395,7 +387,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
                     >
                       <span
                         className="site-mob__link-dot"
-                        style={{ background: active ? '#D4AF37' : 'transparent' }}
+                        style={{ background: active ? 'var(--color-secondary, #D4AF37)' : 'transparent' }}
                       />
                       {item.label}
                     </Link>
@@ -465,24 +457,6 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
 
       {/* ═══════════════════ Styles ═══════════════════ */}
       <style jsx global>{`
-        /* ───────── منع FOUC ───────── */
-        .site-hdr {
-          opacity: 0;
-          transition: opacity 0.3s ease;
-          will-change: opacity;
-        }
-        .site-hdr.loaded {
-          opacity: 1;
-        }
-
-        .top-bar {
-          opacity: 0;
-          transition: opacity 0.3s ease;
-        }
-        .top-bar.loaded {
-          opacity: 1;
-        }
-
         /* ───────── Header shell ───────── */
         .site-hdr {
           position: relative !important;
@@ -543,23 +517,23 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
           text-decoration: none !important;
           flex-shrink: 0 !important;
           padding-inline-start: 0.5rem !important;
-          max-width: 170px !important;
+          max-width: 220px !important;
         }
         .site-hdr__logo-img {
-          height: 48px !important;
+          height: 56px !important;
           width: auto !important;
           max-width: 100% !important;
           object-fit: contain !important;
           transition: height 0.3s ease !important;
         }
         .site-hdr--scrolled .site-hdr__logo-img {
-          height: 42px !important;
+          height: 48px !important;
         }
         .site-hdr__logo-fb {
           display: flex !important;
           align-items: center !important;
           gap: 0.55rem !important;
-          background: linear-gradient(135deg, #1a365d 0%, #0f172a 100%) !important;
+          background: linear-gradient(135deg, var(--color-primary, #1a365d) 0%, var(--color-primary-dark, #0f172a) 100%) !important;
           padding: 0.4rem 0.9rem 0.4rem 0.6rem !important;
           border-radius: 12px !important;
         }
@@ -579,7 +553,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
         }
         .site-hdr__logo-text small {
           font-size: 0.62rem !important;
-          color: #FFD700 !important;
+          color: var(--color-secondary, #FFD700) !important;
           font-weight: 600 !important;
         }
 
@@ -633,19 +607,19 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
           width: 0 !important;
           height: 3px !important;
           border-radius: 99px !important;
-          background: #D4AF37 !important;
+          background: var(--color-secondary, #D4AF37) !important;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
           transform: translateX(-50%) !important;
         }
         .site-hdr__nav-link:hover {
-          color: #D4AF37 !important;
+          color: var(--color-secondary, #D4AF37) !important;
           background: rgba(212, 175, 55, 0.08) !important;
         }
         .site-hdr__nav-link:hover::before {
           width: 18px !important;
         }
         .site-hdr__nav-link.is-active {
-          background: linear-gradient(135deg, #D4AF37 0%, #B8960F 100%) !important;
+          background: linear-gradient(135deg, var(--color-secondary, #D4AF37) 0%, var(--color-secondary-dark, #B8960F) 100%) !important;
           color: #0f172a !important;
           box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3) !important;
         }
@@ -660,7 +634,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
         .site-hdr__nav-item:hover .site-hdr__nav-chev {
           transform: rotate(180deg) !important;
           opacity: 1 !important;
-          color: #D4AF37 !important;
+          color: var(--color-secondary, #D4AF37) !important;
         }
 
         /* ───────── Dropdown ───────── */
@@ -707,7 +681,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
         }
         .site-hdr__dropdown-link:hover {
           background: linear-gradient(135deg, #fef3c7 0%, #fff7ed 100%) !important;
-          color: #B8960F !important;
+          color: var(--color-secondary-dark, #B8960F) !important;
           padding-inline-start: 1.1rem !important;
         }
         .site-hdr__dropdown-dot {
@@ -719,7 +693,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
           transition: all 0.25s ease !important;
         }
         .site-hdr__dropdown-link:hover .site-hdr__dropdown-dot {
-          background: #D4AF37 !important;
+          background: var(--color-secondary, #D4AF37) !important;
           box-shadow: 0 0 8px rgba(212, 175, 55, 0.5) !important;
         }
 
@@ -747,14 +721,14 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
         .site-hdr__act-btn:hover,
         .site-hdr__act-btn.is-active {
           background: rgba(212, 175, 55, 0.15) !important;
-          color: #D4AF37 !important;
+          color: var(--color-secondary, #D4AF37) !important;
         }
         .site-hdr__cta {
           display: inline-flex !important;
           align-items: center !important;
           gap: 0.45rem !important;
           padding: 0.55rem 1.1rem !important;
-          background: linear-gradient(135deg, #1a365d 0%, #0f172a 100%) !important;
+          background: linear-gradient(135deg, var(--color-primary, #1a365d) 0%, var(--color-primary-dark, #0f172a) 100%) !important;
           color: #fff !important;
           font-weight: 700 !important;
           font-size: 0.83rem !important;
@@ -766,7 +740,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
           line-height: 1 !important;
         }
         .site-hdr__cta:hover {
-          background: linear-gradient(135deg, #D4AF37 0%, #B8960F 100%) !important;
+          background: linear-gradient(135deg, var(--color-secondary, #D4AF37) 0%, var(--color-secondary-dark, #B8960F) 100%) !important;
           transform: translateY(-2px) !important;
           box-shadow: 0 6px 18px rgba(212, 175, 55, 0.35) !important;
           color: #0f172a !important;
@@ -777,7 +751,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
           height: 40px !important;
           border-radius: 10px !important;
           background: rgba(212, 175, 55, 0.15) !important;
-          color: #D4AF37 !important;
+          color: var(--color-secondary, #D4AF37) !important;
           border: none !important;
           cursor: pointer !important;
           display: none !important;
@@ -787,7 +761,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
           padding: 0 !important;
         }
         .site-hdr__burger:hover {
-          background: #D4AF37 !important;
+          background: var(--color-secondary, #D4AF37) !important;
           color: #0f172a !important;
         }
         .site-hdr__burger-lines {
@@ -804,15 +778,9 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
           transition: all 0.3s ease !important;
           transform-origin: center !important;
         }
-        .site-hdr__burger-lines span:nth-child(1) {
-          width: 100% !important;
-        }
-        .site-hdr__burger-lines span:nth-child(2) {
-          width: 70% !important;
-        }
-        .site-hdr__burger-lines span:nth-child(3) {
-          width: 85% !important;
-        }
+        .site-hdr__burger-lines span:nth-child(1) { width: 100% !important; }
+        .site-hdr__burger-lines span:nth-child(2) { width: 70% !important; }
+        .site-hdr__burger-lines span:nth-child(3) { width: 85% !important; }
         .site-hdr__burger-lines.is-open span:nth-child(1) {
           transform: translateY(6px) rotate(45deg) !important;
         }
@@ -866,7 +834,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
         }
         .site-hdr__search-go {
           padding: 0.55rem 1.3rem !important;
-          background: linear-gradient(135deg, #D4AF37, #FFD700) !important;
+          background: linear-gradient(135deg, var(--color-secondary, #D4AF37), var(--color-accent, #FFD700)) !important;
           color: #0f172a !important;
           border: none !important;
           border-radius: 12px !important;
@@ -885,9 +853,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
           cursor: not-allowed !important;
         }
 
-        /* ═══════════════════════════════════════════
-           Mobile drawer
-           ═══════════════════════════════════════════ */
+        /* ═══════════════════ Mobile drawer ═══════════════════ */
         .site-mob {
           position: fixed !important;
           inset: 0 !important;
@@ -930,7 +896,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
         }
 
         .site-mob__head {
-          background: linear-gradient(135deg, #1a365d 0%, #0f172a 100%) !important;
+          background: linear-gradient(135deg, var(--color-primary, #1a365d) 0%, var(--color-primary-dark, #0f172a) 100%) !important;
           padding: 1.2rem 1.25rem !important;
           display: flex !important;
           align-items: center !important;
@@ -940,33 +906,58 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
         .site-mob__brand {
           display: flex !important;
           align-items: center !important;
-          gap: 0.65rem !important;
+          gap: 0.75rem !important;
           color: #fff !important;
+          flex: 1 !important;
+          min-width: 0 !important;
         }
         .site-mob__brand-icon {
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
           font-size: 1.6rem !important;
+          width: 44px !important;
+          height: 44px !important;
+          background: linear-gradient(135deg, var(--color-secondary, #D4AF37), var(--color-secondary-dark, #B8960F)) !important;
+          border-radius: 10px !important;
+          color: #0f172a !important;
+          flex-shrink: 0 !important;
         }
         .site-mob__brand-img {
-          height: 40px !important;
+          height: 48px !important;
           width: auto !important;
-          max-width: 120px !important;
+          max-width: 140px !important;
           object-fit: contain !important;
           background: rgba(255, 255, 255, 0.95) !important;
-          padding: 4px 8px !important;
+          padding: 5px 8px !important;
           border-radius: 8px !important;
+          flex-shrink: 0 !important;
         }
-        .site-mob__brand strong {
+        .site-mob__brand-text {
+          display: flex !important;
+          flex-direction: column !important;
+          min-width: 0 !important;
+          flex: 1 !important;
+        }
+        .site-mob__brand-text strong {
           display: block !important;
-          font-size: 1rem !important;
+          font-size: 0.95rem !important;
           font-weight: 800 !important;
           line-height: 1.2 !important;
           color: #fff !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          white-space: nowrap !important;
         }
-        .site-mob__brand small {
+        .site-mob__brand-text small {
           display: block !important;
           font-size: 0.7rem !important;
-          color: #FFD700 !important;
+          color: var(--color-secondary, #FFD700) !important;
           font-weight: 600 !important;
+          margin-top: 2px !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          white-space: nowrap !important;
         }
         .site-mob__close {
           width: 36px !important;
@@ -981,6 +972,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
           justify-content: center !important;
           transition: all 0.3s ease !important;
           padding: 0 !important;
+          flex-shrink: 0 !important;
         }
         .site-mob__close:hover {
           background: rgba(255, 255, 255, 0.22) !important;
@@ -998,7 +990,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
           transition: border-color 0.3s ease !important;
         }
         .site-mob__search:focus-within {
-          border-color: #D4AF37 !important;
+          border-color: var(--color-secondary, #D4AF37) !important;
           background: #fff !important;
         }
         .site-mob__search input {
@@ -1018,13 +1010,8 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
           padding: 0.75rem 1rem !important;
           overflow-y: auto !important;
         }
-        .site-mob__item {
-          margin-bottom: 2px !important;
-        }
-        .site-mob__row {
-          display: flex !important;
-          gap: 4px !important;
-        }
+        .site-mob__item { margin-bottom: 2px !important; }
+        .site-mob__row { display: flex !important; gap: 4px !important; }
         .site-mob__link {
           flex: 1 !important;
           display: flex !important;
@@ -1040,10 +1027,10 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
         }
         .site-mob__link:hover {
           background: rgba(212, 175, 55, 0.15) !important;
-          color: #B8960F !important;
+          color: var(--color-secondary-dark, #B8960F) !important;
         }
         .site-mob__link.is-active {
-          background: linear-gradient(135deg, #D4AF37, #B8960F) !important;
+          background: linear-gradient(135deg, var(--color-secondary, #D4AF37), var(--color-secondary-dark, #B8960F)) !important;
           color: #0f172a !important;
           box-shadow: 0 3px 12px rgba(212, 175, 55, 0.3) !important;
         }
@@ -1070,11 +1057,11 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
         }
         .site-mob__expand:hover {
           background: rgba(212, 175, 55, 0.15) !important;
-          border-color: #D4AF37 !important;
-          color: #D4AF37 !important;
+          border-color: var(--color-secondary, #D4AF37) !important;
+          color: var(--color-secondary, #D4AF37) !important;
         }
         .site-mob__expand.is-open {
-          background: linear-gradient(135deg, #D4AF37, #B8960F) !important;
+          background: linear-gradient(135deg, var(--color-secondary, #D4AF37), var(--color-secondary-dark, #B8960F)) !important;
           color: #0f172a !important;
           border-color: transparent !important;
           transform: rotate(180deg) !important;
@@ -1085,9 +1072,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
           overflow: hidden !important;
           transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }
-        .site-mob__sub.is-open {
-          max-height: 400px !important;
-        }
+        .site-mob__sub.is-open { max-height: 400px !important; }
         .site-mob__sublink {
           display: block !important;
           padding: 0.65rem 1rem 0.65rem 2.8rem !important;
@@ -1113,10 +1098,10 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
         }
         .site-mob__sublink:hover {
           background: rgba(212, 175, 55, 0.15) !important;
-          color: #B8960F !important;
+          color: var(--color-secondary-dark, #B8960F) !important;
         }
         .site-mob__sublink:hover::before {
-          background: #D4AF37 !important;
+          background: var(--color-secondary, #D4AF37) !important;
           box-shadow: 0 0 6px rgba(212, 175, 55, 0.5) !important;
         }
 
@@ -1156,7 +1141,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
           color: #fff !important;
         }
         .site-mob__foot-btn--call {
-          background: linear-gradient(135deg, #1a365d 0%, #0f172a 100%) !important;
+          background: linear-gradient(135deg, var(--color-primary, #1a365d) 0%, var(--color-primary-dark, #0f172a) 100%) !important;
           box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2) !important;
         }
         .site-mob__foot-btn--call:hover {
@@ -1172,9 +1157,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
           box-shadow: 0 6px 20px rgba(37, 211, 102, 0.3) !important;
         }
 
-        /* ═══════════════════════════════════════════
-           Responsive
-           ═══════════════════════════════════════════ */
+        /* ═══════════════════ Responsive ═══════════════════ */
         @media (min-width: 1440px) {
           .site-hdr__nav-link {
             padding: 0.65rem 1.1rem !important;
@@ -1183,19 +1166,13 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
         }
 
         @media (max-width: 1280px) {
-          .site-hdr__card {
-            gap: 0.75rem !important;
-          }
+          .site-hdr__card { gap: 0.75rem !important; }
           .site-hdr__nav-link {
             padding: 0.58rem 0.85rem !important;
             font-size: 0.84rem !important;
           }
-          .site-hdr__logo-img {
-            height: 44px !important;
-          }
-          .site-hdr__logo {
-            max-width: 150px !important;
-          }
+          .site-hdr__logo-img { height: 50px !important; }
+          .site-hdr__logo { max-width: 180px !important; }
         }
 
         @media (max-width: 1100px) {
@@ -1203,9 +1180,7 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
             gap: 0.5rem !important;
             padding-inline-end: 0.5rem !important;
           }
-          .site-hdr__nav-list {
-            gap: 0.15rem !important;
-          }
+          .site-hdr__nav-list { gap: 0.15rem !important; }
           .site-hdr__nav-link {
             padding: 0.5rem 0.7rem !important;
             font-size: 0.82rem !important;
@@ -1218,12 +1193,8 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
         }
 
         @media (max-width: 1024px) {
-          .site-hdr__nav {
-            display: none !important;
-          }
-          .site-hdr__burger {
-            display: flex !important;
-          }
+          .site-hdr__nav { display: none !important; }
+          .site-hdr__burger { display: flex !important; }
           .site-hdr__card {
             grid-template-columns: 1fr auto !important;
             gap: 0.5rem !important;
@@ -1232,37 +1203,25 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
         }
 
         @media (max-width: 640px) {
-          .site-hdr {
-            padding: 0.5rem 0.65rem !important;
-          }
-          .site-hdr--scrolled {
-            padding: 0.3rem 0.65rem !important;
-          }
+          .site-hdr { padding: 0.5rem 0.65rem !important; }
+          .site-hdr--scrolled { padding: 0.3rem 0.65rem !important; }
           .site-hdr__card {
             min-height: 58px !important;
             padding: 0.4rem 0.5rem !important;
             border-radius: 14px !important;
           }
-          .site-hdr__logo-img {
-            height: 38px !important;
-          }
+          .site-hdr__logo-img { height: 42px !important; }
           .site-hdr__logo {
-            max-width: 130px !important;
+            max-width: 160px !important;
             padding-inline-start: 0.25rem !important;
           }
           .site-hdr__logo-fb {
             padding: 0.35rem 0.7rem 0.35rem 0.5rem !important;
             border-radius: 10px !important;
           }
-          .site-hdr__logo-icon {
-            font-size: 1.15rem !important;
-          }
-          .site-hdr__logo-text strong {
-            font-size: 0.78rem !important;
-          }
-          .site-hdr__cta-label {
-            display: none !important;
-          }
+          .site-hdr__logo-icon { font-size: 1.15rem !important; }
+          .site-hdr__logo-text strong { font-size: 0.78rem !important; }
+          .site-hdr__cta-label { display: none !important; }
           .site-hdr__cta {
             width: 38px !important;
             height: 38px !important;
@@ -1281,12 +1240,8 @@ export default function Header({ settings = {}, navigation = [] }: Props) {
         }
 
         @media (max-width: 380px) {
-          .site-hdr__actions {
-            gap: 0.3rem !important;
-          }
-          .site-hdr__logo-text small {
-            display: none !important;
-          }
+          .site-hdr__actions { gap: 0.3rem !important; }
+          .site-hdr__logo-text small { display: none !important; }
         }
 
         @media (prefers-reduced-motion: reduce) {
