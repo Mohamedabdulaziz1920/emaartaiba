@@ -14,12 +14,12 @@ import { api, type NavItem } from '@/lib/api';
 import { Suspense } from 'react';
 import { getDesignSettings } from '@/lib/colors';
 import { toStr } from '@/lib/typeSafe';
-
-// ✅ محذوف: export const revalidate = 300;
+import ClientOnly from '@/components/shared/ClientOnly';
 
 // ═══════════════════════════════════════════════════
 // 🎨 Viewport - ديناميكي
 // ═══════════════════════════════════════════════════
+
 export async function generateViewport(): Promise<Viewport> {
   let themeColor = '#1a365d';
   
@@ -515,8 +515,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               services={services}
             />
             
-            <FloatingButtons settings={settings} />
-            <ScrollToTop />
+         <ClientOnly>
+  <FloatingButtons settings={settings} />
+</ClientOnly>
+
+<ClientOnly>
+  <ScrollToTop />
+</ClientOnly>
           </ThemeProvider>
         </SliderThemeProvider>
 
