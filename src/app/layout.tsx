@@ -414,9 +414,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <link rel="shortcut icon" href={favicon} />
           </>
         )}
-        
-        <link rel="manifest" href="/manifest.json" />
-        
+                
         {/* ═══════════════════════════════════════════
             🎨 CSS Variables الديناميكية
             ═══════════════════════════════════════════ */}
