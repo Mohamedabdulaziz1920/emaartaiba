@@ -12,9 +12,9 @@ interface Props {
   services?: any[];
 }
 
-// ═══════════════════════════════════════════════════
-// 🎨 Social Icon Component
-// ═══════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════
+   🎨 Social Icon Component
+   ═══════════════════════════════════════════════════ */
 const SocialIcon = memo(({ 
   Icon, 
   url, 
@@ -41,9 +41,9 @@ const SocialIcon = memo(({
 ));
 SocialIcon.displayName = 'SocialIcon';
 
-// ═══════════════════════════════════════════════════
-// 🔗 Footer Link Component
-// ═══════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════
+   🔗 Footer Link Component
+   ═══════════════════════════════════════════════════ */
 const FooterLink = memo(({ href, label }: { href: string; label: string }) => (
   <li>
     <Link href={href} className="footer-link">
@@ -54,9 +54,9 @@ const FooterLink = memo(({ href, label }: { href: string; label: string }) => (
 ));
 FooterLink.displayName = 'FooterLink';
 
-// ═══════════════════════════════════════════════════
-// 📍 City Pill Component
-// ═══════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════
+   📍 City Pill Component
+   ═══════════════════════════════════════════════════ */
 const CityPill = memo(({ area }: { area: any }) => (
   <Link href={`/areas/${area.slug}`} className="city-pill">
     <span className="city-pill-icon">📍</span>
@@ -65,9 +65,9 @@ const CityPill = memo(({ area }: { area: any }) => (
 ));
 CityPill.displayName = 'CityPill';
 
-// ═══════════════════════════════════════════════════
-// 🛠️ Service Link Component
-// ═══════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════
+   🛠️ Service Link Component
+   ═══════════════════════════════════════════════════ */
 const ServiceLink = memo(({ service }: { service: any }) => (
   <li>
     <Link href={`/services/${service.slug}`} className="footer-link">
@@ -78,15 +78,14 @@ const ServiceLink = memo(({ service }: { service: any }) => (
 ));
 ServiceLink.displayName = 'ServiceLink';
 
-// ═══════════════════════════════════════════════════
-// 🎯 Main Footer Component
-// ═══════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════
+   🎯 Main Footer Component
+   ═══════════════════════════════════════════════════ */
 export default function Footer({ settings = {}, navigation = [], services: propServices = [] }: Props) {
   const [areas, setAreas] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>(propServices);
   const currentYear = new Date().getFullYear();
 
-  // ✅ استخراج البيانات الديناميكية
   const {
     phone,
     whatsapp,
@@ -115,7 +114,6 @@ export default function Footer({ settings = {}, navigation = [], services: propS
     siteIcon: settings?.site_icon || '🏢',
   }), [settings]);
 
-  // ✅ روابط التواصل الاجتماعي
   const socialLinks = useMemo(() => {
     const links = [
       { name: 'facebook', Icon: FacebookIcon, url: settings.facebook, color: '#1877F2', label: 'فيسبوك' },
@@ -129,7 +127,6 @@ export default function Footer({ settings = {}, navigation = [], services: propS
     return links.filter((s): s is typeof s & { url: string } => Boolean(s.url));
   }, [settings]);
 
-  // ✅ الروابط السريعة
   const quickLinks = useMemo(() => {
     if (navigation && navigation.length > 0) {
       return navigation.slice(0, 6);
@@ -144,7 +141,6 @@ export default function Footer({ settings = {}, navigation = [], services: propS
     ];
   }, [navigation]);
 
-  // ✅ جلب الخدمات
   const fetchServices = useCallback(async () => {
     if (propServices.length > 0) {
       setServices(propServices);
@@ -160,7 +156,6 @@ export default function Footer({ settings = {}, navigation = [], services: propS
     }
   }, [propServices]);
 
-  // ✅ جلب المناطق
   const fetchAreas = useCallback(async () => {
     try {
       const data = await api.areas();
@@ -177,12 +172,11 @@ export default function Footer({ settings = {}, navigation = [], services: propS
 
   return (
     <footer className="footer" suppressHydrationWarning>
-      {/* الشريط العلوي المتدرج */}
       <div className="footer-top-bar" aria-hidden="true" />
 
       {/* Newsletter Section */}
       <div className="footer-newsletter">
-        <div className="container-custom">
+        <div className="footer-container">
           <div className="newsletter-grid">
             <div className="newsletter-content">
               <h3 className="newsletter-title">
@@ -200,62 +194,50 @@ export default function Footer({ settings = {}, navigation = [], services: propS
         </div>
       </div>
 
-      {/* المحتوى الرئيسي */}
-      <div className="container-custom footer-main">
+      {/* Main Footer Content */}
+      <div className="footer-container footer-main">
         <div className="footer-grid">
           
           {/* ═══ العمود الأول: معلومات الشركة ═══ */}
           <div className="footer-col footer-col--brand">
-            <Link href="/" className="footer-brand" aria-label={siteName}>
-              {siteLogo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={siteLogo}
-                  alt={siteName}
-                  className="footer-logo-img"
-                  loading="lazy"
-                  onError={(e) => {
-                    const target = e.currentTarget;
-                    target.style.display = 'none';
-                    const fallback = target.nextElementSibling as HTMLElement;
-                    if (fallback) fallback.style.display = 'flex';
-                  }}
-                />
-              ) : null}
-              
-              <div 
-                className="footer-brand-icon"
-                style={{ display: siteLogo ? 'none' : 'flex' }}
-              >
-                {siteIcon}
-              </div>
-              
-              <div className="footer-brand-info">
-                <div className="footer-brand-name">{siteName || 'الموقع'}</div>
-                {siteTagline && (
-                  <div className="footer-brand-sub">{siteTagline}</div>
-                )}
-              </div>
-            </Link>
-            
-            <p className="footer-desc">
-              {siteDescription || `شركة رائدة في السعودية بخبرة تزيد عن 20 عاماً في تقديم أفضل الخدمات لعملائنا الكرام.`}
-            </p>
-
-            {/* أيقونات التواصل الاجتماعي */}
-            {socialLinks.length > 0 && (
-              <div className="footer-social" aria-label="روابط التواصل الاجتماعي">
-                {socialLinks.map((s) => (
-                  <SocialIcon
-                    key={s.name}
-                    Icon={s.Icon}
-                    url={s.url}
-                    color={s.color}
-                    label={s.label}
+            {/* ✅ Brand Section - عمودي */}
+            <div className="footer-brand-wrapper">
+              <Link href="/" className="footer-brand-link" aria-label={siteName}>
+                {siteLogo ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={siteLogo}
+                    alt={siteName}
+                    className="footer-logo-img"
+                    loading="lazy"
                   />
-                ))}
-              </div>
-            )}
+                ) : (
+                  <div className="footer-brand-icon">
+                    {siteIcon}
+                  </div>
+                )}
+              </Link>
+              
+              {/* ✅ Description تحت الشعار */}
+              <p className="footer-desc">
+                {siteDescription || `شركة رائدة في السعودية بخبرة تزيد عن 20 عاماً في تقديم أفضل الخدمات لعملائنا الكرام.`}
+              </p>
+
+              {/* Social Icons */}
+              {socialLinks.length > 0 && (
+                <div className="footer-social" aria-label="روابط التواصل الاجتماعي">
+                  {socialLinks.map((s) => (
+                    <SocialIcon
+                      key={s.name}
+                      Icon={s.Icon}
+                      url={s.url}
+                      color={s.color}
+                      label={s.label}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* ═══ العمود الثاني: روابط سريعة ═══ */}
@@ -305,7 +287,7 @@ export default function Footer({ settings = {}, navigation = [], services: propS
                     <span className="footer-icon" aria-hidden="true">📞</span>
                     <div className="footer-contact-text">
                       <span className="footer-contact-label">الهاتف</span>
-                      <span className="footer-contact-value" dir="ltr">{phone}</span>
+                      <span className="footer-contact-value" dir="rtl">{phone}</span>
                     </div>
                   </a>
                 </li>
@@ -323,7 +305,7 @@ export default function Footer({ settings = {}, navigation = [], services: propS
                     <span className="footer-icon" aria-hidden="true">💬</span>
                     <div className="footer-contact-text">
                       <span className="footer-contact-label">واتساب</span>
-                      <span className="footer-contact-value" dir="ltr">{whatsapp}</span>
+                      <span className="footer-contact-value" dir="rtl">{whatsapp}</span>
                     </div>
                   </a>
                 </li>
@@ -388,9 +370,9 @@ export default function Footer({ settings = {}, navigation = [], services: propS
         )}
       </div>
 
-      {/* الشريط السفلي */}
+      {/* Bottom Bar */}
       <div className="footer-bottom">
-        <div className="container-custom footer-bottom-inner">
+        <div className="footer-container footer-bottom-inner">
           <p className="footer-copyright">
             {copyrightText || `© ${currentYear} ${siteName}. جميع الحقوق محفوظة.`}
           </p>
@@ -429,7 +411,18 @@ export default function Footer({ settings = {}, navigation = [], services: propS
           color: var(--footer-text, #cbd5e0);
           position: relative;
           overflow: hidden;
-          font-family: var(--font-family, 'Cairo', sans-serif);
+          font-family: var(--font-family, 'Cairo'), sans-serif;
+        }
+
+        /* ═══════════════════════════════════════════
+           📦 Container - نفس container-custom
+           ═══════════════════════════════════════════ */
+        .footer-container {
+          max-width: 1320px;
+          margin: 0 auto;
+          padding: 0 1.5rem;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         /* ═══════════════════════════════════════════
@@ -484,7 +477,7 @@ export default function Footer({ settings = {}, navigation = [], services: propS
         .newsletter-title {
           font-size: clamp(1.125rem, 2.5vw, 1.5rem);
           font-weight: 800;
-          color: var(--footer-text, #ffffff);
+          color: #ffffff;
           margin: 0 0 0.5rem 0;
           display: flex;
           align-items: center;
@@ -507,7 +500,7 @@ export default function Footer({ settings = {}, navigation = [], services: propS
            📦 Main Footer Content
            ═══════════════════════════════════════════ */
         .footer-main {
-          padding: 3.5rem 0 2rem;
+          padding: 3.5rem 1.5rem 2rem;
           position: relative;
           z-index: 1;
         }
@@ -519,34 +512,45 @@ export default function Footer({ settings = {}, navigation = [], services: propS
         }
 
         /* ═══════════════════════════════════════════
-           🏢 Brand Column
+           🏢 Brand Column - عمودي بالكامل
            ═══════════════════════════════════════════ */
-        .footer-brand {
+        .footer-col--brand {
           display: flex;
-          align-items: center;
-          gap: 0.875rem;
+          flex-direction: column;
+        }
+
+        .footer-brand-wrapper {
+          display: flex;
+          flex-direction: column;
+          gap: 1.25rem;
+        }
+
+        .footer-brand-link {
+          display: inline-block;
           text-decoration: none;
-          margin-bottom: 1.25rem;
+          margin-bottom: 0.5rem;
           transition: opacity 0.3s ease;
+          max-width: 200px;
         }
         
-        .footer-brand:hover {
-          opacity: 0.9;
+        .footer-brand-link:hover {
+          opacity: 0.85;
         }
         
         .footer-logo-img {
-          height: 3rem;
+          height: 3.5rem;
           width: auto;
           max-width: 180px;
           border-radius: 0.5rem;
           background: rgba(255, 255, 255, 0.95);
-          padding: 6px 8px;
+          padding: 8px 12px;
           object-fit: contain;
+          display: block;
         }
         
         .footer-brand-icon {
-          width: 3rem;
-          height: 3rem;
+          width: 3.5rem;
+          height: 3.5rem;
           background: linear-gradient(
             135deg,
             var(--color-secondary, #D4AF37),
@@ -556,39 +560,18 @@ export default function Footer({ settings = {}, navigation = [], services: propS
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 1.5rem;
+          font-size: 1.75rem;
           color: #0f172a;
           font-weight: 900;
           box-shadow: 0 8px 20px rgba(212, 175, 55, 0.3);
-          flex-shrink: 0;
-        }
-        
-        .footer-brand-info {
-          display: flex;
-          flex-direction: column;
-          gap: 0.15rem;
-        }
-        
-        .footer-brand-name {
-          font-weight: 800;
-          font-size: 1.125rem;
-          color: #ffffff;
-          line-height: 1.2;
-        }
-        
-        .footer-brand-sub {
-          color: var(--color-secondary, #D4AF37);
-          font-size: 0.75rem;
-          font-weight: 600;
-          line-height: 1.2;
         }
         
         .footer-desc {
           color: var(--footer-text, #cbd5e0);
-          opacity: 0.75;
+          opacity: 0.85;
           font-size: 0.875rem;
           line-height: 1.75;
-          margin: 0 0 1.5rem 0;
+          margin: 0;
         }
 
         /* ═══════════════════════════════════════════
@@ -685,7 +668,6 @@ export default function Footer({ settings = {}, navigation = [], services: propS
           color: var(--color-secondary, #D4AF37);
           opacity: 1;
           transform: translateX(-4px);
-          padding-right: 0.25rem;
         }
         
         .footer-arrow {
@@ -706,21 +688,22 @@ export default function Footer({ settings = {}, navigation = [], services: propS
         }
 
         /* ═══════════════════════════════════════════
-           📞 Contact Section
+           📞 Contact Section - محسّن!
            ═══════════════════════════════════════════ */
         .footer-contact {
           list-style: none;
           display: flex;
           flex-direction: column;
-          gap: 1rem;
+          gap: 0.875rem;
           padding: 0;
           margin: 0;
         }
         
+        /* ✅ الإصلاح المهم - contact item */
         .footer-contact-item {
           display: flex;
-          align-items: flex-start;
-          gap: 0.75rem;
+          align-items: center;
+          gap: 0.75rem !important;
           text-decoration: none;
           color: inherit;
           transition: transform 0.3s ease;
@@ -754,12 +737,15 @@ export default function Footer({ settings = {}, navigation = [], services: propS
           transform: scale(1.1);
         }
         
+        /* ✅ text container - قريب من الأيقونة */
         .footer-contact-text {
           display: flex;
           flex-direction: column;
           gap: 0.15rem;
           min-width: 0;
           flex: 1;
+          margin: 0 !important;
+          padding: 0 !important;
         }
         
         .footer-contact-label {
@@ -769,6 +755,7 @@ export default function Footer({ settings = {}, navigation = [], services: propS
           font-weight: 600;
           text-transform: uppercase;
           letter-spacing: 0.5px;
+          line-height: 1.2;
         }
         
         .footer-contact-value {
@@ -845,7 +832,7 @@ export default function Footer({ settings = {}, navigation = [], services: propS
         }
         
         .footer-bottom-inner {
-          padding: 1.25rem 0;
+          padding: 1.25rem 1.5rem;
           display: flex;
           flex-wrap: wrap;
           justify-content: space-between;
@@ -908,7 +895,7 @@ export default function Footer({ settings = {}, navigation = [], services: propS
         }
 
         /* ═══════════════════════════════════════════
-           📱 Responsive - Mobile First
+           📱 Responsive
            ═══════════════════════════════════════════ */
         
         /* Small phones */
@@ -921,10 +908,10 @@ export default function Footer({ settings = {}, navigation = [], services: propS
             padding: 2rem 0;
           }
           
-          .footer-brand {
-            justify-content: center;
+          .footer-col--brand,
+          .footer-brand-wrapper {
+            align-items: center;
             text-align: center;
-            flex-direction: column;
           }
           
           .footer-desc {
@@ -947,22 +934,7 @@ export default function Footer({ settings = {}, navigation = [], services: propS
           
           .footer-links,
           .footer-contact {
-            align-items: center;
-          }
-          
-          .footer-link {
-            justify-content: center;
-          }
-          
-          .footer-contact-item {
-            justify-content: center;
-            text-align: center;
-            flex-direction: column;
-            align-items: center;
-          }
-          
-          .footer-contact-text {
-            align-items: center;
+            align-items: stretch;
           }
           
           .footer-bottom-inner {
@@ -972,7 +944,7 @@ export default function Footer({ settings = {}, navigation = [], services: propS
         }
 
         /* Tablets */
-        @media (min-width: 481px) and (max-width: 767px) {
+        @media (min-width: 640px) and (max-width: 767px) {
           .footer-grid {
             grid-template-columns: 1fr;
             gap: 2rem;
@@ -984,39 +956,18 @@ export default function Footer({ settings = {}, navigation = [], services: propS
             grid-template-columns: repeat(2, 1fr);
             gap: 2rem;
           }
-          
-          .footer-col--brand {
-            grid-column: 1 / -1;
-            text-align: center;
-          }
-          
-          .footer-col--brand .footer-brand {
-            justify-content: center;
-          }
-          
-          .footer-col--brand .footer-social {
-            justify-content: center;
-          }
         }
 
-        /* Small Desktops */
+        /* ✅ Desktop - 4 columns مع الشعار الأول أكبر */
         @media (min-width: 1024px) {
           .footer-grid {
-            grid-template-columns: 2fr 1fr 1fr 1.5fr;
-            gap: 3rem;
+            grid-template-columns: 1.5fr 1fr 1fr 1.5fr;
+            gap: 2.5rem;
           }
           
-          .footer-col--brand {
-            grid-column: auto;
-            text-align: right;
-          }
-          
-          .footer-col--brand .footer-brand {
-            justify-content: flex-start;
-          }
-          
-          .footer-col--brand .footer-social {
-            justify-content: flex-start;
+          .footer-col--brand,
+          .footer-brand-wrapper {
+            align-items: flex-start;
           }
           
           .newsletter-grid {
@@ -1028,7 +979,11 @@ export default function Footer({ settings = {}, navigation = [], services: propS
         /* Large Desktops */
         @media (min-width: 1280px) {
           .footer-main {
-            padding: 4rem 0 2.5rem;
+            padding: 4rem 1.5rem 2.5rem;
+          }
+          
+          .footer-grid {
+            gap: 3rem;
           }
         }
 
@@ -1073,21 +1028,14 @@ export default function Footer({ settings = {}, navigation = [], services: propS
             transform: none !important;
           }
         }
-
-        /* Dark mode enhancement */
-        @media (prefers-color-scheme: dark) {
-          .footer {
-            background: var(--footer-bg, #0a0f1c);
-          }
-        }
       `}</style>
     </footer>
   );
 }
 
-// ═══════════════════════════════════════════════════
-// 🎨 أيقونات SVG - Social Media
-// ═══════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════
+   🎨 أيقونات SVG
+   ═══════════════════════════════════════════════════ */
 
 const FacebookIcon = memo(({ size = 16 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">

@@ -3,13 +3,14 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import type { CSSProperties } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Phone, MessageCircle, ArrowLeft } from 'lucide-react';
 import type { HeroSlide } from '@/lib/api';
 import { settingsHelpers, type SiteSettings } from '@/lib/settings';
 
-/* ─────────────────────────── Types ─────────────────────────── */
+/* ═══════════════════════════════════════════════════
+   🎯 Types
+   ═══════════════════════════════════════════════════ */
 interface Props {
   slides: HeroSlide[];
   settings?: SiteSettings;
@@ -21,34 +22,63 @@ type SettingsWithWhatsapp = SiteSettings & {
   whatsapp?: string | null;
 };
 
-/* ─────────────────────────── Helpers ─────────────────────────── */
+type TextAlign = 'right' | 'center' | 'left';
+type ContentPosition = 'right' | 'center' | 'left';
+type VerticalPosition = 'top' | 'center' | 'bottom';
+type OverlayType = 'none' | 'solid' | 'gradient';
+type TransitionEffect = 'fade' | 'slide' | 'zoom';
+
+/* ═══════════════════════════════════════════════════
+   🛠️ Helpers
+   ═══════════════════════════════════════════════════ */
+
+/**
+ * ✅ الحصول على رابط الصورة الديناميكي
+ */
 const getImageUrl = (image: string | null | undefined): string => {
   if (!image) return '';
   if (image.startsWith('http://') || image.startsWith('https://')) return image;
+  
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
   const cleanPath = image.replace(/^\/+/, '');
+  
   return cleanPath.startsWith('storage/')
     ? `${backendUrl}/${cleanPath}`
     : `${backendUrl}/storage/${cleanPath}`;
 };
 
+/**
+ * ✅ تحويل HEX إلى RGBA
+ */
 function hexToRgba(hex: string, alpha: number = 1): string {
   if (!hex) return `rgba(0,0,0,${alpha})`;
   if (hex.startsWith('var(') || hex.startsWith('rgb')) return hex;
+  
   const clean = hex.replace('#', '');
-  const full = clean.length === 3 ? clean.split('').map((c) => c + c).join('') : clean;
+  const full = clean.length === 3 
+    ? clean.split('').map((c) => c + c).join('') 
+    : clean;
+  
   const r = parseInt(full.substring(0, 2), 16);
   const g = parseInt(full.substring(2, 4), 16);
   const b = parseInt(full.substring(4, 6), 16);
+  
   if (isNaN(r) || isNaN(g) || isNaN(b)) return `rgba(0,0,0,${alpha})`;
+  
   return `rgba(${r},${g},${b},${Math.max(0, Math.min(1, alpha))})`;
 }
 
+/**
+ * ✅ تحويل الأرقام العربية إلى إنجليزية
+ */
 const toEnglishDigits = (v: string = '') =>
   v
     .replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString())
     .replace(/[۰-۹]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString());
 
+/**
+ * ✅ تحويل رقم الهاتف لصيغة واتساب
+ */
 const toWhatsAppNumber = (v: string = ''): string => {
   const digits = toEnglishDigits(v).replace(/\D/g, '');
   if (!digits) return '';
@@ -57,7 +87,9 @@ const toWhatsAppNumber = (v: string = ''): string => {
   return digits;
 };
 
-/* ─────────────────────────── Maps ─────────────────────────── */
+/* ═══════════════════════════════════════════════════
+   🎨 Style Maps
+   ═══════════════════════════════════════════════════ */
 const TITLE_SIZE_MAP: Record<string, string> = {
   '2xl': 'clamp(1.25rem,2.2vw,1.5rem)',
   '3xl': 'clamp(1.5rem,2.8vw,1.875rem)',
@@ -104,14 +136,10 @@ const FONT_WEIGHT_MAP: Record<string, string> = {
   'font-semibold': '600', 'font-bold': '700', 'font-extrabold': '800', 'font-black': '900',
 };
 
-const FONT_FAMILY_MAP: Record<string, string> = {
-  default: 'inherit',
-  Cairo: '"Cairo",sans-serif',
-  Tajawal: '"Tajawal",sans-serif',
-  Amiri: '"Amiri",serif',
-};
-
-const normalizeAlign = (v?: string): 'right' | 'center' | 'left' => {
+/* ═══════════════════════════════════════════════════
+   🎨 Normalizers
+   ═══════════════════════════════════════════════════ */
+const normalizeAlign = (v?: string): TextAlign => {
   const c = v?.replace('text-', '') || 'right';
   if (c === 'right' || c === 'end') return 'right';
   if (c === 'left' || c === 'start') return 'left';
@@ -119,14 +147,16 @@ const normalizeAlign = (v?: string): 'right' | 'center' | 'left' => {
   return 'right';
 };
 
-const normalizePosition = (v?: string): 'right' | 'center' | 'left' => {
+const normalizePosition = (v?: string): ContentPosition => {
   if (v === 'right' || v === 'end') return 'right';
   if (v === 'left' || v === 'start') return 'left';
   if (v === 'center') return 'center';
   return 'right';
 };
 
-/* ─────────────────────────── Defaults ─────────────────────────── */
+/* ═══════════════════════════════════════════════════
+   ⚙️ Defaults
+   ═══════════════════════════════════════════════════ */
 const DEFAULT_DESIGN = {
   title_color: '#FFFFFF',
   subtitle_color: '#F59E0B',
@@ -136,41 +166,45 @@ const DEFAULT_DESIGN = {
   description_size: 'xl',
   title_weight: '900',
   font_family: 'default',
-  text_align: 'right' as const,
-  content_position: 'right' as const,
-  vertical_position: 'center' as const,
+  text_align: 'right' as TextAlign,
+  content_position: 'right' as ContentPosition,
+  vertical_position: 'center' as VerticalPosition,
   content_max_width: 720,
-  overlay_type: 'gradient' as const,
+  overlay_type: 'gradient' as OverlayType,
   overlay_color: '#000000',
   overlay_opacity: 55,
   button_bg_color: '#F59E0B',
   button_text_color: '#FFFFFF',
   button_hover_color: '#D97706',
-  transition_effect: 'fade' as const,
+  transition_effect: 'fade' as TransitionEffect,
   enable_ken_burns: false,
   display_duration: 6,
   show_decoration: true,
   decoration_color: '#F59E0B',
 };
 
-/* ═══════════════════════════════════════════════════════════════
-   Component - محسّن للسرعة
-   ═══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════
+   🎯 Main Component
+   ═══════════════════════════════════════════════════ */
 export default function HeroSlider({
   slides = [],
   settings = {},
   autoplay = true,
   autoplayDelay,
 }: Props) {
+  /* ═══ State ═══ */
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAutoPlay, setIsAutoPlay] = useState(autoplay);
   const [isHovering, setIsHovering] = useState(false);
   const [direction, setDirection] = useState<1 | -1>(1);
   const [progressKey, setProgressKey] = useState(0);
+  const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
+  
+  /* ═══ Refs ═══ */
   const resumeRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Contact info
+  /* ═══ Contact Info ═══ */
   const phone = String(settings?.phone || '').trim();
   const whatsVal = String(((settings as SettingsWithWhatsapp)?.whatsapp || phone || '')).trim();
   const whatsNum = toWhatsAppNumber(whatsVal);
@@ -178,6 +212,7 @@ export default function HeroSlider({
 
   const slide = slides[currentSlide] || slides[0];
 
+  /* ═══ Design Config ═══ */
   const design = useMemo(() => {
     const m = { ...DEFAULT_DESIGN, ...(slide?.design || {}) };
     return {
@@ -187,22 +222,24 @@ export default function HeroSlider({
     };
   }, [slide]);
 
+  /* ═══ Delay Calculation ═══ */
   const delay = useMemo(() => {
     const dur = Number(design.display_duration);
     const ms = dur > 0 ? dur * 1000 : 5000;
     return autoplayDelay && autoplayDelay > 0 ? autoplayDelay : ms;
   }, [autoplayDelay, design.display_duration]);
 
-  // Guard index
+  /* ═══ Guard Index ═══ */
   useEffect(() => {
-    if (slides.length > 0 && currentSlide > slides.length - 1) setCurrentSlide(0);
+    if (slides.length > 0 && currentSlide > slides.length - 1) {
+      setCurrentSlide(0);
+    }
   }, [slides.length, currentSlide]);
 
-  // ✅ Autoplay محسّن - استخدام requestAnimationFrame
+  /* ═══ Autoplay Logic ═══ */
   useEffect(() => {
     if (!isAutoPlay || slides.length <= 1 || isHovering) return;
 
-    // تنظيف الـ timer السابق
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -222,16 +259,19 @@ export default function HeroSlider({
     };
   }, [isAutoPlay, slides.length, delay, isHovering]);
 
-  // Cleanup
+  /* ═══ Cleanup ═══ */
   useEffect(() => () => {
     if (resumeRef.current) clearTimeout(resumeRef.current);
     if (timerRef.current) clearInterval(timerRef.current);
   }, []);
 
+  /* ═══ Handlers ═══ */
   const pauseAuto = useCallback(() => {
     setIsAutoPlay(false);
     if (resumeRef.current) clearTimeout(resumeRef.current);
-    if (autoplay) resumeRef.current = setTimeout(() => setIsAutoPlay(true), 10000);
+    if (autoplay) {
+      resumeRef.current = setTimeout(() => setIsAutoPlay(true), 10000);
+    }
   }, [autoplay]);
 
   const goTo = useCallback((i: number, dir: 1 | -1 = 1) => {
@@ -242,10 +282,27 @@ export default function HeroSlider({
     pauseAuto();
   }, [slides.length, pauseAuto]);
 
-  const next = () => goTo(currentSlide + 1, 1);
-  const prev = () => goTo(currentSlide - 1, -1);
+  const next = useCallback(() => goTo(currentSlide + 1, 1), [currentSlide, goTo]);
+  const prev = useCallback(() => goTo(currentSlide - 1, -1), [currentSlide, goTo]);
 
-  /* ── Empty state ── */
+  /* ═══ Keyboard Navigation ═══ */
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (slides.length <= 1) return;
+      if (e.key === 'ArrowLeft') next();
+      if (e.key === 'ArrowRight') prev();
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [next, prev, slides.length]);
+
+  /* ═══ Handle Image Error ═══ */
+  const handleImageError = useCallback((index: number) => {
+    setImageErrors((prev) => new Set(prev).add(index));
+  }, []);
+
+  /* ═══ Empty State ═══ */
   if (!slides.length || !slide) {
     return (
       <section className="hero-empty">
@@ -260,38 +317,57 @@ export default function HeroSlider({
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            background: linear-gradient(135deg, var(--color-primary-dark, #0f172a) 0%, var(--color-primary, #1e293b) 100%);
             color: #fff;
           }
-          .hero-empty-inner { text-align: center; }
+          .hero-empty-inner { text-align: center; padding: 2rem; }
           .hero-empty-icon { font-size: 3rem; display: block; margin-bottom: 1rem; }
-          .hero-empty h2 { font-size: 1.75rem; margin-bottom: 0.5rem; font-weight: 800; }
-          .hero-empty p { opacity: 0.7; font-size: 1rem; }
+          .hero-empty h2 { 
+            font-size: 1.75rem; 
+            margin-bottom: 0.5rem; 
+            font-weight: 800; 
+            font-family: var(--font-family, 'Cairo'), sans-serif;
+          }
+          .hero-empty p { 
+            opacity: 0.7; 
+            font-size: 1rem; 
+            font-family: var(--font-family, 'Cairo'), sans-serif;
+          }
         `}</style>
       </section>
     );
   }
 
-  /* ── Dynamic styles ── */
+  /* ═══ Dynamic Styles ═══ */
   const overlayStyle = (): CSSProperties => {
     if (design.overlay_type === 'none') return { display: 'none' };
     const rawOp = Number(design.overlay_opacity);
     const op = Number.isFinite(rawOp) ? rawOp / 100 : 0.55;
     const c = String(design.overlay_color || '#000000');
-    if (design.overlay_type === 'solid')
+    
+    if (design.overlay_type === 'solid') {
       return { background: hexToRgba(c, Math.max(0, Math.min(1, op))) };
+    }
+    
     const s = hexToRgba(c, Math.min(1, op + 0.32));
     const m = hexToRgba(c, Math.min(1, op + 0.05));
     const l = hexToRgba(c, Math.max(0, op - 0.35));
-    if (design.content_position === 'left')
+    
+    if (design.content_position === 'left') {
       return { background: `linear-gradient(to right,${s} 0%,${m} 45%,${l} 100%)` };
-    if (design.content_position === 'center')
+    }
+    if (design.content_position === 'center') {
       return { background: `radial-gradient(ellipse at center,${s} 0%,${m} 50%,${l} 100%)` };
+    }
     return { background: `linear-gradient(to left,${s} 0%,${m} 45%,${l} 100%)` };
   };
 
   const contentWrapStyle = (): CSSProperties => {
-    const vMap: Record<string, string> = { top: 'flex-start', center: 'center', bottom: 'flex-end' };
+    const vMap: Record<string, string> = { 
+      top: 'flex-start', 
+      center: 'center', 
+      bottom: 'flex-end' 
+    };
     return { alignItems: vMap[String(design.vertical_position)] || 'center' };
   };
 
@@ -305,18 +381,21 @@ export default function HeroSlider({
     return {
       maxWidth: `min(${maxW}px,100%)`,
       textAlign: design.text_align,
-      fontFamily: FONT_FAMILY_MAP[String(design.font_family)] || 'inherit',
       direction: 'rtl',
       ...(posMap[design.content_position] || posMap.right),
     };
   };
 
   const flexAlign = (): CSSProperties => {
-    const m: Record<string, string> = { right: 'flex-start', center: 'center', left: 'flex-end' };
+    const m: Record<string, string> = { 
+      right: 'flex-start', 
+      center: 'center', 
+      left: 'flex-end' 
+    };
     return { justifyContent: m[design.text_align] || 'flex-start' };
   };
 
-  /* ── Animation variants (مبسطة للأداء) ── */
+  /* ═══ Animation Variants ═══ */
   const imgVariants = {
     fade: {
       initial: { opacity: 0 },
@@ -338,12 +417,7 @@ export default function HeroSlider({
   const anim = imgVariants[design.transition_effect as keyof typeof imgVariants] || imgVariants.fade;
   const imgUrl = getImageUrl(slide.image);
   const showContact = Boolean(slide.show_phone_button && phone);
-
-  // ✅ تحسين الصورة - تحديد الأبعاد الثابتة لمنع CLS
-  const imageDimensions = useMemo(() => {
-    // أبعاد ثابتة لمنع التغير في التخطيط
-    return { width: 1920, height: 1080 };
-  }, []);
+  const hasImageError = imageErrors.has(currentSlide);
 
   return (
     <section
@@ -351,10 +425,12 @@ export default function HeroSlider({
       dir="rtl"
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
-      // ✅ منع إعادة الرسم غير الضرورية
       style={{ contain: 'layout style paint' }}
+      aria-label="السلايدر الرئيسي"
     >
-      {/* ── Background image ── */}
+      {/* ═══════════════════════════════════
+          🖼️ Background Image
+          ═══════════════════════════════════ */}
       <AnimatePresence mode="wait">
         <motion.div
           key={`img-${currentSlide}`}
@@ -363,27 +439,17 @@ export default function HeroSlider({
           exit={anim.exit}
           transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
           className={`hero-bg ${design.enable_ken_burns ? 'ken-burns' : ''}`}
-          // ✅ تحسين الأداء
           style={{ willChange: 'opacity' }}
         >
-          {imgUrl ? (
-            // ✅ استخدام Next.js Image مع تحسينات الأداء
-            <Image
+          {imgUrl && !hasImageError ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
               src={imgUrl}
               alt={slide.image_alt_ar || slide.title_ar || 'صورة السلايدر'}
-              fill
-              priority={currentSlide === 0}
-              loading={currentSlide === 0 ? 'eager' : 'lazy'}
-              sizes="100vw"
-              quality={80}
-              placeholder="blur"
-              blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCwAAAAAAAAAAAAAAAA/9k="
               className="hero-bg-img"
-              onError={(e) => {
-                // Fallback إذا فشل تحميل الصورة
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-              }}
+              loading={currentSlide === 0 ? 'eager' : 'lazy'}
+              fetchPriority={currentSlide === 0 ? 'high' : 'auto'}
+              onError={() => handleImageError(currentSlide)}
             />
           ) : (
             <div className="hero-bg-fallback" />
@@ -393,7 +459,9 @@ export default function HeroSlider({
         </motion.div>
       </AnimatePresence>
 
-      {/* ── Decorative elements (مبسطة للأداء) ── */}
+      {/* ═══════════════════════════════════
+          🎨 Decorative Bars
+          ═══════════════════════════════════ */}
       {design.show_decoration && (
         <div className="hero-deco" aria-hidden="true">
           <span className="deco-bar deco-bar--1" style={{ background: design.decoration_color }} />
@@ -402,7 +470,9 @@ export default function HeroSlider({
         </div>
       )}
 
-      {/* ── Content ── */}
+      {/* ═══════════════════════════════════
+          📝 Content
+          ═══════════════════════════════════ */}
       <div className="hero-body" style={contentWrapStyle()}>
         <div className="hero-container">
           <AnimatePresence mode="wait">
@@ -502,7 +572,7 @@ export default function HeroSlider({
                       </span>
                       <span className="h-btn__copy">
                         <strong>اتصل الآن</strong>
-                        <small>{phone}</small>
+                        <small dir="ltr">{phone}</small>
                       </span>
                     </a>
 
@@ -518,7 +588,7 @@ export default function HeroSlider({
                       </span>
                       <span className="h-btn__copy">
                         <strong>واتساب</strong>
-                        <small>{whatsVal || phone}</small>
+                        <small dir="ltr">{whatsVal || phone}</small>
                       </span>
                     </a>
                   </>
@@ -529,14 +599,16 @@ export default function HeroSlider({
         </div>
       </div>
 
-      {/* ── Navigation arrows ── */}
+      {/* ═══════════════════════════════════
+          🧭 Navigation Arrows
+          ═══════════════════════════════════ */}
       {slides.length > 1 && (
         <>
           <button
             type="button"
             onClick={prev}
             className="hero-arrow hero-arrow--prev"
-            aria-label="السابق"
+            aria-label="السلايد السابق"
           >
             <ChevronRight size={20} strokeWidth={2.5} />
           </button>
@@ -544,16 +616,18 @@ export default function HeroSlider({
             type="button"
             onClick={next}
             className="hero-arrow hero-arrow--next"
-            aria-label="التالي"
+            aria-label="السلايد التالي"
           >
             <ChevronLeft size={20} strokeWidth={2.5} />
           </button>
         </>
       )}
 
-      {/* ── Dots / Progress ── */}
+      {/* ═══════════════════════════════════
+          🎯 Dots & Counter
+          ═══════════════════════════════════ */}
       {slides.length > 1 && (
-        <div className="hero-indicators" aria-label="تنقل السلايدر">
+        <div className="hero-indicators" role="tablist" aria-label="مؤشرات السلايدر">
           {slides.map((_, i) => (
             <button
               key={i}
@@ -561,6 +635,8 @@ export default function HeroSlider({
               onClick={() => goTo(i, i > currentSlide ? 1 : -1)}
               className={`hero-ind ${i === currentSlide ? 'hero-ind--active' : ''}`}
               aria-label={`اذهب للسلايد ${i + 1}`}
+              aria-selected={i === currentSlide}
+              role="tab"
             >
               {i === currentSlide && isAutoPlay && !isHovering && (
                 <motion.span
@@ -575,14 +651,16 @@ export default function HeroSlider({
               <span
                 className="hero-ind__dot"
                 style={{
-                  background: i === currentSlide ? design.decoration_color : 'rgba(255,255,255,0.45)',
+                  background: i === currentSlide 
+                    ? design.decoration_color 
+                    : 'rgba(255,255,255,0.45)',
                 }}
               />
             </button>
           ))}
 
           {/* Slide counter */}
-          <span className="hero-counter">
+          <span className="hero-counter" aria-live="polite">
             <span className="hero-counter__current">{String(currentSlide + 1).padStart(2, '0')}</span>
             <span className="hero-counter__sep">/</span>
             <span className="hero-counter__total">{String(slides.length).padStart(2, '0')}</span>
@@ -590,12 +668,19 @@ export default function HeroSlider({
         </div>
       )}
 
-      {/* ── Bottom gradient line ── */}
-      <div className="hero-bottom-line" style={{ background: `linear-gradient(90deg,transparent,${design.decoration_color},transparent)` }} />
+      {/* ═══════════════════════════════════
+          ⬇️ Bottom Line
+          ═══════════════════════════════════ */}
+      <div 
+        className="hero-bottom-line" 
+        style={{ background: `linear-gradient(90deg,transparent,${design.decoration_color},transparent)` }} 
+      />
 
-      {/* ═══════ Styles محسّنة ═══════ */}
+      {/* ═══════════════════════════════════
+          🎨 Styles
+          ═══════════════════════════════════ */}
       <style jsx>{`
-        /* ───── Base ───── */
+        /* ═══ Base ═══ */
         .hero-slider {
           position: relative;
           width: 100%;
@@ -604,19 +689,18 @@ export default function HeroSlider({
           height: clamp(540px, 75svh, 800px);
           max-height: 800px;
           overflow: hidden;
-          background: #0a0e1a;
+          background: var(--color-primary-dark, #0a0e1a);
           isolation: isolate;
-          /* ✅ تحسين الأداء */
           contain: layout style paint;
+          font-family: var(--font-family, 'Cairo'), sans-serif;
         }
 
-        /* ───── Background ───── */
+        /* ═══ Background ═══ */
         .hero-bg {
           position: absolute;
           inset: 0;
           z-index: 1;
           overflow: hidden;
-          /* ✅ تحسين الأداء */
           will-change: opacity;
         }
         .hero-bg-img {
@@ -626,11 +710,12 @@ export default function HeroSlider({
           height: 100%;
           object-fit: cover;
           object-position: center;
+          display: block;
         }
         .hero-bg-fallback {
           position: absolute;
           inset: 0;
-          background: linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #0f172a 100%);
+          background: linear-gradient(135deg, var(--color-primary-dark, #0f172a) 0%, var(--color-primary, #1e293b) 40%, var(--color-primary-dark, #0f172a) 100%);
         }
         .ken-burns .hero-bg-img {
           animation: kb 18s ease-in-out infinite alternate;
@@ -648,7 +733,7 @@ export default function HeroSlider({
           pointer-events: none;
         }
 
-        /* Noise texture overlay (مخفف) */
+        /* Noise texture */
         .hero-noise {
           position: absolute;
           inset: 0;
@@ -660,7 +745,7 @@ export default function HeroSlider({
           mix-blend-mode: overlay;
         }
 
-        /* ───── Decoration ───── */
+        /* ═══ Decoration ═══ */
         .hero-deco {
           position: absolute;
           top: 50%;
@@ -681,12 +766,7 @@ export default function HeroSlider({
         .deco-bar--2 { height: 64px; margin-right: 12px; }
         .deco-bar--3 { height: 28px; }
 
-        /* ───── Particles (مخفف) ───── */
-        .hero-particles {
-          display: none;
-        }
-
-        /* ───── Content wrapper ───── */
+        /* ═══ Content Wrapper ═══ */
         .hero-body {
           position: relative;
           z-index: 10;
@@ -711,7 +791,7 @@ export default function HeroSlider({
           overflow-wrap: break-word;
         }
 
-        /* ───── Subtitle ───── */
+        /* ═══ Subtitle ═══ */
         .hero-subtitle {
           display: inline-flex !important;
           align-items: center !important;
@@ -731,7 +811,7 @@ export default function HeroSlider({
           flex-shrink: 0 !important;
         }
 
-        /* ───── Title ───── */
+        /* ═══ Title ═══ */
         .hero-title {
           line-height: 1.15;
           margin: 0 0 1.1rem;
@@ -740,9 +820,10 @@ export default function HeroSlider({
           word-wrap: break-word;
           overflow-wrap: break-word;
           text-wrap: balance;
+          font-family: var(--font-family-headings, var(--font-family, 'Cairo')), sans-serif;
         }
 
-        /* ───── Description ───── */
+        /* ═══ Description ═══ */
         .hero-desc {
           line-height: 1.75;
           margin-bottom: 0;
@@ -751,7 +832,7 @@ export default function HeroSlider({
           max-width: 100%;
         }
 
-        /* ───── Navigation arrows ───── */
+        /* ═══ Navigation Arrows ═══ */
         .hero-arrow {
           position: absolute;
           top: 50%;
@@ -774,11 +855,16 @@ export default function HeroSlider({
         .hero-arrow:hover {
           background: rgba(255,255,255,0.18);
           border-color: rgba(255,255,255,0.3);
+          transform: translateY(-50%) scale(1.05);
+        }
+        .hero-arrow:focus-visible {
+          outline: 2px solid var(--color-secondary, #F59E0B);
+          outline-offset: 2px;
         }
         .hero-arrow--prev { left: 16px; }
         .hero-arrow--next { right: 16px; }
 
-        /* ───── Indicators ───── */
+        /* ═══ Indicators ═══ */
         .hero-indicators {
           position: absolute;
           bottom: 28px;
@@ -825,6 +911,11 @@ export default function HeroSlider({
           transform-origin: right;
           opacity: 0.4;
         }
+        .hero-ind:focus-visible {
+          outline: 2px solid var(--color-secondary, #F59E0B);
+          outline-offset: 4px;
+          border-radius: 4px;
+        }
 
         /* Counter */
         .hero-counter {
@@ -847,7 +938,7 @@ export default function HeroSlider({
           margin: 0 1px;
         }
 
-        /* ───── Bottom line ───── */
+        /* ═══ Bottom Line ═══ */
         .hero-bottom-line {
           position: absolute;
           bottom: 0;
@@ -858,9 +949,7 @@ export default function HeroSlider({
           opacity: 0.4;
         }
 
-        /* ═══════════════════════════════════════════
-           Responsive
-           ═══════════════════════════════════════════ */
+        /* ═══════════════════ Responsive ═══════════════════ */
         @media (max-width: 1200px) {
           .hero-container { padding-inline: clamp(3rem, 6vw, 5.5rem); }
           .hero-deco { right: clamp(1.2rem, 3.5vw, 3rem); }
@@ -919,6 +1008,9 @@ export default function HeroSlider({
             transform: none;
             border-radius: 10px;
           }
+          .hero-arrow:hover {
+            transform: scale(1.05);
+          }
           .hero-arrow--prev { left: 12px; }
           .hero-arrow--next { right: 12px; }
           .hero-indicators { bottom: 32px; }
@@ -945,11 +1037,21 @@ export default function HeroSlider({
 
         @media (prefers-reduced-motion: reduce) {
           .ken-burns .hero-bg-img { animation: none; }
-          .hero-arrow { transition: none !important; }
+          .hero-arrow,
+          .hero-ind,
+          .hero-ind__dot { 
+            transition: none !important; 
+          }
+        }
+
+        @media print {
+          .hero-slider { display: none; }
         }
       `}</style>
 
-      {/* ═══════ Global button styles ═══════ */}
+      {/* ═══════════════════════════════════
+          🎨 Global Button Styles
+          ═══════════════════════════════════ */}
       <style jsx global>{`
         .hero-slider .hero-desc p { margin: 0; }
         .hero-slider .hero-desc p + p { margin-top: 0.5rem; }
@@ -983,10 +1085,12 @@ export default function HeroSlider({
           isolation: isolate;
           white-space: nowrap;
           font-weight: 600;
+          font-family: var(--font-family, 'Cairo'), sans-serif;
           box-shadow: 0 8px 32px rgba(0,0,0,0.18);
           backdrop-filter: blur(12px);
           -webkit-backdrop-filter: blur(12px);
           transition: all 0.3s ease;
+          cursor: pointer;
         }
 
         .hero-slider .h-btn::before {
@@ -1008,6 +1112,10 @@ export default function HeroSlider({
         }
         .hero-slider .h-btn:active {
           transform: translateY(-1px);
+        }
+        .hero-slider .h-btn:focus-visible {
+          outline: 2px solid var(--color-secondary, #F59E0B);
+          outline-offset: 2px;
         }
 
         .hero-slider .h-btn--primary {
@@ -1089,8 +1197,6 @@ export default function HeroSlider({
           font-size: 0.7rem;
           font-weight: 600;
           opacity: 0.85;
-          direction: ltr;
-          unicode-bidi: plaintext;
         }
 
         .hero-slider .h-btn--whatsapp {
@@ -1128,13 +1234,13 @@ export default function HeroSlider({
             align-items: stretch !important;
             justify-content: center !important;
             width: 100%;
-            max-width: 300px;
+            max-width: 320px;
             margin: 1.25rem auto 0;
             gap: 0.5rem !important;
           }
           .hero-slider .h-btn {
             width: 100%;
-            min-height: 46px;
+            min-height: 48px;
             border-radius: 12px;
             justify-content: center;
           }
@@ -1143,7 +1249,7 @@ export default function HeroSlider({
             text-align: center;
           }
           .hero-slider .h-btn__copy small {
-            max-width: 160px;
+            max-width: 180px;
           }
           .hero-slider .h-btn--primary {
             order: -1;
@@ -1151,10 +1257,10 @@ export default function HeroSlider({
         }
 
         @media (max-width: 420px) {
-          .hero-slider .hero-actions { max-width: 270px; }
+          .hero-slider .hero-actions { max-width: 290px; }
           .hero-slider .h-btn {
-            min-height: 44px;
-            padding: 0.5rem 0.7rem;
+            min-height: 46px;
+            padding: 0.5rem 0.75rem;
           }
           .hero-slider .h-btn__copy strong { font-size: 0.8rem; }
           .hero-slider .h-btn__copy small { display: none; }
@@ -1164,7 +1270,8 @@ export default function HeroSlider({
         @media (prefers-reduced-motion: reduce) {
           .hero-slider .h-btn,
           .hero-slider .h-btn::before,
-          .hero-slider .h-btn__arrow {
+          .hero-slider .h-btn__arrow,
+          .hero-slider .h-btn__icon {
             transition: none !important;
           }
         }
