@@ -316,19 +316,48 @@ export default function CategoriesSection({
                     </div>
                   )}
 
-                  {/* Icon Section */}
-                  <div 
-                    className="cat-card-icon"
-                    style={{ background: gradient.bg }}
-                  >
-                    <div className="cat-icon-emoji">{icon}</div>
-                    <FolderOpen 
-                      size={32} 
-                      className="cat-icon-svg"
-                      strokeWidth={1.5}
-                    />
-                    <div className="cat-icon-pattern" aria-hidden="true" />
-                  </div>
+           {/* Icon Section - محسّن لعرض الصور */}
+<div
+  className="cat-card-icon"
+  style={{
+    background: category.image
+      ? 'transparent'
+      : gradient.bg,
+  }}
+>
+  {/* ✅ عرض الصورة إذا موجودة */}
+  {category.image ? (
+    <>
+      <img
+        src={category.image}
+        alt={category.name_ar}
+        className="cat-image"
+        loading="lazy"
+        onError={(e) => {
+          // إذا فشلت الصورة، أخفها وأظهر الـ gradient
+          const img = e.currentTarget;
+          const parent = img.parentElement;
+          if (parent) {
+            img.style.display = 'none';
+            parent.style.background = gradient.bg;
+          }
+        }}
+      />
+      <div className="cat-image-overlay" />
+    </>
+  ) : (
+    <>
+      <div className="cat-icon-emoji">{icon}</div>
+      <div className="cat-icon-pattern" aria-hidden="true" />
+    </>
+  )}
+
+  <FolderOpen
+    size={32}
+    className="cat-icon-svg"
+    strokeWidth={1.5}
+  />
+</div>
 
                   {/* Content */}
                   <div className="cat-card-content">
@@ -604,7 +633,45 @@ export default function CategoriesSection({
             radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.08) 0%, transparent 50%);
           pointer-events: none;
         }
+/* ═══ Image Support ═══ */
+.cat-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+  transition: transform 0.4s ease;
+}
 
+.cat-image-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent 40%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+  z-index: 2;
+  pointer-events: none;
+}
+
+.cat-card:hover .cat-image {
+  transform: scale(1.1);
+}
+
+/* عندما توجد صورة - أخفِ الـ SVG icon */
+.cat-card-icon:has(.cat-image) .cat-icon-svg {
+  color: rgba(255, 255, 255, 0.8);
+  z-index: 3;
+  bottom: 12px;
+  left: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 4px;
+  backdrop-filter: blur(4px);
+}
         .cat-icon-emoji {
           font-size: 3.5rem;
           position: relative;

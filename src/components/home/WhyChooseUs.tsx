@@ -730,42 +730,102 @@ export default function WhyChooseUs({
           }
         }
 
-        @media (max-width: 767px) {
-          .wcu-section {
-            padding: 2.5rem 0;
-          }
-          
-          .wcu-container {
-            padding: 0 1rem;
-          }
-          
-          .wcu-grid {
-            gap: 2rem;
-          }
-          
-          .wcu-title {
-            text-align: center;
-          }
-          
-          .wcu-description {
-            text-align: center;
-          }
-          
-          .wcu-badge {
-            display: flex;
-            justify-content: center;
-            width: fit-content;
-            margin: 0 auto 1rem;
-          }
-          
-          .wcu-features {
-            grid-template-columns: 1fr;
-          }
-          
-          .wcu-form-container {
-            padding: 1.5rem;
-          }
-        }
+      @media (max-width: 767px) {
+  .wcu-section {
+    padding: 2.5rem 0;
+  }
+
+  .wcu-container {
+    padding: 0 1rem;
+  }
+
+  .wcu-grid {
+    gap: 2rem;
+  }
+
+  .wcu-title {
+    text-align: center;
+  }
+
+  .wcu-description {
+    text-align: center;
+  }
+
+  .wcu-badge {
+    display: flex;
+    justify-content: center;
+    width: fit-content;
+    margin: 0 auto 1rem;
+  }
+
+  .wcu-features {
+    grid-template-columns: 1fr;
+  }
+
+  /* ✅ توسيط البطاقات - استخدم !important */
+  .wcu-feature {
+    display: flex !important;
+    flex-direction: column !important;
+    text-align: center !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.75rem !important;
+    padding: 1.5rem 1.25rem !important;
+  }
+
+  /* ✅ إخفاء الشريط الجانبي في الجوال */
+  .wcu-feature__bar {
+    display: none !important;
+  }
+
+  /* ✅ الأيقونة في المنتصف */
+  .wcu-feature__icon {
+    width: 3.5rem !important;
+    height: 3.5rem !important;
+    font-size: 1.75rem !important;
+    margin: 0 auto !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* ✅ المحتوى في المنتصف */
+  .wcu-feature__content {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    text-align: center !important;
+    flex: none !important;
+  }
+
+  .wcu-feature__title {
+    text-align: center !important;
+    width: 100% !important;
+  }
+
+  .wcu-feature__desc {
+    text-align: center !important;
+    width: 100% !important;
+  }
+
+  /* توسيط الفورم */
+  .wcu-form-container {
+    padding: 1.5rem;
+  }
+
+  .wcu-form-badge {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .wcu-form-title {
+    text-align: center;
+  }
+
+  .wcu-form-subtitle {
+    text-align: center;
+  }
+}
 
         @media (max-width: 480px) {
           .wcu-feature {
