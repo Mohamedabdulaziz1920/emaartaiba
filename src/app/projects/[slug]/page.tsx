@@ -206,6 +206,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
               <Image
                 src={coverImageUrl}
                 alt={project.image_alt || project.title_ar}
+                title={project.image_title || project.title_ar}
                 fill
                 priority
                 className={styles.heroBgImage}
@@ -287,6 +288,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                     <Image
                       src={mainImageUrl}
                       alt={project.image_alt || project.title_ar}
+                      title={project.image_title || project.title_ar} 
                       width={900}
                       height={600}
                       className={styles.mainImage}
@@ -356,37 +358,41 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                   <div className={styles.card}>
                     <h2 className={styles.cardTitle}>🔄 قبل وبعد</h2>
                     <div className={styles.beforeAfterGrid}>
-                      {(project.before_after_images ?? []).map(
-                        (pair: BeforeAfterImage, idx: number) => (
-                          <div key={idx} className={styles.baCard}>
-                            {pair.title && <h4>{pair.title}</h4>}
-                            <div className={styles.baImages}>
-                              <div className={styles.baImageWrapper}>
-                                <span className={styles.baLabel}>قبل</span>
-                                {pair.before && (
-                                  <Image
-                                    src={getImageUrl(pair.before)}
-                                    alt={`قبل - ${pair.title || idx + 1}`}
-                                    fill
-                                    className={styles.baImage}
-                                  />
-                                )}
-                              </div>
-                              <div className={styles.baImageWrapper}>
-                                <span className={`${styles.baLabel} ${styles.baLabelAfter}`}>بعد</span>
-                                {pair.after && (
-                                  <Image
-                                    src={getImageUrl(pair.after)}
-                                    alt={`بعد - ${pair.title || idx + 1}`}
-                                    fill
-                                    className={styles.baImage}
-                                  />
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      )}
+                    {(project.before_after_images ?? []).map(
+  (pair: BeforeAfterImage, idx: number) => (
+    <div key={idx} className={styles.baCard}>
+      {pair.title && <h4>{pair.title}</h4>}
+      <div className={styles.baImages}>
+        <div className={styles.baImageWrapper}>
+          <span className={styles.baLabel}>قبل</span>
+          {pair.before && (
+            <Image
+              src={getImageUrl(pair.before)}
+              // ✅ Alt محسّن للسيو
+              alt={`${project.title_ar} - قبل التنفيذ ${pair.title ? `- ${pair.title}` : `- صورة ${idx + 1}`}`}
+              title={pair.title || `${project.title_ar} - قبل`}
+              fill
+              className={styles.baImage}
+            />
+          )}
+        </div>
+        <div className={styles.baImageWrapper}>
+          <span className={`${styles.baLabel} ${styles.baLabelAfter}`}>بعد</span>
+          {pair.after && (
+            <Image
+              src={getImageUrl(pair.after)}
+              // ✅ Alt محسّن للسيو
+              alt={`${project.title_ar} - بعد التنفيذ ${pair.title ? `- ${pair.title}` : `- صورة ${idx + 1}`}`}
+              title={pair.title || `${project.title_ar} - بعد`}
+              fill
+              className={styles.baImage}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  )
+)}
                     </div>
                   </div>
                 )}

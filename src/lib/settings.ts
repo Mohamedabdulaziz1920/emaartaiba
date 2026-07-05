@@ -471,7 +471,7 @@ export function buildMediaUrl(path?: string | null): string {
   // ✅ تحديد الـ Backend URL
   const backend = process.env.NEXT_PUBLIC_BACKEND_URL || 
                   process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ||
-                  'https://api.lamsataljarj.com';
+                  'https://api.dicoratjeeda.com';
   
   // ✅ تنظيف المسار
   const clean = path.replace(/^\/+/, '');

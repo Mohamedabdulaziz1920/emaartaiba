@@ -115,6 +115,13 @@ export interface Category {
   description_ar?: string;
   description_en?: string;
   image?: string | null;
+   latest_post?: {
+    id: number;
+    title_ar: string;
+    slug: string;
+    featured_image: string | null;
+    published_at?: string;
+  } | null;
   type: 'service' | 'project' | 'blog';
   type_label: string;
   parent_id?: number | null;
@@ -137,6 +144,7 @@ export interface Category {
   };
   created_at?: string;
   updated_at?: string;
+  
 }
 
 export interface CategoryPostsResponse {
@@ -390,6 +398,21 @@ export interface Service {
   views_count: number;
   created_at?: string;
   updated_at?: string;
+
+  // ✅ حقول SEO للصور (جديد)
+  image_alt?: string | null;
+  image_title?: string | null;
+  background_image_alt?: string | null;
+  og_image_alt?: string | null;
+  gallery_metadata?: Array<{
+    alt: string;
+    title?: string;
+    caption?: string;
+  }> | null;
+
+  // ✅ حقول إضافية (اختيارية)
+  price_from?: number | string | null;
+  duration?: string | null;
 }
 
 export interface ServicesApiResponse {

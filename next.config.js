@@ -22,22 +22,22 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'api.lamsataljarj.com',
+        hostname: 'api.dicoratjeeda.com',
         pathname: '/storage/**',
       },
       {
         protocol: 'https',
-        hostname: 'api.lamsataljarj.com',
+        hostname: 'api.dicoratjeeda.com',
         pathname: '/**',
       },
       {
         protocol: 'https',
-        hostname: 'www.lamsataljarj.com',
+        hostname: 'www.dicoratjeeda.com',
         pathname: '/**',
       },
       {
         protocol: 'https',
-        hostname: 'lamsataljarj.com',
+        hostname: 'dicoratjeeda.com',
         pathname: '/**',
       },
       {
